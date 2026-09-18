@@ -1,0 +1,2330 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>福建LNG接收站设备缺陷管理系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <script>
+        function loadScript(url, callback) {
+            var script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.onload = callback;
+            script.onerror = function () {
+                console.warn('CDN加载失败，使用本地fallback');
+                initWithoutECharts();
+            };
+            script.src = url;
+            document.head.appendChild(script);
+        }
+
+        loadScript('https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js', function () {
+            window.echartsLoaded = true;
+        });
+
+        function initWithoutECharts() {
+            window.echartsLoaded = false;
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-light: #34495e;
+            --color-bg: #f5f7fa;
+            --color-border: rgba(0, 0, 0, 0.08);
+            --color-text: #333;
+            --color-text-secondary: #666;
+            --radius: 10px;
+            --radius-sm: 6px;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);
+            --btn-padding: 10px 20px;
+            --btn-font: 14px;
+        }
+
+        /* ======= Reset & 全局 ======= */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background-color: var(--color-bg);
+            padding: 20px;
+            min-height: 100vh;
+            overflow-x: auto;
+            color: var(--color-text);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            overflow: visible;
+            padding: 0 20px;
+        }
+
+        .table-section {
+            max-width: none !important;
+            width: 100%;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
+        /* ======= Header & 按钮 ======= */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: var(--color-primary);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: var(--btn-padding);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: var(--btn-font);
+            font-weight: 500;
+            background-color: var(--color-primary);
+            color: white;
+            transition: all 0.25s ease;
+        }
+
+        .btn:hover {
+            background-color: var(--color-primary-light);
+            border-color: rgba(255, 255, 255, 0.35);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(44, 62, 80, 0.25);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        /* header 内按钮：浅色底 + 深色文字，与深色 header 形成清晰对比 */
+        .header .btn {
+            background-color: rgba(255, 255, 255, 0.95);
+            color: var(--color-primary);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+        }
+
+        .header .btn:hover {
+            background-color: rgba(255, 255, 255, 1);
+            color: var(--color-primary-light);
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .header .btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* === 双栏容器：统计卡片 + 龙虎榜 === */
+        .dashboard-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            align-items: stretch;
+        }
+
+        /* 左侧：统计卡片区 */
+        /* ======= 统计卡片（stats-panel + stat-card） ======= */
+        .stats-panel {
+            flex: 0 0 55%;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 16px 10px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+            transition: all 0.25s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 卡片数值配色 */
+        .stat-card.stat-red .stat-value {
+            color: #e74c3c;
+        }
+
+        .stat-card.stat-green .stat-value {
+            color: #27ae60;
+        }
+
+        .stat-card.stat-orange .stat-value {
+            color: #e67e22;
+        }
+
+        .stat-card.stat-blue .stat-value {
+            color: #3498db;
+        }
+
+        .stat-card.stat-purple .stat-value {
+            color: #8e44ad;
+        }
+
+        /* 右侧：消缺龙虎榜 */
+        /* ======= 消缺龙虎榜（leaderboard） ======= */
+        .leaderboard {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, auto);
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .leaderboard-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: box-shadow 0.25s ease;
+        }
+
+        .leaderboard-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .lb-title {
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 14px;
+            color: white;
+            letter-spacing: 0.5px;
+        }
+
+        .lb-title.lb-red {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+        }
+
+        .lb-title.lb-green {
+            background: linear-gradient(90deg, #27ae60, #1e8449);
+        }
+
+        .lb-title.lb-orange {
+            background: linear-gradient(90deg, #e67e22, #d35400);
+        }
+
+        .lb-title.lb-purple {
+            background: linear-gradient(90deg, #8e44ad, #6c3483);
+        }
+
+        .lb-body {
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            min-height: 80px;
+        }
+
+        .lb-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 7px 12px;
+            background-color: #fafbfc;
+            border-radius: 6px;
+            font-size: 14px;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .lb-rank {
+            width: 22px;
+            height: 22px;
+            line-height: 22px;
+            text-align: center;
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .lb-rank-1 {
+            background: linear-gradient(135deg, #ffd700, #f0a500);
+            color: #fff;
+        }
+
+        .lb-rank-2 {
+            background: linear-gradient(135deg, #bdc3c7, #7f8c8d);
+            color: #fff;
+        }
+
+        .lb-rank-3 {
+            background: linear-gradient(135deg, #cd7f32, #a0522d);
+            color: #fff;
+        }
+
+        .lb-rank-n {
+            background: #ecf0f1;
+            color: #7f8c8d;
+        }
+
+        .lb-profession {
+            flex: 1;
+            color: var(--color-text);
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .lb-count {
+            font-weight: 700;
+            font-size: 16px;
+            min-width: 32px;
+            text-align: right;
+        }
+
+        .lb-empty {
+            font-size: 13px;
+            color: #bbb;
+            text-align: center;
+            padding: 14px 0;
+        }
+
+        /* ======= 汇总表样式 ======= */
+        .summary-table-wrap {
+            margin: 0 0 16px 0;
+            padding: 14px 16px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            table-layout: fixed;
+        }
+
+        .summary-table th,
+        .summary-table td {
+            border: 1px solid #d0d7de;
+            padding: 8px 10px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .summary-table tr.st-header-row th {
+            background: #2c3e50;
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .summary-table tr.st-header-row th.st-col {
+            background: #34495e;
+            /* 接收站列稍亮，与图片蓝色底一致 */
+        }
+
+        .summary-table tr.st-header-row th.st-sub-total {
+            background: #34495e;
+            /* 总计子标题稍亮 */
+        }
+
+        .summary-table th.st-col,
+        .summary-table td.st-col {
+            width: 80px;
+        }
+
+        .summary-table tbody td.st-total {
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        /* ======= 图表区（chart-section + 切换tab + 底部表） ======= */
+        .chart-section {
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 20px;
+        }
+
+        .chart-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .chart-tab {
+            padding: 8px 16px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            background: white;
+            font-size: var(--btn-font);
+            color: var(--color-text-secondary);
+            transition: all 0.25s ease;
+        }
+
+        .chart-tab:hover {
+            color: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .chart-tab.active {
+            background-color: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .chart-container {
+            height: 300px;
+        }
+
+        .chart-data-table {
+            margin-top: 5px;
+            overflow-x: auto;
+        }
+
+        .chart-data-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .chart-data-table th,
+        .chart-data-table td {
+            border: 1px solid var(--color-border);
+            padding: 8px 12px;
+            text-align: center;
+        }
+
+        .chart-data-table th {
+            background-color: var(--color-primary);
+            font-weight: 600;
+            color: white;
+        }
+
+        .chart-data-table .legend-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .toggle-table-btn {
+            display: none;
+            width: 100%;
+            padding: 12px 20px;
+            background-color: var(--color-primary);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius);
+            font-size: var(--btn-font);
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.25s ease;
+            margin-top: 20px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .toggle-table-btn:hover {
+            background-color: var(--color-primary-light);
+            border-color: rgba(255, 255, 255, 0.35);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(44, 62, 80, 0.25);
+        }
+
+        #toggleIcon {
+            transition: transform 0.3s ease;
+            font-size: 12px;
+        }
+
+        /* ======= 数据表格区（data-table + 分页 + 搜索） ======= */
+        .table-wrapper {
+            overflow-x: auto;
+            overflow-y: hidden;
+            width: 100%;
+            display: block;
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+            min-width: max-content;
+        }
+
+        .scroll-hint {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(44, 62, 80, 0.8);
+            color: white;
+            padding: 10px 8px;
+            border-radius: 4px 0 0 4px;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            width: 36px;
+            height: 40px;
+        }
+
+        .scroll-hint::before {
+            content: '';
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-left: 10px solid white;
+        }
+
+        .scroll-hint:hover {
+            background: rgba(44, 62, 80, 1);
+            padding-right: 10px;
+        }
+
+        .scroll-hint.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .table-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .search-box {
+            padding: 8px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-size: var(--btn-font);
+            color: var(--color-text);
+            width: 250px;
+            transition: border-color 0.2s ease;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .pagination {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .page-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--color-border);
+            background: white;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: var(--btn-font);
+            color: var(--color-text);
+            transition: all 0.2s ease;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background-color: #f0f0f0;
+            border-color: #ccc;
+        }
+
+        .page-btn.active {
+            background-color: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            font-size: 14px;
+            color: #666;
+            margin: 0 10px;
+        }
+
+        .data-table {
+            width: auto;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: max-content;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #f0f0f0;
+            white-space: nowrap;
+        }
+
+        .data-table th {
+            background-color: var(--color-primary);
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+
+        .data-table th:hover {
+            background-color: var(--color-primary-light);
+        }
+
+        .sort-icon {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-left: 5px;
+            vertical-align: middle;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 8l6 6 6-6M6 16l6-6 6 6'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0.7;
+        }
+
+        .data-table tr {
+            transition: background-color 0.15s ease;
+        }
+
+        .data-table tr:hover {
+            background-color: #f0f4f8;
+        }
+
+        .data-table tr:nth-child(even) {
+            background-color: #f9fbfc;
+        }
+
+        .data-table tr:nth-child(even):hover {
+            background-color: #eef3f7;
+        }
+
+        /* ======= 状态徽章 ======= */
+        .status-pending {
+            background-color: #f39c12;
+            color: white;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+
+        .status-completed {
+            background-color: #27ae60;
+            color: white;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+
+        /* ======= Modal 弹窗 ======= */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius);
+            padding: 0;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .modal-close {
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+            transition: color 0.3s;
+        }
+
+        .modal-close:hover {
+            color: #666;
+        }
+
+        .modal-content {
+            padding: 20px 30px;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content p {
+            margin: 0;
+            color: #666;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .modal-footer .btn {
+            min-width: 100px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .alert-info {
+            background-color: #e8f4f8;
+            color: #0c5460;
+            padding: 10px 15px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 15px;
+            font-size: var(--btn-font);
+            border: 1px solid rgba(12, 84, 96, 0.15);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>福建LNG接收站设备缺陷管理系统</h1>
+            <div class="btn-group">
+                <label for="fileInput" class="btn btn-upload">
+                    <span id="uploadText">选择文件</span>
+                    <span id="loadingIndicator" class="loading" style="display: none;"></span>
+                </label>
+                <input type="file" id="fileInput" accept=".csv,.xlsx">
+                <button class="btn btn-reset" onclick="resetData()">重置</button>
+                <button class="btn btn-chart" onclick="generateReport()">生成报告</button>
+                <button class="btn btn-export" onclick="exportBeautifiedExcel()">导出美化Excel</button>
+            </div>
+        </div>
+
+        <div class="dashboard-row" style="display: none;">
+            <!-- 左侧：统计卡片 -->
+            <div id="statsPanel" class="stats-panel">
+                <!-- Row 1: 剩余分类 -->
+                <div class="stat-card stat-red">
+                    <div class="stat-value" id="statRemainingI">0</div>
+                    <div class="stat-label">剩余I类缺陷数</div>
+                </div>
+                <div class="stat-card stat-green">
+                    <div class="stat-value" id="statRemainingCivil">0</div>
+                    <div class="stat-label">剩余土建类缺陷数</div>
+                </div>
+                <div class="stat-card stat-orange">
+                    <div class="stat-value" id="statRemainingII">0</div>
+                    <div class="stat-label">剩余II类缺陷数</div>
+                </div>
+                <div class="stat-card stat-blue">
+                    <div class="stat-value" id="statRemainingTotal">0</div>
+                    <div class="stat-label">剩余缺陷总数</div>
+                </div>
+                <!-- Row 2: 新增统计 -->
+                <div class="stat-card stat-red">
+                    <div class="stat-value" id="statYesterdayNew">0</div>
+                    <div class="stat-label">昨日新增缺陷数</div>
+                </div>
+                <div class="stat-card stat-green">
+                    <div class="stat-value" id="statWeekNew">0</div>
+                    <div class="stat-label">本周新增缺陷数</div>
+                </div>
+                <div class="stat-card stat-orange">
+                    <div class="stat-value" id="statMonthNew">0</div>
+                    <div class="stat-label">本月新增缺陷数</div>
+                </div>
+                <div class="stat-card stat-purple">
+                    <div class="stat-value" id="statYearCompleted">0</div>
+                    <div class="stat-label">今年消缺数</div>
+                </div>
+                <!-- Row 3: 消缺统计 -->
+                <div class="stat-card stat-red">
+                    <div class="stat-value" id="statYesterdayDone">0</div>
+                    <div class="stat-label">昨日消缺数</div>
+                </div>
+                <div class="stat-card stat-green">
+                    <div class="stat-value" id="statWeekDone">0</div>
+                    <div class="stat-label">本周消缺数</div>
+                </div>
+                <div class="stat-card stat-orange">
+                    <div class="stat-value" id="statMonthDone">0</div>
+                    <div class="stat-label">本月消缺数</div>
+                </div>
+                <div class="stat-card stat-purple">
+                    <div class="stat-value" id="statYearNew">0</div>
+                    <div class="stat-label">今年新增缺陷数</div>
+                </div>
+            </div>
+
+            <!-- 右侧：消缺龙虎榜 -->
+            <div id="leaderboard" class="leaderboard">
+                <div class="leaderboard-card">
+                    <div class="lb-title lb-red">🏆 昨日消缺排名第一</div>
+                    <div class="lb-body" id="lbYesterday"></div>
+                </div>
+                <div class="leaderboard-card">
+                    <div class="lb-title lb-green">📅 本周消缺排名第一</div>
+                    <div class="lb-body" id="lbWeek"></div>
+                </div>
+                <div class="leaderboard-card">
+                    <div class="lb-title lb-orange">🔥 本月消缺排名前三</div>
+                    <div class="lb-body" id="lbMonth"></div>
+                </div>
+                <div class="leaderboard-card">
+                    <div class="lb-title lb-purple">⭐ 本年消缺排名前三</div>
+                    <div class="lb-body" id="lbYear"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="chartSection" class="chart-section" style="display: none;">
+            <div class="chart-tabs">
+                <div class="chart-tab active" onclick="switchChart('bar')">柱状图</div>
+                <div class="chart-tab" onclick="switchChart('pie')">饼图</div>
+            </div>
+            <div class="chart-container" id="chartContainer"></div>
+            <div class="chart-data-table" id="chartDataTable" style="display: none;"></div>
+            <div id="summaryTableSection" style="display: none;"></div>
+        </div>
+
+        <button id="toggleTableBtn" class="toggle-table-btn" onclick="toggleTable()">
+            <span id="toggleIcon">▼</span> 展开数据表格
+        </button>
+        <div id="tableSection" class="table-section" style="display: none;">
+            <div id="alertInfo" class="alert-info" style="display: none;"></div>
+            <div class="table-header-bar">
+                <input type="text" id="searchBox" class="search-box" placeholder="搜索数据..." onkeyup="handleSearch()">
+                <div class="pagination" id="pagination"></div>
+            </div>
+            <div class="table-wrapper" id="tableWrapper">
+                <div class="scroll-hint" id="scrollHint" onclick="scrollTableRight()"></div>
+                <table class="data-table" id="dataTable">
+                    <thead>
+                        <tr id="tableHeader"></tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">提示</h3>
+                <span class="modal-close" onclick="closeModal()">×</span>
+            </div>
+            <div class="modal-content">
+                <p id="modalContent"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-upload" onclick="closeModal()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ======= 全局数据 =======
+        let rawData = [];           // 原始 Excel/CSV 数据
+        let processedData = [];     // 清洗后的数据（filterColumns 处理过）
+        let chart = null;           // ECharts 实例
+        let currentChartType = 'bar';
+        let isTableExpanded = false;
+
+        // ======= 全局配置常量 =======
+        const DELETE_COLUMNS = ['缺陷图片', '消缺完成月', '消缺完成年', '缺陷登记年', '缺陷登记月'];
+        const MAJOR_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '其他'];
+
+        // ======= 表格状态 =======
+        let warnedMissingColumn = false;
+        let currentPage = 1;
+        let pageSize = 10;
+        let searchKeyword = '';
+
+        // ======= Modal 弹窗 =======
+        function showModal(title, content) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalContent').textContent = content;
+            document.getElementById('modalOverlay').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('show');
+        }
+
+        // ======= 文件解析 & 数据清洗 =======
+        function parseFile(file) {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const uploadText = document.getElementById('uploadText');
+
+            loadingIndicator.style.display = 'inline-block';
+            uploadText.textContent = '解析中...';
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+
+                    // 确保读取所有列，包括空列
+                    rawData = XLSX.utils.sheet_to_json(worksheet, {
+                        header: 1,
+                        raw: false,
+                        defval: ''
+                    });
+
+                    // 将数组格式转换为对象格式
+                    if (rawData.length > 0) {
+                        const headers = rawData[0];
+                        rawData = rawData.slice(1).map(row => {
+                            const obj = {};
+                            headers.forEach((header, index) => {
+                                obj[header] = row[index] !== undefined ? row[index] : '';
+                            });
+                            return obj;
+                        });
+                    }
+
+                    if (rawData.length === 0) {
+                        throw new Error('文件为空');
+                    }
+
+                    // 调试信息：显示原始字段数量
+                    const rawColumns = rawData.length > 0 ? Object.keys(rawData[0]).length : 0;
+                    console.log('原始字段数:', rawColumns);
+                    console.log('原始字段:', Object.keys(rawData[0]));
+
+                    processData();
+                } catch (error) {
+                    showModal('解析失败', '文件解析失败，请确保文件格式正确：' + error.message);
+                } finally {
+                    loadingIndicator.style.display = 'none';
+                    uploadText.textContent = '选择文件';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function filterColumns(data) {
+            if (data.length === 0) return data;
+
+            const missingCols = [];
+            const firstRow = data[0];
+            const columns = Object.keys(firstRow);
+
+            DELETE_COLUMNS.forEach(col => {
+                if (!columns.includes(col)) {
+                    missingCols.push(col);
+                }
+            });
+
+            if (missingCols.length > 0) {
+                showModal('提示', '以下列不存在，将跳过删除：' + missingCols.join('、'));
+            }
+
+            return data.map(row => {
+                const filteredRow = {};
+                Object.keys(row).forEach(key => {
+                    if (!DELETE_COLUMNS.includes(key)) {
+                        filteredRow[key] = row[key];
+                    }
+                });
+                return filteredRow;
+            });
+        }
+
+        // ======= 通用工具函数 =======
+        function isEmpty(value) {
+            return value === null || value === undefined || value === '' ||
+                (typeof value === 'string' && value.trim() === '');
+        }
+
+        function cleanString(str) {
+            if (typeof str !== 'string') return '';
+            return str.replace(/[\s\u00A0\u2000-\u200B\uFEFF]/g, '');
+        }
+
+        function getFieldValue(row, fieldName) {
+            const keys = Object.keys(row);
+            const cleanField = cleanString(fieldName).toLowerCase();
+
+            for (const key of keys) {
+                const cleanKey = cleanString(key).toLowerCase();
+                if (cleanKey === cleanField) {
+                    return row[key];
+                }
+            }
+            return undefined;
+        }
+
+        function hasField(row, fieldName) {
+            const keys = Object.keys(row);
+            const cleanField = cleanString(fieldName).toLowerCase();
+
+            for (const key of keys) {
+                const cleanKey = cleanString(key).toLowerCase();
+                if (cleanKey === cleanField) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function determineStatus(row) {
+            const columns = Object.keys(row);
+            const excludeColumns = ['备注'];
+
+            // 优先使用"是否消缺"字段判断
+            const isCompletedField = getFieldValue(row, '是否消缺');
+            if (!isEmpty(isCompletedField)) {
+                const val = String(isCompletedField).trim().toLowerCase();
+                // 含"未"或"否"或"×"等表示未消缺（优先判断，避免"未完成"误判）
+                const isPending = ['否', '未', 'no', 'false', '×', 'n'].some(v => val.includes(v));
+                if (isPending) return '待消缺项目';
+                // 含"是"/"已"/"完"/"√"/"✔"/"y"等表示已消缺
+                const isCompleted = ['是', '已', '完', '√', '✔', 'y', 'yes', 'true'].some(v => val.includes(v));
+                if (isCompleted) return '已消缺项';
+            }
+
+            // 回退到"消缺人"字段判断
+            const repairPerson = getFieldValue(row, '消缺人');
+            if (isEmpty(repairPerson)) {
+                return '待消缺项目';
+            }
+
+            const hasEmptyColumn = columns.some(col => {
+                if (excludeColumns.some(exclude => col.includes(exclude) || exclude.includes(col))) return false;
+                return isEmpty(row[col]);
+            });
+
+            return hasEmptyColumn ? '待消缺项目' : '已消缺项';
+        }
+
+        function getProfession(row) {
+            // 优先匹配"专业"字段
+            for (const key of Object.keys(row)) {
+                const cleanKey = cleanString(key).toLowerCase();
+                if (cleanKey === '专业' || cleanKey === 'specialty' || cleanKey === 'major') {
+                    const value = row[key];
+                    return isEmpty(value) ? '未分类' : String(value).trim();
+                }
+            }
+
+            // 其次匹配包含"专业"的字段
+            for (const key of Object.keys(row)) {
+                const cleanKey = cleanString(key).toLowerCase();
+                if (cleanKey.includes('专业')) {
+                    const value = row[key];
+                    return isEmpty(value) ? '未分类' : String(value).trim();
+                }
+            }
+
+            return '未分类';
+        }
+
+        function processData() {
+            const filtered = filterColumns(rawData);
+            warnedMissingColumn = false;
+
+            // 检查第一行数据是否包含消缺人字段
+            if (filtered.length > 0) {
+                const firstRowKeys = Object.keys(filtered[0]);
+                const hasRepairField = firstRowKeys.some(key => {
+                    const cleanKey = cleanString(key).toLowerCase();
+                    return cleanKey === '消缺人' || cleanKey.includes('消缺人');
+                });
+
+                if (!hasRepairField && !warnedMissingColumn) {
+                    warnedMissingColumn = true;
+                    showModal('警告', '数据中缺少「消缺人」字段，可能影响状态判断。实际字段：' + firstRowKeys.join('、'));
+                }
+            }
+
+            processedData = filtered
+                .filter(row => {
+                    const hasAnyData = Object.values(row).some(v => !isEmpty(v));
+                    return hasAnyData;
+                })
+                .map(row => ({
+                    ...row,
+                    status: determineStatus(row)
+                }));
+
+            saveToLocalStorage();
+            renderAll();
+        }
+
+        // ======= 日期相关工具函数 =======
+        function getMonthKey(dateValue) {
+            if (isEmpty(dateValue)) return null;
+
+            let date;
+            if (typeof dateValue === 'number') {
+                date = new Date((dateValue - 25569) * 86400 * 1000);
+            } else {
+                date = new Date(dateValue);
+            }
+
+            if (isNaN(date.getTime())) {
+                return null;
+            }
+
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        function getMonthFromDefectId(defectId) {
+            if (isEmpty(defectId)) return null;
+            const idStr = String(defectId);
+            if (idStr.length >= 8) {
+                const datePart = idStr.substring(0, 8);
+                const year = datePart.substring(0, 4);
+                const month = datePart.substring(4, 6);
+                if (!isNaN(year) && !isNaN(month) && year.length === 4 && month.length === 2) {
+                    return `${year}-${month}`;
+                }
+            }
+            return null;
+        }
+
+        // 从缺陷编号前8位解析日期对象（YYYYMMDD）
+        function getDateFromDefectId(defectId) {
+            if (isEmpty(defectId)) return null;
+            const idStr = String(defectId);
+            if (idStr.length < 8) return null;
+            const datePart = idStr.substring(0, 8);
+            const year = parseInt(datePart.substring(0, 4), 10);
+            const month = parseInt(datePart.substring(4, 6), 10);
+            const day = parseInt(datePart.substring(6, 8), 10);
+            if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+            if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+            const d = new Date(year, month - 1, day);
+            if (isNaN(d.getTime())) return null;
+            return d;
+        }
+
+        // 把任意值转换为Date对象（支持Excel序列号和字符串）
+        function toDate(dateValue) {
+            if (isEmpty(dateValue)) return null;
+            let date;
+            if (typeof dateValue === 'number') {
+                date = new Date((dateValue - 25569) * 86400 * 1000);
+            } else {
+                date = new Date(dateValue);
+            }
+            return isNaN(date.getTime()) ? null : date;
+        }
+
+        function isSameDay(a, b) {
+            return a.getFullYear() === b.getFullYear()
+                && a.getMonth() === b.getMonth()
+                && a.getDate() === b.getDate();
+        }
+
+        function isSameMonth(a, b) {
+            return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+        }
+
+        function isSameYear(a, b) {
+            return a.getFullYear() === b.getFullYear();
+        }
+
+        // 判断两个日期是否在同一自然周（周一~周日）
+        function isSameWeek(a, b) {
+            const dayA = a.getDay() || 7;
+            const dayB = b.getDay() || 7;
+            const mondayA = new Date(a);
+            mondayA.setDate(a.getDate() - dayA + 1);
+            mondayA.setHours(0, 0, 0, 0);
+            const mondayB = new Date(b);
+            mondayB.setDate(b.getDate() - dayB + 1);
+            mondayB.setHours(0, 0, 0, 0);
+            return mondayA.getTime() === mondayB.getTime();
+        }
+
+        function isYesterday(d) {
+            const y = new Date();
+            y.setDate(y.getDate() - 1);
+            y.setHours(0, 0, 0, 0);
+            const target = new Date(d);
+            target.setHours(0, 0, 0, 0);
+            return target.getTime() === y.getTime();
+        }
+
+        function getCompleteDate(row) {
+            const raw = row['消项时间'] || row['消缺完成日期'] || row['完成日期'] || row['消缺时间'];
+            return toDate(raw);
+        }
+
+        function getCompleteMonth(row) {
+            const d = getCompleteDate(row);
+            if (!d) return null;
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        function getFilteredMonths() {
+            const now = new Date();
+            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const lastMonthYear = lastMonth.getFullYear();
+            const lastMonthNum = lastMonth.getMonth() + 1;
+
+            // 生成从上个月开始的12个月列表（不包含当前月）
+            const months = [];
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date(lastMonthYear, lastMonthNum - 1 - i, 1);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                months.push(`${year}-${month}`);
+            }
+            return months;
+        }
+
+        // ======= 统计卡片 & 柱状图 用的月度统计 =======
+        // 返回：stats（12个统计卡片指标）+ monthlyStats（月度数组，图表用）+ filteredMonths
+        // 口径：不区分 I/II 类、包含土建
+        function calculateMonthlyStats() {
+            const now = new Date();
+
+            // 图表用：筛选后的月份范围（默认12个月）
+            const filteredMonths = getFilteredMonths();
+
+            // ======= 统计卡片用的 12 个指标（不区分 I/II 类、包含土建） =======
+            const stats = {
+                // Row 1: 剩余分类（未消缺的）
+                remainingTotal: 0,
+                remainingI: 0,        // 一类 + 不含土建
+                remainingII: 0,       // 二类 + 不含土建
+                remainingCivil: 0,    // 含土建
+                // Row 2: 新增
+                yesterdayNew: 0,
+                weekNew: 0,
+                monthNew: 0,
+                yearCompleted: 0,     // 今年消缺数
+                // Row 3: 消缺
+                yesterdayDone: 0,
+                weekDone: 0,
+                monthDone: 0,
+                yearNew: 0
+            };
+
+            // ======= 柱状图/底下表格用的月度统计（全部数据，不筛 I 类、不筛土建） =======
+            // 每个月：new = 缺陷编号前8位在该月的数量
+            //         completed = 消项时间在该月的已消缺数量
+            //         pending = 截至该月底的累计剩余（滚存：上月剩余 + 本月新增 - 本月消缺）
+            const monthlyStats = {};
+            filteredMonths.forEach(m => {
+                monthlyStats[m] = { new: 0, completed: 0, pending: 0 };
+            });
+
+            processedData.forEach(row => {
+                const defectId = row['缺陷编号'] || row['编号'] || row['ID'];
+                const profession = getProfession(row);
+                const isPending = row.status === '待消缺项目';
+                const isCompleted = row.status === '已消缺项';
+                const defectDate = getDateFromDefectId(defectId);
+                const completeDate = isCompleted ? getCompleteDate(row) : null;
+
+                // === 月度统计：新增（只看缺陷编号前8位，取不到就不算） ===
+                let newMonthKey = getMonthFromDefectId(defectId);
+                if (newMonthKey && filteredMonths.includes(newMonthKey)) {
+                    monthlyStats[newMonthKey].new++;
+                }
+
+                // === 月度统计：消缺（是否消缺=是 + 消项时间月份，取不到消项时间就不算） ===
+                if (isCompleted) {
+                    let completeMonthKey = getCompleteMonth(row);
+                    if (completeMonthKey && filteredMonths.includes(completeMonthKey)) {
+                        monthlyStats[completeMonthKey].completed++;
+                    }
+                }
+
+                // === 剩余分类统计（统计卡片 Row 1） ===
+                if (isPending) {
+                    stats.remainingTotal++;
+
+                    const isCivil = profession.includes('土建');
+                    const levelRaw = getFieldValue(row, '分类定级') || getFieldValue(row, '定级') || getFieldValue(row, '分类');
+                    const level = isEmpty(levelRaw) ? '' : String(levelRaw);
+                    const hasI = level.includes('一') || level.includes('Ⅰ') || level.includes('I');
+                    const hasII = level.includes('二') || level.includes('Ⅱ') || level.includes('II');
+
+                    if (isCivil) {
+                        stats.remainingCivil++;
+                    } else if (hasI) {
+                        stats.remainingI++;
+                    } else if (hasII) {
+                        stats.remainingII++;
+                    } else {
+                        // 分类定级不明确 → 兜底算入剩余II类
+                        stats.remainingII++;
+                    }
+                }
+
+                // === 新增统计（统计卡片 Row 2，基于缺陷编号前8位日期） ===
+                if (defectDate) {
+                    if (isYesterday(defectDate)) stats.yesterdayNew++;
+                    if (isSameWeek(defectDate, now)) stats.weekNew++;
+                    if (isSameMonth(defectDate, now)) stats.monthNew++;
+                    if (isSameYear(defectDate, now)) stats.yearNew++;
+                }
+
+                // === 消缺统计（统计卡片 Row 3，基于消项时间） ===
+                if (isCompleted && completeDate) {
+                    if (isYesterday(completeDate)) stats.yesterdayDone++;
+                    if (isSameWeek(completeDate, now)) stats.weekDone++;
+                    if (isSameMonth(completeDate, now)) stats.monthDone++;
+                    if (isSameYear(completeDate, now)) stats.yearCompleted++;
+                }
+            });
+
+            // === 月度统计：剩余 = 滚存（上月剩余 + 本月新增 - 本月消缺） ===
+            // 这是"截至该月底的累计剩余量"，不是"当月新增的剩余"
+            let prevPending = 0;
+            filteredMonths.forEach(month => {
+                const { new: n, completed: c } = monthlyStats[month];
+                const currentRemaining = prevPending + n - c;
+                monthlyStats[month].pending = currentRemaining;
+                prevPending = currentRemaining;
+            });
+
+            return { stats, monthlyStats, filteredMonths };
+        }
+
+        // ======= 渲染：统计卡片（12个） =======
+        function renderStats() {
+            const { stats } = calculateMonthlyStats();
+
+            // Row 1: 剩余分类
+            document.getElementById('statRemainingTotal').textContent = stats.remainingTotal;
+            document.getElementById('statRemainingI').textContent = stats.remainingI;
+            document.getElementById('statRemainingCivil').textContent = stats.remainingCivil;
+            document.getElementById('statRemainingII').textContent = stats.remainingII;
+
+            // Row 2: 新增 / 今年消缺
+            document.getElementById('statYesterdayNew').textContent = stats.yesterdayNew;
+            document.getElementById('statWeekNew').textContent = stats.weekNew;
+            document.getElementById('statMonthNew').textContent = stats.monthNew;
+            document.getElementById('statYearCompleted').textContent = stats.yearCompleted;
+
+            // Row 3: 消缺 / 今年新增
+            document.getElementById('statYesterdayDone').textContent = stats.yesterdayDone;
+            document.getElementById('statWeekDone').textContent = stats.weekDone;
+            document.getElementById('statMonthDone').textContent = stats.monthDone;
+            document.getElementById('statYearNew').textContent = stats.yearNew;
+
+            document.querySelector('.dashboard-row').style.display = 'flex';
+            renderLeaderboard();
+        }
+
+        // ======= 消缺龙虎榜：计算 + 渲染 =======
+        function calculateLeaderboard() {
+            const now = new Date();
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            yesterday.setHours(0, 0, 0, 0);
+
+            // 本周周一
+            const weekStart = new Date();
+            const day = now.getDay() || 7;
+            weekStart.setDate(now.getDate() - day + 1);
+            weekStart.setHours(0, 0, 0, 0);
+
+            // 本月1号
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            monthStart.setHours(0, 0, 0, 0);
+
+            // 本年1月1号
+            const yearStart = new Date(now.getFullYear(), 0, 1);
+            yearStart.setHours(0, 0, 0, 0);
+
+            function countByProfession(datePredicate) {
+                const map = {};
+                processedData.forEach(row => {
+                    if (row.status !== '已消缺项') return;
+                    const d = getCompleteDate(row);
+                    if (!d) return;
+                    if (!datePredicate(d)) return;
+                    const prof = getProfession(row);
+                    if (prof === '未分类') return;
+                    map[prof] = (map[prof] || 0) + 1;
+                });
+                return Object.entries(map)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([prof, count]) => ({ prof, count }));
+            }
+
+            return {
+                yesterday: countByProfession(d => {
+                    d = new Date(d); d.setHours(0, 0, 0, 0);
+                    return d.getTime() === yesterday.getTime();
+                }).slice(0, 1),
+                week: countByProfession(d => d >= weekStart).slice(0, 1),
+                month: countByProfession(d => d >= monthStart).slice(0, 3),
+                year: countByProfession(d => d >= yearStart).slice(0, 3)
+            };
+        }
+
+        function renderLeaderboard() {
+            const { yesterday, week, month, year } = calculateLeaderboard();
+
+            function renderList(items, limit) {
+                if (!items || items.length === 0) {
+                    return '<div class="lb-empty">暂无数据</div>';
+                }
+                return items.map((item, idx) => {
+                    const rankClass = idx === 0 ? 'lb-rank-1'
+                        : idx === 1 ? 'lb-rank-2'
+                            : idx === 2 ? 'lb-rank-3' : 'lb-rank-n';
+                    return `<div class="lb-item">
+                        <span class="lb-rank ${rankClass}">${idx + 1}</span>
+                        <span class="lb-profession">${item.prof}</span>
+                        <span class="lb-count">${item.count}</span>
+                    </div>`;
+                }).join('');
+            }
+
+            document.getElementById('lbYesterday').innerHTML = renderList(yesterday, 1);
+            document.getElementById('lbWeek').innerHTML = renderList(week, 1);
+            document.getElementById('lbMonth').innerHTML = renderList(month, 3);
+            document.getElementById('lbYear').innerHTML = renderList(year, 3);
+        }
+
+        // ======= 数据表格：筛选 + 展开/收起 + 渲染 + 分页 + 搜索 + 排序 =======
+        function getFilteredData() {
+            let filtered = [...processedData];
+
+            if (searchKeyword) {
+                const keyword = searchKeyword.toLowerCase();
+                filtered = filtered.filter(row => {
+                    return Object.values(row).some(value =>
+                        String(value).toLowerCase().includes(keyword)
+                    );
+                });
+            }
+
+            return filtered;
+        }
+
+        function toggleTable() {
+            const tableSection = document.getElementById('tableSection');
+            const toggleBtn = document.getElementById('toggleTableBtn');
+
+            if (tableSection.style.display === 'none') {
+                tableSection.style.display = 'block';
+                toggleBtn.innerHTML = '<span id="toggleIcon">▲</span> 收起数据表格';
+                isTableExpanded = true;
+            } else {
+                tableSection.style.display = 'none';
+                toggleBtn.innerHTML = '<span id="toggleIcon">▼</span> 展开数据表格';
+                isTableExpanded = false;
+            }
+        }
+
+        function renderTable() {
+            if (processedData.length === 0) {
+                document.getElementById('tableSection').style.display = 'none';
+                document.getElementById('toggleTableBtn').style.display = 'none';
+                return;
+            }
+
+            const header = document.getElementById('tableHeader');
+            const body = document.getElementById('tableBody');
+            const info = document.getElementById('alertInfo');
+
+            header.innerHTML = '';
+            body.innerHTML = '';
+
+            const allColumns = Object.keys(processedData[0]);
+            const columns = allColumns.filter(col => col !== 'status');
+            const filteredData = getFilteredData();
+            const totalPages = Math.ceil(filteredData.length / pageSize);
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageData = filteredData.slice(start, end);
+
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col;
+                th.setAttribute('data-column', col);
+                th.innerHTML = col + ' <span class="sort-icon">↕</span>';
+                th.addEventListener('click', () => handleSort(col));
+                header.appendChild(th);
+            });
+
+            // 添加状态列表头
+            const statusTh = document.createElement('th');
+            statusTh.innerHTML = '状态 <span class="sort-icon">↕</span>';
+            statusTh.setAttribute('data-column', 'status');
+            statusTh.style.cursor = 'pointer';
+            statusTh.addEventListener('click', () => handleSort('status'));
+            header.appendChild(statusTh);
+
+            pageData.forEach((row, rowIndex) => {
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-row-index', rowIndex + start);
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    const cellValue = row[col];
+                    td.textContent = cellValue !== undefined && cellValue !== null ? String(cellValue) : '';
+                    tr.appendChild(td);
+                });
+                // 添加状态徽章
+                const statusTd = document.createElement('td');
+                const badge = document.createElement('span');
+                if (row.status === '已消缺项') {
+                    badge.className = 'status-completed';
+                    badge.textContent = '已消缺';
+                } else {
+                    badge.className = 'status-pending';
+                    badge.textContent = '待消缺';
+                }
+                statusTd.appendChild(badge);
+                tr.appendChild(statusTd);
+                body.appendChild(tr);
+            });
+
+            const completedCount = processedData.filter(r => r.status === '已消缺项').length;
+            const pendingCount = processedData.filter(r => r.status === '待消缺项目').length;
+            info.textContent = `数据预览：共 ${processedData.length} 条记录 | ${columns.length + 1} 个字段 | 已消缺 ${completedCount} 条 | 待消缺 ${pendingCount} 条 | 当前显示第 ${start + 1}-${Math.min(end, filteredData.length)} 条（搜索：${filteredData.length} 条）`;
+            info.style.display = 'block';
+
+            renderPagination(totalPages);
+            document.getElementById('toggleTableBtn').style.display = 'flex';
+            document.getElementById('tableSection').style.display = isTableExpanded ? 'block' : 'none';
+            if (isTableExpanded) {
+                document.getElementById('toggleTableBtn').innerHTML = '<span id="toggleIcon">▲</span> 收起数据表格';
+            }
+
+            // 检查是否需要显示滚动提示
+            setTimeout(() => {
+                const wrapper = document.getElementById('tableWrapper');
+                const hint = document.getElementById('scrollHint');
+                if (wrapper && hint) {
+                    if (wrapper.scrollWidth > wrapper.clientWidth) {
+                        hint.classList.remove('hidden');
+                    } else {
+                        hint.classList.add('hidden');
+                    }
+                }
+            }, 100);
+        }
+
+        function scrollTableRight() {
+            const wrapper = document.getElementById('tableWrapper');
+            if (wrapper) {
+                wrapper.scrollTo({
+                    left: wrapper.scrollWidth,
+                    behavior: 'smooth'
+                });
+                // 滚动后隐藏提示
+                setTimeout(() => {
+                    const hint = document.getElementById('scrollHint');
+                    if (hint) hint.classList.add('hidden');
+                }, 500);
+            }
+        }
+
+        function renderPagination(totalPages) {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'page-btn';
+            prevBtn.textContent = '上一页';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; renderTable(); } };
+            pagination.appendChild(prevBtn);
+
+            const pageInfo = document.createElement('span');
+            pageInfo.className = 'page-info';
+            pageInfo.textContent = `${currentPage} / ${totalPages}`;
+            pagination.appendChild(pageInfo);
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'page-btn';
+            nextBtn.textContent = '下一页';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; renderTable(); } };
+            pagination.appendChild(nextBtn);
+        }
+
+        function handleSearch() {
+            searchKeyword = document.getElementById('searchBox').value;
+            currentPage = 1;
+            renderTable();
+        }
+
+        function handleSort(column) {
+            processedData.sort((a, b) => {
+                const valA = String(a[column] || '');
+                const valB = String(b[column] || '');
+                return valA.localeCompare(valB, 'zh-CN');
+            });
+            renderTable();
+        }
+
+        // ======= I类缺陷专业统计（饼图 + 接收站汇总表 共用，确保口径完全一致）=======
+        // 口径：分类定级=一类 + 专业不含土建 + 专业≠未分类
+        function getClassIProfessionStats() {
+            const isCivil = p => p.includes('土建');
+            const isClassI = level => /[一ⅠI]/.test(String(level));
+
+            // 三种统计对象
+            const remainingStats = {};
+            const newStats = {};
+            const completedStats = {};
+
+            // 全部初始化为 0（预定义 + 运行时遇到的额外专业）
+            MAJOR_PROFESSIONS.forEach(p => {
+                remainingStats[p] = 0;
+                newStats[p] = 0;
+                completedStats[p] = 0;
+            });
+            const extraProfessions = new Set();
+
+            const now = new Date();
+            // 和统计卡片保持一致：本月用 now（不是上个月）
+            const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+            processedData.forEach(row => {
+                const profession = getProfession(row);
+                if (profession === '未分类' || isCivil(profession)) return;
+
+                const levelRaw = getFieldValue(row, '分类定级')
+                    || getFieldValue(row, '定级')
+                    || getFieldValue(row, '分类');
+                if (isEmpty(levelRaw) || !isClassI(levelRaw)) return;
+
+                // 注册额外专业
+                if (!(profession in remainingStats)) {
+                    extraProfessions.add(profession);
+                    remainingStats[profession] = 0;
+                    newStats[profession] = 0;
+                    completedStats[profession] = 0;
+                }
+
+                // 剩余：I类 + 待消缺
+                if (row.status === '待消缺项目') {
+                    remainingStats[profession]++;
+                }
+
+                // 本月新增：和统计卡片保持一致的日期解析逻辑
+                // 优先从缺陷编号前8位取日期，取不到则从 row['日期']/['发现日期']/['录入日期'] 取
+                // 仍取不到 → 不计数（和统计卡片一致，不能 fallback 到 currentMonthKey）
+                const defectId = row['缺陷编号'] || row['编号'] || row['ID'];
+                let newDate = getDateFromDefectId(defectId);
+                if (!newDate) {
+                    newDate = toDate(row['日期']) || toDate(row['发现日期']) || toDate(row['录入日期']);
+                }
+                if (newDate && isSameMonth(newDate, now)) {
+                    newStats[profession]++;
+                }
+
+                // 本月消项：已消缺 + 消项时间在本月
+                if (row.status === '已消缺项') {
+                    const completeDate = getCompleteDate(row);
+                    let completeDateVal = completeDate;
+                    if (!completeDateVal) {
+                        completeDateVal = toDate(row['消项时间']) || toDate(row['完成时间']) || toDate(row['关闭时间']);
+                    }
+                    if (completeDateVal && isSameMonth(completeDateVal, now)) {
+                        completedStats[profession]++;
+                    }
+                }
+            });
+
+            // 固定顺序：预定义专业在前，Excel额外专业在后
+            const professions = [...MAJOR_PROFESSIONS, ...extraProfessions];
+
+            console.log('[I类专业统计] 完整专业列表:', professions.join('、'));
+            console.log('[I类专业统计] 剩余:', JSON.stringify(remainingStats));
+
+            return { professions, remainingStats, newStats, completedStats, extraProfessions };
+        }
+
+        // ======= ECharts 渲染：柱状图 / 饼图 =======
+        function renderChart(type = 'bar') {
+            if (processedData.length === 0) return;
+            if (typeof echarts === 'undefined') {
+                renderChartFallback(type);
+                return;
+            }
+
+            const { monthlyStats, filteredMonths } = calculateMonthlyStats();
+            const container = document.getElementById('chartContainer');
+
+            if (!chart) {
+                chart = echarts.init(container);
+            }
+
+            // 只使用筛选后的月份
+            const months = filteredMonths;
+            const pendingData = months.map(m => monthlyStats[m].pending);
+            const completedData = months.map(m => monthlyStats[m].completed);
+            const newData = months.map(m => monthlyStats[m].new);
+
+            // 获取当前统计月份（上个月）
+            const currentMonthKey = months[months.length - 1];
+
+            // === 饼图数据：I类剩余缺陷的专业分布 ===
+            // 统一调用公共函数，与汇总表口径完全一致
+            let pieData = [];
+            let pieAllNames = [...MAJOR_PROFESSIONS];
+            if (type === 'pie') {
+                const stats = getClassIProfessionStats();
+                pieAllNames = stats.professions;
+                // 饼图显示所有专业（0项也保留，ECharts会处理为不可见扇形）
+                pieData = stats.professions
+                    .map(name => ({ name, value: stats.remainingStats[name] || 0 }));
+            }
+
+            const option = {
+                title: {
+                    text: '2026年缺陷管理统计',
+                    left: 'center',
+                    top: 0,
+                    textStyle: {
+                        fontSize: 18,
+                        fontWeight: 'bold',
+                        color: '#333'
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' }
+                },
+                legend: {
+                    data: ['新增', '消缺', '剩余'],
+                    right: 10,
+                    top: 'middle',
+                    orient: 'vertical'
+                },
+                grid: {
+                    left: '3%',
+                    right: '120px',
+                    bottom: '5%',
+                    top: '10%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: months.map(m => {
+                        const [year, month] = m.split('-');
+                        return parseInt(month) + '月';
+                    }),
+                    axisLabel: {
+                        rotate: 0,
+                        fontSize: 12
+                    }
+                },
+                yAxis: { type: 'value' },
+                series: [
+                    {
+                        name: '新增',
+                        type: type,
+                        data: newData,
+                        itemStyle: { color: '#4472c4' },
+                        label: {
+                            show: true,
+                            position: 'top',
+                            fontSize: 11,
+                            fontWeight: 'bold'
+                        }
+                    },
+                    {
+                        name: '消缺',
+                        type: type,
+                        data: completedData,
+                        itemStyle: { color: '#c5504b' },
+                        label: {
+                            show: true,
+                            position: 'top',
+                            fontSize: 11,
+                            fontWeight: 'bold'
+                        }
+                    },
+                    {
+                        name: '剩余',
+                        type: type,
+                        data: pendingData,
+                        itemStyle: { color: '#70ad47' },
+                        label: {
+                            show: true,
+                            position: 'top',
+                            fontSize: 11,
+                            fontWeight: 'bold'
+                        }
+                    }
+                ]
+            };
+
+            if (type === 'pie') {
+                const colors = ['#4472c4', '#c5504b', '#70ad47', '#ffc000', '#5b9bd5', '#ed7d31', '#a5a5a5', '#7030a0'];
+
+                option.series = [{
+                    name: '待消缺专业分布',
+                    type: 'pie',
+                    radius: ['35%', '70%'],
+                    center: ['50%', '55%'],
+                    itemStyle: {
+                        borderRadius: 5,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    label: {
+                        show: true,
+                        formatter: '{b}: {c}项',
+                        fontSize: 12
+                    },
+                    labelLine: {
+                        show: true,
+                        length: 15,
+                        length2: 20
+                    },
+                    data: pieData.map((item, index) => ({
+                        ...item,
+                        itemStyle: { color: colors[index % colors.length] }
+                    }))
+                }];
+
+                option.title = {
+                    text: '接收站当前主要剩余I类缺陷专业分布情况',
+                    left: 'center',
+                    top: 10,
+                    textStyle: {
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        color: '#333'
+                    }
+                };
+
+                option.legend = {
+                    type: 'plain',
+                    orient: 'vertical',
+                    right: 15,
+                    top: 60,
+                    columns: 1,
+                    itemWidth: 10,
+                    itemHeight: 8,
+                    itemGap: 8,
+                    textStyle: { fontSize: 11 },
+                    data: pieAllNames
+                };
+
+                option.tooltip = {
+                    trigger: 'item',
+                    formatter: '{b}: {c}项 ({d}%)'
+                };
+
+                delete option.xAxis;
+                delete option.yAxis;
+                delete option.grid;
+            }
+
+            chart.setOption(option, true);
+
+            // 底部表格：柱状图→月份汇总表；饼图→I类缺陷汇总表
+            const chartTable = document.getElementById('chartDataTable');
+            const summaryTable = document.getElementById('summaryTableSection');
+            if (type === 'pie') {
+                chartTable.style.display = 'none';
+                renderSummaryTable();
+                summaryTable.style.display = 'block';
+            } else {
+                summaryTable.style.display = 'none';
+                renderChartDataTable(months, newData, completedData, pendingData);
+                chartTable.style.display = 'block';
+            }
+        }
+
+        // 柱状图/折线图底下的月份汇总表（新增/消缺/剩余 × 月份）
+        function renderChartDataTable(months, newData, completedData, pendingData) {
+            const tableContainer = document.getElementById('chartDataTable');
+
+            let html = '<table><thead><tr><th></th>';
+            months.forEach(m => {
+                const [year, month] = m.split('-');
+                html += `<th>${parseInt(month)}月</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            html += '<tr><td><span class="legend-dot" style="background-color: #4472c4;"></span>新增</td>';
+            newData.forEach(val => { html += `<td>${val}</td>`; });
+            html += '</tr>';
+
+            html += '<tr><td><span class="legend-dot" style="background-color: #c5504b;"></span>消缺</td>';
+            completedData.forEach(val => { html += `<td>${val}</td>`; });
+            html += '</tr>';
+
+            html += '<tr><td><span class="legend-dot" style="background-color: #70ad47;"></span>剩余</td>';
+            pendingData.forEach(val => { html += `<td>${val}</td>`; });
+            html += '</tr>';
+
+            html += '</tbody></table>';
+            tableContainer.innerHTML = html;
+        }
+
+        function renderChartFallback(type) {
+            const { monthlyStats, filteredMonths } = calculateMonthlyStats();
+            const container = document.getElementById('chartContainer');
+
+            let chartHtml = '<div style="height: 280px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px;">';
+            chartHtml += '<div style="text-align: center;">';
+            chartHtml += '<div style="font-size: 24px; margin-bottom: 10px;">📊</div>';
+            chartHtml += '<div style="color: #666; font-size: 14px;">图表加载中...</div>';
+            chartHtml += '</div></div>';
+            container.innerHTML = chartHtml;
+        }
+
+        function switchChart(type) {
+            currentChartType = type;
+            document.querySelectorAll('.chart-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            renderChart(type);
+        }
+
+        // ======= 接收站 I类缺陷汇总表（饼图底下的表格）=======
+        // 口径：分类定级=一类 + 专业不含土建 + 专业≠未分类
+        // 行：剩余、本月新增、本月消项
+        // 专业：MAJOR_PROFESSIONS（11个预定义）+ Excel 额外
+        function renderSummaryTable() {
+            const section = document.getElementById('summaryTableSection');
+            // 与饼图调用同一个公共函数，确保数据完全一致
+            const { professions, remainingStats, newStats, completedStats } = getClassIProfessionStats();
+
+            const totalRemain = professions.reduce((s, p) => s + (remainingStats[p] || 0), 0);
+            const totalNewMonth = professions.reduce((s, p) => s + (newStats[p] || 0), 0);
+            const totalDoneMonth = professions.reduce((s, p) => s + (completedStats[p] || 0), 0);
+
+            // 构建表格 HTML（严格参考图片：第一行=表头；接收站列 rowspan 跨所有行，无 colspan 合并）
+            const totalRows = 1 + 3;  // 1行表头 + 3行数据
+            let html = '<div class="summary-table-wrap"><table class="summary-table">';
+            html += '<tbody>';
+            // 表头行
+            html += '<tr class="st-header-row">';
+            html += `<th class="st-col" rowspan="${totalRows}">接收站</th>`;  // 跨所有行
+            html += '<th>I类缺陷</th>';
+            html += '<th class="st-sub-total">总计</th>';
+            professions.forEach(p => { html += `<th>${p}</th>`; });
+            html += '</tr>';
+
+            // 剩余
+            html += '<tr>';
+            html += '<td>剩余</td>';
+            html += `<td class="st-total">${totalRemain}</td>`;
+            professions.forEach(p => { html += `<td>${remainingStats[p] || 0}</td>`; });
+            html += '</tr>';
+
+            // 本月新增
+            html += '<tr>';
+            html += '<td>本月新增</td>';
+            html += `<td class="st-total">${totalNewMonth}</td>`;
+            professions.forEach(p => { html += `<td>${newStats[p] || 0}</td>`; });
+            html += '</tr>';
+
+            // 本月消项
+            html += '<tr>';
+            html += '<td>本月消项</td>';
+            html += `<td class="st-total">${totalDoneMonth}</td>`;
+            professions.forEach(p => { html += `<td>${completedStats[p] || 0}</td>`; });
+            html += '</tr>';
+
+            html += '</tbody></table></div>';
+
+            section.innerHTML = html;
+            section.style.display = 'block';
+        }
+
+        // ======= 总入口：重新渲染全部 =======
+        function renderAll() {
+            renderStats();
+            document.getElementById('chartSection').style.display = 'block';
+            setTimeout(() => {
+                renderChart(currentChartType);
+                if (chart) {
+                    chart.resize();
+                }
+            }, 100);
+            renderTable();
+        }
+
+        // ======= localStorage 持久化 =======
+        function saveToLocalStorage() {
+            localStorage.setItem('defectData', JSON.stringify(processedData));
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('defectData');
+            if (saved) {
+                processedData = JSON.parse(saved);
+                if (processedData.length > 0) {
+                    renderAll();
+                }
+            }
+        }
+
+        // ======= 重置 =======
+        function resetData() {
+            localStorage.removeItem('defectData');
+            rawData = [];
+            processedData = [];
+            currentPage = 1;
+            isTableExpanded = false;
+
+            document.querySelector('.dashboard-row').style.display = 'none';
+            document.getElementById('summaryTableSection').style.display = 'none';
+            document.getElementById('chartSection').style.display = 'none';
+            document.getElementById('tableSection').style.display = 'none';
+            document.getElementById('toggleTableBtn').style.display = 'none';
+            document.getElementById('toggleTableBtn').innerHTML = '<span id="toggleIcon">▼</span> 展开数据表格';
+            document.getElementById('searchBox').value = '';
+            document.getElementById('tableHeader').innerHTML = '';
+            document.getElementById('tableBody').innerHTML = '';
+            document.getElementById('alertInfo').innerHTML = '';
+            document.getElementById('alertInfo').style.display = 'none';
+            document.getElementById('pagination').innerHTML = '';
+
+            if (chart) {
+                chart.dispose();
+                chart = null;
+            }
+
+        }
+
+        // ======= 报告生成 & Excel 导出 =======
+        function generateReport() {
+            if (processedData.length === 0) {
+                showModal('提示', '请先导入Excel文件再生成报告');
+                return;
+            }
+            window.open('report.html', '_blank');
+        }
+
+        // 导出美化后的Excel文件
+        function exportBeautifiedExcel() {
+            if (processedData.length === 0) {
+                showModal('提示', '请先导入Excel文件再导出');
+                return;
+            }
+
+            // 合并表头配置（字段组 -> 组名）
+            const mergeGroups = [
+                { groupName: '制约因素', fields: ['方案', '备件', '条件', '人员', '窗口'] },
+                { groupName: '消项确认记录', fields: ['消缺人', '班长', '消项时间'] }
+            ];
+            // 需要加宽的列（保证字在一行）
+            const wideCols = ['分类定级', '党员责任人'];
+            // 需要缩窄的列
+            const narrowCols = ['备注', '是否消缺', '是否逾期'];
+            // 制约因素组子列统一宽度
+            const groupCols = ['方案', '备件', '条件', '人员', '窗口'];
+
+            // 获取所有列（排除status内部字段，删除状态字段），保留原始顺序
+            const allColumns = Object.keys(processedData[0]).filter(col => col !== 'status');
+            const exportColumns = allColumns; // 不再追加"状态"列
+
+            // 构建合并组信息：每个组记录 start/end 列索引
+            const groupInfos = mergeGroups.map(g => {
+                const indices = [];
+                exportColumns.forEach((col, idx) => {
+                    if (g.fields.some(f => cleanString(col).toLowerCase() === cleanString(f).toLowerCase())) {
+                        indices.push(idx);
+                    }
+                });
+                return {
+                    groupName: g.groupName,
+                    start: indices.length > 0 ? Math.min(...indices) : -1,
+                    end: indices.length > 0 ? Math.max(...indices) : -1
+                };
+            });
+
+            // 判断某列是否属于某个合并组
+            function isInMergedGroup(idx) {
+                return groupInfos.some(g => idx >= g.start && idx <= g.end);
+            }
+
+            // 构建AOA数据（两行表头）
+            const aoa = [];
+            // 第1行：合并区域显示组名，其他列显示字段名
+            const headerRow1 = exportColumns.map((col, idx) => {
+                const group = groupInfos.find(g => idx >= g.start && idx <= g.end);
+                if (group) return (idx === group.start) ? group.groupName : '';
+                return col;
+            });
+            aoa.push(headerRow1);
+            // 第2行：合并区域内显示原始字段名，其他列留空（与上方合并）
+            const headerRow2 = exportColumns.map((col, idx) => {
+                if (isInMergedGroup(idx)) return col;
+                return '';
+            });
+            aoa.push(headerRow2);
+
+            processedData.forEach(row => {
+                const rowData = exportColumns.map(col => {
+                    const val = row[col];
+                    return val !== undefined && val !== null ? String(val) : '';
+                });
+                aoa.push(rowData);
+            });
+
+            // 创建工作簿和工作表
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+            // 设置合并单元格
+            const merges = [];
+            // 1. 第1行：每个合并组跨列合并
+            groupInfos.forEach(g => {
+                if (g.start >= 0 && g.end >= 0) {
+                    merges.push({ s: { r: 0, c: g.start }, e: { r: 0, c: g.end } });
+                }
+            });
+            // 2. 非合并组的列：垂直合并第0行和第1行（让表头占两行高度）
+            exportColumns.forEach((col, idx) => {
+                if (!isInMergedGroup(idx)) {
+                    merges.push({ s: { r: 0, c: idx }, e: { r: 1, c: idx } });
+                }
+            });
+            ws['!merges'] = merges;
+
+            // 设置列宽
+            const colWidths = exportColumns.map(col => {
+                // 宽列：固定较宽
+                if (wideCols.some(w => cleanString(col).toLowerCase() === cleanString(w).toLowerCase())) {
+                    return { wch: 18 };
+                }
+                // 制约因素组子列：统一适中宽度
+                if (groupCols.some(g => cleanString(col).toLowerCase() === cleanString(g).toLowerCase())) {
+                    return { wch: 12 };
+                }
+                // 自动计算列宽
+                let maxLen = col.length;
+                processedData.forEach(row => {
+                    const val = String(row[col] || '');
+                    const len = val.replace(/[^\x00-\xff]/g, 'XX').length;
+                    if (len > maxLen) maxLen = len;
+                });
+                // 缩窄列上限
+                const isNarrow = narrowCols.some(n => cleanString(col).toLowerCase() === cleanString(n).toLowerCase());
+                const upperLimit = isNarrow ? 6 : 40;
+                return { wch: Math.min(maxLen + 4, upperLimit) };
+            });
+            ws['!cols'] = colWidths;
+
+            // 设置行高（表头两行，数据行正常）
+            ws['!rows'] = aoa.map((_, idx) => ({ hpt: idx <= 1 ? 30 : 22 }));
+
+            // ===== 样式处理 =====
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            const totalRows = range.e.r;
+            const totalCols = range.e.c;
+
+            // 表头样式（前两行，无深色填充）
+            for (let r = 0; r <= 1; r++) {
+                for (let c = 0; c <= totalCols; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ r, c });
+                    if (!ws[cellRef]) ws[cellRef] = { v: '', t: 's' };
+                    ws[cellRef].s = {
+                        font: { name: '微软雅黑', sz: 12, bold: true, color: { rgb: '2C3E50' } },
+                        fill: { fgColor: { rgb: 'DCE3E8' } },
+                        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                        border: {
+                            top: { style: 'thin', color: { rgb: 'B0BEC5' } },
+                            bottom: { style: 'thin', color: { rgb: 'B0BEC5' } },
+                            left: { style: 'thin', color: { rgb: 'B0BEC5' } },
+                            right: { style: 'thin', color: { rgb: 'B0BEC5' } }
+                        }
+                    };
+                }
+            }
+
+            // 数据行样式（从第2行开始）
+            for (let r = 2; r <= totalRows; r++) {
+                const isEven = (r - 2) % 2 === 0;
+                const bgColor = isEven ? 'F8F9FA' : 'FFFFFF';
+
+                for (let c = 0; c <= totalCols; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ r, c });
+                    if (!ws[cellRef]) ws[cellRef] = { v: '', t: 's' };
+
+                    ws[cellRef].s = {
+                        font: { name: '微软雅黑', sz: 11, color: { rgb: '2C3E50' } },
+                        fill: { fgColor: { rgb: bgColor } },
+                        alignment: { horizontal: 'center', vertical: 'center', wrapText: false },
+                        border: {
+                            top: { style: 'thin', color: { rgb: 'E0E0E0' } },
+                            bottom: { style: 'thin', color: { rgb: 'E0E0E0' } },
+                            left: { style: 'thin', color: { rgb: 'E0E0E0' } },
+                            right: { style: 'thin', color: { rgb: 'E0E0E0' } }
+                        }
+                    };
+                }
+            }
+
+            // 冻结前两行
+            ws['!freeze'] = { xSplit: 0, ySplit: 2, topLeftCell: 'A3', activePane: 'bottomLeft', state: 'frozen' };
+
+            // 添加自动筛选
+            ws['!autofilter'] = { ref: ws['!ref'] };
+
+            XLSX.utils.book_append_sheet(wb, ws, '接收站设备缺陷台账');
+
+            // 生成文件名
+            const now = new Date();
+            const fileName = `福建LNG接收站设备缺陷台账${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}.xlsx`;
+
+            // xlsx-js-style直接覆盖了全局XLSX，支持样式写入
+            XLSX.writeFile(wb, fileName, { cellStyles: true });
+        }
+
+        // ======= 事件绑定 =======
+        document.getElementById('fileInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (ext !== 'csv' && ext !== 'xlsx') {
+                showModal('格式错误', '请选择 .csv 或 .xlsx 格式的文件');
+                return;
+            }
+
+            parseFile(file);
+        });
+
+        window.addEventListener('resize', function () {
+            if (chart) {
+                chart.resize();
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', loadFromLocalStorage);
+    </script>
+</body>
+
+</html>
