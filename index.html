@@ -7,6 +7,7 @@
     <title>福建LNG接收站设备缺陷管理系统</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
     <script>
         function loadScript(url, callback) {
             var script = document.createElement('script');
@@ -2326,72 +2327,43 @@
 
         window.addEventListener('DOMContentLoaded', loadFromLocalStorage);
 
-        // ======= 外部联动：接收多维表格导出插件的数据 =======
-        function isTrustedBridgeOrigin(origin) {
-            return /(^|\.)feishu\.cn$/.test(origin) ||
-                /(^|\.)larkoffice\.com$/.test(origin) ||
-                /(^|\.)larksuite\.com$/.test(origin) ||
-                /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
-                origin === 'null';
-        }
-        function replyTargetOrigin(origin) {
-            return origin && origin !== 'null' ? origin : '*';
-        }
-        function reply(event, message) {
-            // 优先用 event.source 回信（飞书沙箱下 window.opener 可能为 null）
+        // ======= 外部联动：从网址锚点读取多维表格插件发送的数据 =======
+        // 数据格式：#dms=<lz-string 压缩后的 JSON>，锚点不经过服务器
+        function importRowsFromHash() {
+            const hash = window.location.hash || '';
+            const match = hash.match(/(?:^#|&)dms=([^&]+)/);
+            if (!match) return false;
             try {
-                if (event.source && event.source.postMessage) {
-                    event.source.postMessage(message, replyTargetOrigin(event.origin));
-                    return;
+                if (typeof LZString === 'undefined') {
+                    showModal('导入失败', '压缩组件未加载成功，请检查网络后重试。');
+                    return false;
                 }
-            } catch (err) { }
-            try {
-                if (window.opener && !window.opener.closed) {
-                    window.opener.postMessage(message, '*');
-                }
-            } catch (err) { }
-        }
-        let lastImportSignature = '';
-        window.addEventListener('message', function (event) {
-            const data = event.data;
-            if (!data || data.source !== 'bitable-export-plugin') return;
-            if (!isTrustedBridgeOrigin(event.origin)) return;
-
-            if (data.type === 'ping') {
-                reply(event, { source: 'dms-da', type: 'ready' });
-                return;
-            }
-            if (data.type === 'import' && Array.isArray(data.rows)) {
-                // 用行数+首行内容做签名，避免握手重试时重复渲染
-                const signature = data.rows.length + '|' + JSON.stringify(data.rows[0] || {});
-                try {
-                    if (signature !== lastImportSignature) {
-                        lastImportSignature = signature;
-                        rawData = data.rows;
-                        processData();
-                    }
-                    reply(event, { source: 'dms-da', type: 'imported', count: data.rows.length });
-                } catch (err) {
-                    reply(event, {
-                        source: 'dms-da',
-                        type: 'error',
-                        message: String((err && err.message) || err),
-                    });
-                }
-            }
-        });
-        // 页面加载后主动广播就绪（兼容旧版插件）
-        window.addEventListener('DOMContentLoaded', function () {
-            const announce = function () {
+                const json = LZString.decompressFromEncodedURIComponent(match[1]);
+                const payload = JSON.parse(json);
+                const rows = Array.isArray(payload) ? payload : payload.rows;
+                if (!Array.isArray(rows)) throw new Error('数据格式不正确');
+                rawData = rows;
+                processData();
+                // 尽力通知来源页面（被沙箱拦截也不影响导入）
                 try {
                     if (window.opener && !window.opener.closed) {
-                        window.opener.postMessage({ source: 'dms-da', type: 'ready' }, '*');
+                        window.opener.postMessage(
+                            { source: 'dms-da', type: 'imported', count: rows.length }, '*');
                     }
                 } catch (err) { }
-            };
-            announce();
-            setTimeout(announce, 400);
-            setTimeout(announce, 1200);
+                // 清掉锚点，避免刷新时重复导入
+                try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (err) { }
+                return true;
+            } catch (err) {
+                showModal('自动导入失败', String((err && err.message) || err));
+                return false;
+            }
+        }
+        window.addEventListener('DOMContentLoaded', function () {
+            importRowsFromHash();
+        });
+        window.addEventListener('hashchange', function () {
+            importRowsFromHash();
         });
     </script>
 </body>
