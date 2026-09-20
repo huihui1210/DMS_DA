@@ -2336,42 +2336,61 @@
         function replyTargetOrigin(origin) {
             return origin && origin !== 'null' ? origin : '*';
         }
-        function notifyReady(origin) {
-            if (window.opener && !window.opener.closed) {
-                try {
-                    window.opener.postMessage({ source: 'dms-da', type: 'ready' }, origin || '*');
-                } catch (err) { }
-            }
+        function reply(event, message) {
+            // 优先用 event.source 回信（飞书沙箱下 window.opener 可能为 null）
+            try {
+                if (event.source && event.source.postMessage) {
+                    event.source.postMessage(message, replyTargetOrigin(event.origin));
+                    return;
+                }
+            } catch (err) { }
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage(message, '*');
+                }
+            } catch (err) { }
         }
+        let lastImportSignature = '';
         window.addEventListener('message', function (event) {
             const data = event.data;
             if (!data || data.source !== 'bitable-export-plugin') return;
             if (!isTrustedBridgeOrigin(event.origin)) return;
 
             if (data.type === 'ping') {
-                notifyReady(replyTargetOrigin(event.origin));
+                reply(event, { source: 'dms-da', type: 'ready' });
                 return;
             }
             if (data.type === 'import' && Array.isArray(data.rows)) {
+                // 用行数+首行内容做签名，避免握手重试时重复渲染
+                const signature = data.rows.length + '|' + JSON.stringify(data.rows[0] || {});
                 try {
-                    rawData = data.rows;
-                    processData();
-                    event.source.postMessage(
-                        { source: 'dms-da', type: 'imported', count: rawData.length },
-                        replyTargetOrigin(event.origin)
-                    );
+                    if (signature !== lastImportSignature) {
+                        lastImportSignature = signature;
+                        rawData = data.rows;
+                        processData();
+                    }
+                    reply(event, { source: 'dms-da', type: 'imported', count: data.rows.length });
                 } catch (err) {
-                    event.source.postMessage(
-                        { source: 'dms-da', type: 'error', message: String((err && err.message) || err) },
-                        replyTargetOrigin(event.origin)
-                    );
+                    reply(event, {
+                        source: 'dms-da',
+                        type: 'error',
+                        message: String((err && err.message) || err),
+                    });
                 }
             }
         });
+        // 页面加载后主动广播就绪（兼容旧版插件）
         window.addEventListener('DOMContentLoaded', function () {
-            notifyReady('*');
-            setTimeout(function () { notifyReady('*'); }, 400);
-            setTimeout(function () { notifyReady('*'); }, 1200);
+            const announce = function () {
+                try {
+                    if (window.opener && !window.opener.closed) {
+                        window.opener.postMessage({ source: 'dms-da', type: 'ready' }, '*');
+                    }
+                } catch (err) { }
+            };
+            announce();
+            setTimeout(announce, 400);
+            setTimeout(announce, 1200);
         });
     </script>
 </body>
