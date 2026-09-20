@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -2324,6 +2324,55 @@
         });
 
         window.addEventListener('DOMContentLoaded', loadFromLocalStorage);
+
+        // ======= 外部联动：接收多维表格导出插件的数据 =======
+        function isTrustedBridgeOrigin(origin) {
+            return /(^|\.)feishu\.cn$/.test(origin) ||
+                /(^|\.)larkoffice\.com$/.test(origin) ||
+                /(^|\.)larksuite\.com$/.test(origin) ||
+                /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
+                origin === 'null';
+        }
+        function replyTargetOrigin(origin) {
+            return origin && origin !== 'null' ? origin : '*';
+        }
+        function notifyReady(origin) {
+            if (window.opener && !window.opener.closed) {
+                try {
+                    window.opener.postMessage({ source: 'dms-da', type: 'ready' }, origin || '*');
+                } catch (err) { }
+            }
+        }
+        window.addEventListener('message', function (event) {
+            const data = event.data;
+            if (!data || data.source !== 'bitable-export-plugin') return;
+            if (!isTrustedBridgeOrigin(event.origin)) return;
+
+            if (data.type === 'ping') {
+                notifyReady(replyTargetOrigin(event.origin));
+                return;
+            }
+            if (data.type === 'import' && Array.isArray(data.rows)) {
+                try {
+                    rawData = data.rows;
+                    processData();
+                    event.source.postMessage(
+                        { source: 'dms-da', type: 'imported', count: rawData.length },
+                        replyTargetOrigin(event.origin)
+                    );
+                } catch (err) {
+                    event.source.postMessage(
+                        { source: 'dms-da', type: 'error', message: String((err && err.message) || err) },
+                        replyTargetOrigin(event.origin)
+                    );
+                }
+            }
+        });
+        window.addEventListener('DOMContentLoaded', function () {
+            notifyReady('*');
+            setTimeout(function () { notifyReady('*'); }, 400);
+            setTimeout(function () { notifyReady('*'); }, 1200);
+        });
     </script>
 </body>
 
