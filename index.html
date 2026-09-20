@@ -1035,16 +1035,6 @@
         function filterColumns(data) {
             if (data.length === 0) return data;
 
-            const missingCols = [];
-            const firstRow = data[0];
-            const columns = Object.keys(firstRow);
-
-            DELETE_COLUMNS.forEach(col => {
-                if (!columns.includes(col)) {
-                    missingCols.push(col);
-                }
-            });
-
             return data.map(row => {
                 const filteredRow = {};
                 Object.keys(row).forEach(key => {
