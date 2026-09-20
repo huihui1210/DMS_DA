@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -1044,10 +1044,6 @@
                     missingCols.push(col);
                 }
             });
-
-            if (missingCols.length > 0) {
-                showModal('提示', '以下列不存在，将跳过删除：' + missingCols.join('、'));
-            }
 
             return data.map(row => {
                 const filteredRow = {};
