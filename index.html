@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -1227,6 +1227,33 @@
             return isNaN(date.getTime()) ? null : date;
         }
 
+        // 将日期类值格式化为 YYYY-MM-DD（去掉时分秒）；失败时返回原值
+        function formatDateOnly(val) {
+            if (isEmpty(val)) return '';
+            // 优先用 toDate 解析
+            let d = toDate(val);
+            // 兼容 Excel 序列号字符串（如 "44200" 或 "44200.5"）
+            if (!d && typeof val === 'string' && /^\d+(\.\d+)?$/.test(val.trim())) {
+                const num = parseFloat(val.trim());
+                if (!isNaN(num)) {
+                    d = new Date((num - 25569) * 86400 * 1000);
+                }
+            }
+            if (d && !isNaN(d.getTime())) {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            }
+            // 兜底1：从字符串中提取 YYYY-MM-DD 或 YYYY/MM/DD
+            const match = String(val).match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+            if (match) {
+                return `${match[1]}-${String(match[2]).padStart(2, '0')}-${String(match[3]).padStart(2, '0')}`;
+            }
+            // 兜底2：去掉末尾的时分秒部分
+            return String(val).replace(/\s+\d{1,2}:\d{2}(:\d{2})?$/, '').trim();
+        }
+
         function isSameDay(a, b) {
             return a.getFullYear() === b.getFullYear()
                 && a.getMonth() === b.getMonth()
@@ -2176,7 +2203,12 @@
             processedData.forEach(row => {
                 const rowData = exportColumns.map(col => {
                     const val = row[col];
-                    return val !== undefined && val !== null ? String(val) : '';
+                    if (val === undefined || val === null || val === '') return '';
+                    // 计划期限列：仅保留日期（年-月-日），去掉时分秒
+                    if (cleanString(col).toLowerCase() === '计划期限') {
+                        return formatDateOnly(val);
+                    }
+                    return String(val);
                 });
                 aoa.push(rowData);
             });
