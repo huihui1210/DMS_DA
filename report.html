@@ -387,11 +387,15 @@
         }
 
         /* ======= 打印样式 ======= */
+        @page {
+            margin: 0;
+        }
+
         @media print {
             body {
                 background: white !important;
                 margin: 0;
-                padding: 0;
+                padding: 10mm 12mm;
             }
 
             .container {
@@ -400,7 +404,7 @@
                 overflow: visible !important;
                 box-shadow: none !important;
                 border-radius: 0 !important;
-                padding: 20px !important;
+                padding: 8px 0 !important;
                 position: relative !important;
             }
 
