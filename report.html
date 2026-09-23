@@ -395,17 +395,36 @@
             body {
                 background: white !important;
                 margin: 0;
-                padding: 10mm 12mm;
+                padding: 0;
             }
 
+            /* 容器左右内边距：跨页生效，提供每页左右页边距 */
             .container {
                 min-height: auto !important;
                 height: auto !important;
                 overflow: visible !important;
                 box-shadow: none !important;
                 border-radius: 0 !important;
-                padding: 8px 0 !important;
+                padding: 0 12mm !important;
                 position: relative !important;
+            }
+
+            /* 第一页顶部页边距 */
+            .header {
+                margin: 0 !important;
+                padding: 10mm 0 5mm !important;
+            }
+
+            /* 每个 section 顶部内边距作为新页顶部页边距；break-inside 避免跨页截断 */
+            .report-section {
+                margin: 0 !important;
+                padding: 10mm 0 0 !important;
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .report-section:last-of-type {
+                padding-bottom: 10mm !important;
             }
 
             .btn-group {
@@ -420,12 +439,27 @@
                 page-break-inside: avoid;
             }
 
-            .report-section {
+            .stats-grid {
                 page-break-inside: avoid;
             }
 
-            .stats-grid {
-                page-break-inside: avoid;
+            /* 打印时汇总表允许换行，避免文字被截断 */
+            .summary-table {
+                font-size: 10px !important;
+            }
+
+            .summary-table th,
+            .summary-table td {
+                white-space: normal !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
+                padding: 3px 2px !important;
+            }
+
+            .summary-table th.st-col,
+            .summary-table td.st-col {
+                font-size: 11px !important;
+                padding: 4px 2px !important;
             }
 
             .stat-value {
