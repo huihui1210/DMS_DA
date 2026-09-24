@@ -530,7 +530,7 @@
                         <div class="profession-list" id="completedProfessionList"></div>
                     </div>
                     <div class="profession-block">
-                        <p>截至<span id="pendingMonthLabel"></span>底剩余最多前三名专业：<span id="topPendingProfessions"></span>。
+                        <p><span id="pendingMonthLabel"></span>剩余最多前三名专业：<span id="topPendingProfessions"></span>。
                         </p>
                         <div class="profession-list" id="pendingProfessionList"></div>
                     </div>
@@ -1072,7 +1072,7 @@
             });
 
             const summaryEl = document.getElementById('pieChartSummary');
-            summaryEl.innerHTML = `截至${currentMonthKey.split('-')[1]}月${day}日，接收站Ⅰ类缺陷剩余<span class="highlight">${totalRemaining}</span>项；${currentMonthKey.split('-')[1]}月新增${totalNew}项，消缺${totalCompleted}项。二类剩余${pendingII}项，土建剩余${pendingCivil}项，消防剩余${pendingFire}项。`;
+            summaryEl.innerHTML = `截至${currentMonthKey.split('-')[1]}月${day}日，接收站Ⅰ类缺陷剩余<span class="highlight">${totalRemaining}</span>项；${currentMonthKey.split('-')[1]}月新增${totalNew}项，消缺${totalCompleted}项。Ⅱ类剩余${pendingII}项，土建剩余${pendingCivil}项，消防剩余${pendingFire}项。`;
 
             // 表格结构（与 index.html renderSummaryTable 一致）
             const totalRows = 1 + 3;  // 1行表头 + 3行数据
