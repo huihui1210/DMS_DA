@@ -977,6 +977,17 @@
         const DELETE_COLUMNS = ['缺陷图片', '消缺完成月', '消缺完成年', '缺陷登记年', '缺陷登记月'];
         const MAJOR_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '其他'];
 
+        // 专业显示名映射（仅显示层，不改动数据统计）
+        const PROFESSION_DISPLAY_NAMES = {
+            '其他': '接收站运行部',
+            '其他专业': '接收站运行部',
+            '安全': 'QHSE部',
+            '后勤': '综合管理部'
+        };
+        function displayProfession(name) {
+            return PROFESSION_DISPLAY_NAMES[name] || name;
+        }
+
         // ======= 表格状态 =======
         let warnedMissingColumn = false;
         let currentPage = 1;
@@ -1554,7 +1565,7 @@
                             : idx === 2 ? 'lb-rank-3' : 'lb-rank-n';
                     return `<div class="lb-item">
                         <span class="lb-rank ${rankClass}">${idx + 1}</span>
-                        <span class="lb-profession">${item.prof}</span>
+                        <span class="lb-profession">${displayProfession(item.prof)}</span>
                         <span class="lb-count">${item.count}</span>
                     </div>`;
                 }).join('');
@@ -1841,10 +1852,10 @@
             let pieAllNames = [...MAJOR_PROFESSIONS];
             if (type === 'pie') {
                 const stats = getClassIProfessionStats();
-                pieAllNames = stats.professions;
+                pieAllNames = stats.professions.map(displayProfession);
                 // 饼图显示所有专业（0项也保留，ECharts会处理为不可见扇形）
                 pieData = stats.professions
-                    .map(name => ({ name, value: stats.remainingStats[name] || 0 }));
+                    .map(name => ({ name: displayProfession(name), value: stats.remainingStats[name] || 0 }));
             }
 
             const option = {
@@ -2074,7 +2085,7 @@
             html += `<th class="st-col" rowspan="${totalRows}">接收站</th>`;  // 跨所有行
             html += '<th>Ⅰ类缺陷</th>';
             html += '<th class="st-sub-total">总计</th>';
-            professions.forEach(p => { html += `<th>${p}</th>`; });
+            professions.forEach(p => { html += `<th>${displayProfession(p)}</th>`; });
             html += '</tr>';
 
             // 剩余

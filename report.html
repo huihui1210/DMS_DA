@@ -226,6 +226,16 @@
             line-height: 1.6;
         }
 
+        .profession-block+.profession-block {
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px dashed rgba(0, 0, 0, 0.08);
+        }
+
+        .profession-block .profession-list {
+            margin-top: 8px;
+        }
+
         .profession-section p:last-child {
             margin-bottom: 0;
         }
@@ -376,9 +386,11 @@
         }
 
         .chart-summary {
-            text-align: center;
+            text-align: left;
+            text-indent: 2em;
             color: #666;
             font-size: 13px;
+            line-height: 1.8;
             margin-bottom: 10px;
             padding: 8px 12px;
             background: #f8f9fa;
@@ -508,10 +520,14 @@
             <div class="report-section">
                 <h2>二、分专业情况</h2>
                 <div class="profession-section" id="professionSection">
-                    <p>本期消缺最多前三名专业：<span id="topCompletedProfessions"></span>。</p>
-                    <div class="profession-list" id="completedProfessionList"></div>
-                    <p>本期剩余最多前三名专业：<span id="topPendingProfessions"></span>。</p>
-                    <div class="profession-list" id="pendingProfessionList"></div>
+                    <div class="profession-block">
+                        <p>本期消缺最多前三名专业：<span id="topCompletedProfessions"></span>。</p>
+                        <div class="profession-list" id="completedProfessionList"></div>
+                    </div>
+                    <div class="profession-block">
+                        <p>本期剩余最多前三名专业：<span id="topPendingProfessions"></span>。</p>
+                        <div class="profession-list" id="pendingProfessionList"></div>
+                    </div>
                 </div>
 
                 <div class="chart-section">
@@ -733,6 +749,17 @@
             return monthlyStats;
         }
 
+        // 专业显示名映射（仅显示层，不改动数据统计）
+        const PROFESSION_DISPLAY_NAMES = {
+            '其他': '接收站运行部',
+            '其他专业': '接收站运行部',
+            '安全': 'QHSE部',
+            '后勤': '综合管理部'
+        };
+        function displayProfession(name) {
+            return PROFESSION_DISPLAY_NAMES[name] || name;
+        }
+
         // ======= 统计：I类缺陷专业分布（饼图 + 饼图底下表格 共用，与 index.html 完全一致）=======
         // 口径：分类定级=1类 + 专业不含土建、消防 + 专业≠未分类
         // 基准日期基准：remaining 统计全部待消缺项；new/completed 按 baseDate 所在月
@@ -912,7 +939,7 @@
             // 消缺龙虎榜（1类口径，年度累计按 baseDate 所在年算）
             const lb = calculateLeaderboard(processedData, baseDate);
             const topCompleted = lb.yearTop3.map(([name]) => name);
-            const topCompletedNames = topCompleted.join('、') || '无';
+            const topCompletedNames = topCompleted.map(displayProfession).join('、') || '无';
 
             // === I 类剩余（饼图数据口径，本月新增/消项按 baseDate 所在月）===
             const classIStats = getClassIProfessionStats(processedData, baseDate);
@@ -943,13 +970,13 @@
 
             // 专业排名段落
             document.getElementById('topCompletedProfessions').textContent = topCompletedNames;
-            document.getElementById('topPendingProfessions').textContent = topPending.join('、') || '无';
+            document.getElementById('topPendingProfessions').textContent = topPending.map(displayProfession).join('、') || '无';
 
             // 专业卡片：分别放在"消缺最多"与"剩余最多"下方，与前三名顺序一一对应（卡片显示该专业剩余项数）
             const buildProfessionCard = (name) => {
                 const item = document.createElement('div');
                 item.className = 'profession-item';
-                item.innerHTML = `<span class="profession-name">${name}</span><span class="profession-count">${pendingByProfession[name] || 0}项</span>`;
+                item.innerHTML = `<span class="profession-name">${displayProfession(name)}</span><span class="profession-count">${pendingByProfession[name] || 0}项</span>`;
                 return item;
             };
             const completedListEl = document.getElementById('completedProfessionList');
@@ -1020,7 +1047,7 @@
             const day = asOfDay || new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0).getDate();
 
             const pieData = professions
-                .map(name => ({ name, value: remainingStats[name] || 0 }));
+                .map(name => ({ name: displayProfession(name), value: remainingStats[name] || 0 }));
 
             const container = document.getElementById('pieChart');
             if (!container) return;
@@ -1040,7 +1067,7 @@
                     legend: {
                         type: 'plain', orient: 'vertical', right: 15, top: 60,
                         columns: 1, itemWidth: 10, itemHeight: 8, itemGap: 8,
-                        textStyle: { fontSize: 11 }, data: professions
+                        textStyle: { fontSize: 11 }, data: professions.map(displayProfession)
                     },
                     series: [{
                         name: '待消缺专业分布',
@@ -1091,7 +1118,7 @@
             html += `<th class="st-col" rowspan="${totalRows}">接<br>收<br>站</th>`;
             html += '<th>Ⅰ类缺陷</th>';
             html += '<th class="st-sub-total">总计</th>';
-            professions.forEach(p => { html += `<th>${p}</th>`; });
+            professions.forEach(p => { html += `<th>${displayProfession(p)}</th>`; });
             html += '</tr>';
 
             // 剩余
