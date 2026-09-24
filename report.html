@@ -715,13 +715,23 @@
                 }
             });
 
-            // 剩余 = 滚存
-            let prevPending = 0;
+            // 剩余 = 截至该月底仍未消缺的数量（直接判定，与饼图/汇总表口径完全一致）
+            // 判定：新增月份(缺陷编号前8位)≤该月 且 （尚未消缺 或 消缺月份>该月）
+            // 不再用"滚存"算法：滚存会把12个月窗口外的新增漏掉，导致柱状图最后一月的剩余 ≠ 饼图剩余总计
             yearMonths.forEach(month => {
-                const { new: n, completed: c } = monthlyStats[month];
-                const currentRemaining = prevPending + n - c;
-                monthlyStats[month].pending = currentRemaining;
-                prevPending = currentRemaining;
+                let pending = 0;
+                processedData.forEach(row => {
+                    if (classIOnly && !isClassIScopeRow(row)) return;
+                    const defectId = row['缺陷编号'] || row['编号'] || row['ID'];
+                    const mk = getMonthFromDefectId(defectId);
+                    if (!mk || mk > month) return;
+                    if (isCompleted(row)) {
+                        const ck = getCompleteMonth(row);
+                        if (!ck || ck <= month) return;
+                    }
+                    pending++;
+                });
+                monthlyStats[month].pending = pending;
             });
 
             return monthlyStats;
@@ -750,19 +760,25 @@
                 // 收集专业：预定义列表里没有的也加上
                 if (!MAJOR_PROFESSIONS.includes(profession)) extraProfessions.add(profession);
 
-                // 剩余统计（待消缺）
-                if (isPending(row)) {
-                    remainingStats[profession] = (remainingStats[profession] || 0) + 1;
-                }
-
-                // 本月新增统计（缺陷编号前8位在本月）
                 const defectId = row['缺陷编号'] || row['编号'] || row['ID'];
                 const newMonthKey = getMonthFromDefectId(defectId);
+
+                // 剩余统计：截至基准月底仍未消缺（与柱状图最后一月"剩余"口径完全一致）
+                // = 新增月份≤基准月 且 （尚未消缺 或 消缺月份>基准月）
+                // 上月模式下，本月才消缺的缺陷在上月底仍未消缺，需计入剩余
+                if (newMonthKey && newMonthKey <= currentMonthKey) {
+                    const ck = getCompleteMonth(row);
+                    if (!isCompleted(row) || (ck && ck > currentMonthKey)) {
+                        remainingStats[profession] = (remainingStats[profession] || 0) + 1;
+                    }
+                }
+
+                // 本月新增统计（只认缺陷编号前8位，在基准月）
                 if (newMonthKey === currentMonthKey) {
                     newStats[profession] = (newStats[profession] || 0) + 1;
                 }
 
-                // 本月消项统计（消项时间在本月）
+                // 本月消项统计（只认消项时间，在基准月）
                 if (isCompleted(row)) {
                     const completeMonthKey = getCompleteMonth(row);
                     if (completeMonthKey === currentMonthKey) {

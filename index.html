@@ -1449,14 +1449,22 @@
                 }
             });
 
-            // === 月度统计：剩余 = 滚存（上月剩余 + 本月新增 - 本月消缺） ===
-            // 这是"截至该月底的累计剩余量"，不是"当月新增的剩余"
-            let prevPending = 0;
+            // === 月度统计：剩余 = 截至该月底仍未消缺的数量（直接判定，与饼图/汇总表口径完全一致） ===
+            // 判定：新增月份(缺陷编号前8位)≤该月 且 （尚未消缺 或 消缺月份>该月）
+            // 不再用"滚存"算法：滚存会把12个月窗口外的新增漏掉，导致柱状图最后一月的剩余 ≠ 饼图剩余总计
             filteredMonths.forEach(month => {
-                const { new: n, completed: c } = monthlyStats[month];
-                const currentRemaining = prevPending + n - c;
-                monthlyStats[month].pending = currentRemaining;
-                prevPending = currentRemaining;
+                let pending = 0;
+                processedData.forEach(row => {
+                    if (!isClassIScopeRow(row)) return;
+                    const mk = getMonthFromDefectId(row['缺陷编号'] || row['编号'] || row['ID']);
+                    if (!mk || mk > month) return;
+                    if (row.status === '已消缺项') {
+                        const ck = getCompleteMonth(row);
+                        if (!ck || ck <= month) return;
+                    }
+                    pending++;
+                });
+                monthlyStats[month].pending = pending;
             });
 
             return { stats, monthlyStats, filteredMonths };
@@ -1778,31 +1786,22 @@
                     completedStats[profession] = 0;
                 }
 
-                // 剩余：I类 + 待消缺
-                if (row.status === '待消缺项目') {
+                // 剩余：待消缺 + 新增月份≤本月（与柱状图当月"剩余"口径完全一致）
+                const defectId = row['缺陷编号'] || row['编号'] || row['ID'];
+                const newMonthKey = getMonthFromDefectId(defectId);
+                if (row.status === '待消缺项目' && newMonthKey && newMonthKey <= currentMonthKey) {
                     remainingStats[profession]++;
                 }
 
-                // 本月新增：和统计卡片保持一致的日期解析逻辑
-                // 优先从缺陷编号前8位取日期，取不到则从 row['日期']/['发现日期']/['录入日期'] 取
-                // 仍取不到 → 不计数（和统计卡片一致，不能 fallback 到 currentMonthKey）
-                const defectId = row['缺陷编号'] || row['编号'] || row['ID'];
-                let newDate = getDateFromDefectId(defectId);
-                if (!newDate) {
-                    newDate = toDate(row['日期']) || toDate(row['发现日期']) || toDate(row['录入日期']);
-                }
-                if (newDate && isSameMonth(newDate, now)) {
+                // 本月新增：只认缺陷编号前8位（与柱状图口径完全一致，不做日期字段兜底）
+                if (newMonthKey && newMonthKey === currentMonthKey) {
                     newStats[profession]++;
                 }
 
-                // 本月消项：已消缺 + 消项时间在本月
+                // 本月消项：已消缺 + 消项时间(getCompleteDate)在本月（与柱状图口径完全一致）
                 if (row.status === '已消缺项') {
-                    const completeDate = getCompleteDate(row);
-                    let completeDateVal = completeDate;
-                    if (!completeDateVal) {
-                        completeDateVal = toDate(row['消项时间']) || toDate(row['完成时间']) || toDate(row['关闭时间']);
-                    }
-                    if (completeDateVal && isSameMonth(completeDateVal, now)) {
+                    const completeMonthKey = getCompleteMonth(row);
+                    if (completeMonthKey && completeMonthKey === currentMonthKey) {
                         completedStats[profession]++;
                     }
                 }
