@@ -593,10 +593,6 @@
             return String(p).trim();
         }
 
-        function isPending(row) {
-            return row.status === '待消缺项目' || row.status === '待消缺';
-        }
-
         function isCompleted(row) {
             return row.status === '已消缺项' || row.status === '已消缺';
         }
@@ -875,8 +871,8 @@
             document.getElementById('reportDate').textContent = `截至${currentYear}年${currentMonth}月${asOfDay}日`;
 
             // 动态年份（不再硬编码 2026）
-            document.getElementById('labelYearNew').textContent = `${currentYear}年累计新增`;
-            document.getElementById('labelYearCompleted').textContent = `${currentYear}年累计消缺`;
+            document.getElementById('labelYearNew').textContent = `${currentYear}年累计新增（1类）`;
+            document.getElementById('labelYearCompleted').textContent = `${currentYear}年累计消缺（1类）`;
 
             // === 12 个月范围（从基准月往回数）===
             const yearMonths = [];
@@ -886,13 +882,11 @@
                 yearMonths.push(monthKey);
             }
 
-            // === 月度统计 ===
-            const monthlyStats = calculateMonthlyStats(processedData, yearMonths);
+            // === 月度统计（1类口径：定级1类，专业不含土建/消防）===
+            // 柱状图/底下月份表/总体情况文字/年度累计卡片 全部共用这一套
+            const monthlyStats = calculateMonthlyStats(processedData, yearMonths, true);
 
-            // === 月度统计（1类口径：柱状图及底下表格用）===
-            const classIMonthlyStats = calculateMonthlyStats(processedData, yearMonths, true);
-
-            // === 本月数据 ===
+            // === 本月（基准月）数据 ===
             const currentNew = monthlyStats[currentMonthKey].new;
             const currentCompleted = monthlyStats[currentMonthKey].completed;
             const currentRemaining = monthlyStats[currentMonthKey].pending;
@@ -921,24 +915,24 @@
 
             // === I 类剩余（饼图数据口径，本月新增/消项按 baseDate 所在月）===
             const classIStats = getClassIProfessionStats(processedData, baseDate);
-            const totalClassIRemaining = Object.values(classIStats.remainingStats).reduce((a, b) => a + b, 0);
 
-            // === 剩余前三名专业（1类口径：定级1类，专业不含土建/消防）===
+            // === 剩余前三名专业 + 专业剩余列表（截至基准月底仍未消缺，与饼图/柱状图剩余口径一致）===
             const pendingByProfession = {};
             processedData.forEach(row => {
-                if (!isPending(row)) return;
                 if (!isClassIScopeRow(row)) return;
                 const profession = getProfession(row);
                 const newMonthKey = getMonthFromDefectId(row['缺陷编号'] || row['编号'] || row['ID']);
-                if (newMonthKey && yearMonths.includes(newMonthKey)) {
-                    pendingByProfession[profession] = (pendingByProfession[profession] || 0) + 1;
-                }
+                if (!newMonthKey || newMonthKey > currentMonthKey) return;
+                // 已消缺且消缺月份≤基准月 → 基准月底时已消缺，不计入剩余
+                const ck = getCompleteMonth(row);
+                if (isCompleted(row) && (!ck || ck <= currentMonthKey)) return;
+                pendingByProfession[profession] = (pendingByProfession[profession] || 0) + 1;
             });
             const topPending = Object.entries(pendingByProfession).sort((a, b) => b[1] - a[1]).slice(0, 3).map(item => item[0]);
 
             // === 文本 ===
             const changeText = changeRate >= 0 ? `上升${Math.abs(changeRate)}%` : `下降${Math.abs(changeRate)}%`;
-            const summaryText = `截至${currentMonth}月${asOfDay}日，接收站缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${changeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；本期消缺前三专业为${topCompletedNames}；${currentYear}年累计新增<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
+            const summaryText = `截至${currentMonth}月${asOfDay}日，接收站1类缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${changeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；本期消缺前三专业为${topCompletedNames}；${currentYear}年累计新增1类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
 
             document.getElementById('summaryText').innerHTML = summaryText;
             document.getElementById('statYearNew').textContent = yearNewTotal;
@@ -967,7 +961,7 @@
             });
 
             // === 渲染图表 ===
-            renderBarChart(yearMonths, classIMonthlyStats, currentYear);
+            renderBarChart(yearMonths, monthlyStats, currentYear);
             renderPieChart(processedData, classIStats, baseDate, asOfDay);
         }
 
@@ -983,7 +977,7 @@
 
             chart.setOption({
                 title: {
-                    text: `${year}年缺陷管理统计`,
+                    text: `${year}年1类缺陷管理统计`,
                     left: 'center', top: 0,
                     textStyle: { fontSize: 18, fontWeight: 'bold', color: '#333' }
                 },
