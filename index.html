@@ -1351,15 +1351,15 @@
             return months;
         }
 
-        // ======= 1类缺陷口径（排行榜/柱状图/饼图及其底下表格共用）=======
-        // 分类定级=1类（一类/Ⅰ/I/1，排除二类/Ⅱ/II/2）
+        // ======= Ⅰ类缺陷口径（排行榜/柱状图/饼图及其底下表格共用）=======
+        // 分类定级=Ⅰ类（一类/Ⅰ/I/1，排除二类/Ⅱ/II/2）
         function isClassILevel(level) {
             const s = String(level || '');
             if (/[二Ⅱ]/.test(s) || /II/i.test(s)) return false;
             return /[一Ⅰ1I]/.test(s);
         }
 
-        // 1类缺陷范围：分类定级=1类 且 专业不含土建、消防（未分类专业不计入）
+        // Ⅰ类缺陷范围：分类定级=Ⅰ类 且 专业不含土建、消防（未分类专业不计入）
         function isClassIScopeRow(row) {
             const profession = getProfession(row);
             if (profession === '未分类' || profession.includes('土建') || profession.includes('消防')) return false;
@@ -1368,7 +1368,7 @@
         }
 
         // ======= 统计卡片 & 柱状图 用的月度统计 =======
-        // 返回：stats（12个统计卡片指标，全部数据）+ monthlyStats（月度数组，1类口径，图表用）+ filteredMonths
+        // 返回：stats（12个统计卡片指标，全部数据）+ monthlyStats（月度数组，Ⅰ类口径，图表用）+ filteredMonths
         function calculateMonthlyStats() {
             const now = new Date();
 
@@ -1394,10 +1394,10 @@
                 yearNew: 0
             };
 
-            // ======= 柱状图/底下表格用的月度统计（1类口径：定级1类，专业不含土建/消防） =======
-            // 每个月：new = 缺陷编号前8位在该月的1类缺陷数量
-            //         completed = 消项时间在该月的已消缺1类缺陷数量
-            //         pending = 截至该月底仍未消缺的1类缺陷数量（直接判定，与饼图/汇总表口径完全一致）
+            // ======= 柱状图/底下表格用的月度统计（Ⅰ类口径：定级Ⅰ类，专业不含土建/消防） =======
+            // 每个月：new = 缺陷编号前8位在该月的Ⅰ类缺陷数量
+            //         completed = 消项时间在该月的已消缺Ⅰ类缺陷数量
+            //         pending = 截至该月底仍未消缺的Ⅰ类缺陷数量（直接判定，与饼图/汇总表口径完全一致）
             const monthlyStats = {};
             filteredMonths.forEach(m => {
                 monthlyStats[m] = { new: 0, completed: 0, pending: 0 };
@@ -1411,7 +1411,7 @@
                 const defectDate = getDateFromDefectId(defectId);
                 const completeDate = isCompleted ? getCompleteDate(row) : null;
 
-                // === Ⅰ类口径统计（分类定级=1类，专业不含土建/消防，仅柱状图/底下月份表用） ===
+                // === Ⅰ类口径统计（分类定级=Ⅰ类，专业不含土建/消防，仅柱状图/底下月份表用） ===
                 if (isClassIScopeRow(row)) {
                     // 月度新增（只看缺陷编号前8位，取不到就不算）
                     const newMonthKey = getMonthFromDefectId(defectId);
@@ -1535,7 +1535,7 @@
                 const map = {};
                 processedData.forEach(row => {
                     if (row.status !== '已消缺项') return;
-                    // 龙虎榜口径：仅统计1类缺陷（分类定级=1类，专业不含土建/消防）
+                    // 龙虎榜口径：仅统计Ⅰ类缺陷（分类定级=Ⅰ类，专业不含土建/消防）
                     if (!isClassIScopeRow(row)) return;
                     const d = getCompleteDate(row);
                     if (!d) return;
@@ -1761,8 +1761,8 @@
             renderTable();
         }
 
-        // ======= I类缺陷专业统计（饼图 + 接收站汇总表 共用，确保口径完全一致）=======
-        // 口径：分类定级=1类 + 专业不含土建、消防 + 专业≠未分类
+        // ======= Ⅰ类缺陷专业统计（饼图 + 接收站汇总表 共用，确保口径完全一致）=======
+        // 口径：分类定级=Ⅰ类 + 专业不含土建、消防 + 专业≠未分类
         function getClassIProfessionStats() {
             const isCivil = p => p.includes('土建');
 
@@ -1824,8 +1824,8 @@
             // 固定顺序：预定义专业在前，Excel额外专业在后
             const professions = [...MAJOR_PROFESSIONS, ...extraProfessions];
 
-            console.log('[I类专业统计] 完整专业列表:', professions.join('、'));
-            console.log('[I类专业统计] 剩余:', JSON.stringify(remainingStats));
+            console.log('[Ⅰ类专业统计] 完整专业列表:', professions.join('、'));
+            console.log('[Ⅰ类专业统计] 剩余:', JSON.stringify(remainingStats));
 
             return { professions, remainingStats, newStats, completedStats, extraProfessions };
         }
@@ -1854,7 +1854,7 @@
             // 获取当前统计月份（上个月）
             const currentMonthKey = months[months.length - 1];
 
-            // === 饼图数据：I类剩余缺陷的专业分布 ===
+            // === 饼图数据：Ⅰ类剩余缺陷的专业分布 ===
             // 统一调用公共函数，与汇总表口径完全一致
             let pieData = [];
             let pieAllNames = [...MAJOR_PROFESSIONS];
@@ -2011,7 +2011,7 @@
 
             chart.setOption(option, true);
 
-            // 底部表格：柱状图→月份汇总表；饼图→I类缺陷汇总表
+            // 底部表格：柱状图→月份汇总表；饼图→Ⅰ类缺陷汇总表
             const chartTable = document.getElementById('chartDataTable');
             const summaryTable = document.getElementById('summaryTableSection');
             if (type === 'pie') {
@@ -2071,8 +2071,8 @@
             renderChart(type);
         }
 
-        // ======= 接收站 I类缺陷汇总表（饼图底下的表格）=======
-        // 口径：分类定级=1类 + 专业不含土建、消防 + 专业≠未分类
+        // ======= 接收站 Ⅰ类缺陷汇总表（饼图底下的表格）=======
+        // 口径：分类定级=Ⅰ类 + 专业不含土建、消防 + 专业≠未分类
         // 行：剩余、本月新增、本月消项
         // 专业：MAJOR_PROFESSIONS（11个预定义）+ Excel 额外
         function renderSummaryTable() {

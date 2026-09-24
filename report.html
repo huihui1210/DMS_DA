@@ -525,11 +525,11 @@
                 <h2>二、分专业情况</h2>
                 <div class="profession-section" id="professionSection">
                     <div class="profession-block">
-                        <p>本期消缺最多前三名专业：<span id="topCompletedProfessions"></span>。</p>
+                        <p>本月消缺最多前三名专业：<span id="topCompletedProfessions"></span>。</p>
                         <div class="profession-list" id="completedProfessionList"></div>
                     </div>
                     <div class="profession-block">
-                        <p>本期剩余最多前三名专业：<span id="topPendingProfessions"></span>。</p>
+                        <p>本月剩余最多前三名专业：<span id="topPendingProfessions"></span>。</p>
                         <div class="profession-list" id="pendingProfessionList"></div>
                     </div>
                 </div>
@@ -688,14 +688,14 @@
             return date.getFullYear() === now.getFullYear();
         }
 
-        // 分类定级是否为1类（一类/Ⅰ/I/1，排除二类/Ⅱ/II/2）
+        // 分类定级是否为Ⅰ类（一类/Ⅰ/I/1，排除二类/Ⅱ/II/2）
         function isClassILevel(level) {
             const s = String(level || '');
             if (/[二Ⅱ]/.test(s) || /II/i.test(s)) return false;
             return /[一Ⅰ1I]/.test(s);
         }
 
-        // 1类缺陷口径：分类定级=1类 且 专业不含土建、消防（未分类专业不计入）
+        // Ⅰ类缺陷口径：分类定级=Ⅰ类 且 专业不含土建、消防（未分类专业不计入）
         // 排行榜/柱状图/饼图及其底下表格共用
         function isClassIScopeRow(row) {
             const profession = getProfession(row);
@@ -704,14 +704,14 @@
             return !isEmpty(levelRaw) && isClassILevel(levelRaw);
         }
 
-        // ======= 统计：月度数据（柱状图用，默认全部数据；classIOnly=true 时仅统计1类缺陷）=======
+        // ======= 统计：月度数据（柱状图用，默认全部数据；classIOnly=true 时仅统计Ⅰ类缺陷）=======
         // 口径：新增只看缺陷编号前8位；消缺只看消项时间；取不到就不算（无 fallback）
         function calculateMonthlyStats(processedData, yearMonths, classIOnly) {
             const monthlyStats = {};
             yearMonths.forEach(m => { monthlyStats[m] = { new: 0, completed: 0, pending: 0 }; });
 
             processedData.forEach(row => {
-                // 1类口径：仅统计 分类定级=1类 且 专业不含土建/消防 的缺陷
+                // Ⅰ类口径：仅统计 分类定级=Ⅰ类 且 专业不含土建/消防 的缺陷
                 if (classIOnly && !isClassIScopeRow(row)) return;
 
                 const defectId = row['缺陷编号'] || row['编号'] || row['ID'];
@@ -764,8 +764,8 @@
             return PROFESSION_DISPLAY_NAMES[name] || name;
         }
 
-        // ======= 统计：I类缺陷专业分布（饼图 + 饼图底下表格 共用，与 index.html 完全一致）=======
-        // 口径：分类定级=1类 + 专业不含土建、消防 + 专业≠未分类
+        // ======= 统计：Ⅰ类缺陷专业分布（饼图 + 饼图底下表格 共用，与 index.html 完全一致）=======
+        // 口径：分类定级=Ⅰ类 + 专业不含土建、消防 + 专业≠未分类
         // 基准日期基准：remaining 统计全部待消缺项；new/completed 按 baseDate 所在月
         function getClassIProfessionStats(processedData, baseDate) {
             const isCivil = p => p.includes('土建');
@@ -818,51 +818,6 @@
             return { professions, remainingStats, newStats, completedStats };
         }
 
-        // ======= 统计：分专业消缺/剩余排名（龙虎榜用，1类口径：定级1类，专业不含土建/消防）=======
-        function calculateLeaderboard(processedData, baseDate) {
-            const ref = baseDate || new Date();
-            const startOfWeek = new Date(ref);
-            const day = startOfWeek.getDay() || 7;
-            startOfWeek.setDate(startOfWeek.getDate() - day + 1);
-            startOfWeek.setHours(0, 0, 0, 0);
-            const startOfMonth = new Date(ref.getFullYear(), ref.getMonth(), 1);
-            const startOfYear = new Date(ref.getFullYear(), 0, 1);
-
-            function countByProfession(datePredicate) {
-                const stats = {};
-                processedData.forEach(row => {
-                    if (!isCompleted(row)) return;
-                    // 仅统计1类缺陷（分类定级=1类，专业不含土建/消防）
-                    if (!isClassIScopeRow(row)) return;
-                    const completeDate = getCompleteDate(row);
-                    if (!completeDate || !datePredicate(completeDate)) return;
-                    const profession = getProfession(row);
-                    if (profession === '未分类') return;
-                    stats[profession] = (stats[profession] || 0) + 1;
-                });
-                return stats;
-            }
-
-            const yesterdayStats = countByProfession(d => {
-                const yesterday = new Date(ref); yesterday.setDate(yesterday.getDate() - 1);
-                return d.getFullYear() === yesterday.getFullYear() && d.getMonth() === yesterday.getMonth() && d.getDate() === yesterday.getDate();
-            });
-            const weekStats = countByProfession(d => d >= startOfWeek);
-            const monthStats = countByProfession(d => d >= startOfMonth);
-            const yearStats = countByProfession(d => d >= startOfYear);
-
-            function top(stats, n) {
-                return Object.entries(stats).sort((a, b) => b[1] - a[1]).slice(0, n);
-            }
-
-            return {
-                yesterdayTop1: top(yesterdayStats, 1),
-                weekTop1: top(weekStats, 1),
-                monthTop3: top(monthStats, 3),
-                yearTop3: top(yearStats, 3)
-            };
-        }
-
         // ======= 加载 & 渲染主流程 =======
         function loadReport() {
             const saved = localStorage.getItem('defectData');
@@ -913,7 +868,7 @@
                 yearMonths.push(monthKey);
             }
 
-            // === 月度统计（1类口径：定级1类，专业不含土建/消防）===
+            // === 月度统计（Ⅰ类口径：定级Ⅰ类，专业不含土建/消防）===
             // 柱状图/底下月份表/总体情况文字/年度累计卡片 全部共用这一套
             const monthlyStats = calculateMonthlyStats(processedData, yearMonths, true);
 
@@ -940,13 +895,13 @@
                 completionRate = `${(currentCompleted / totalProcessed * 100).toFixed(1)}%`;
             }
 
-            // 消缺龙虎榜（1类口径，年度累计按 baseDate 所在年算）
-            const lb = calculateLeaderboard(processedData, baseDate);
-            const topCompleted = lb.yearTop3.map(([name]) => name);
-            const topCompletedNames = topCompleted.map(displayProfession).join('、') || '无';
-
-            // === I 类剩余（饼图数据口径，本月新增/消项按 baseDate 所在月）===
+            // === I 类剩余 + 本月消缺（饼图/汇总表/分专业卡片共用，按 baseDate 所在月统计）===
             const classIStats = getClassIProfessionStats(processedData, baseDate);
+
+            // 本月消缺前三名专业（基准月消项，Ⅰ类口径；本月模式=本月消缺，上月模式=上月消缺）
+            const topCompleted = Object.entries(classIStats.completedStats)
+                .sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name]) => name);
+            const topCompletedNames = topCompleted.map(displayProfession).join('、') || '无';
 
             // === 剩余前三名专业 + 专业剩余列表（截至基准月底仍未消缺，与饼图/柱状图剩余口径一致）===
             const pendingByProfession = {};
@@ -964,7 +919,7 @@
 
             // === 文本 ===
             const changeText = changeRate >= 0 ? `上升${Math.abs(changeRate)}%` : `下降${Math.abs(changeRate)}%`;
-            const summaryText = `截至${currentMonth}月${asOfDay}日，接收站Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${changeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；本期消缺前三专业为${topCompletedNames}；${currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
+            const summaryText = `截至${currentMonth}月${asOfDay}日，接收站Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${changeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；本月消缺前三专业为${topCompletedNames}；${currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
 
             document.getElementById('summaryText').innerHTML = summaryText;
             document.getElementById('statYearNew').textContent = yearNewTotal;
@@ -976,26 +931,27 @@
             document.getElementById('topCompletedProfessions').textContent = topCompletedNames;
             document.getElementById('topPendingProfessions').textContent = topPending.map(displayProfession).join('、') || '无';
 
-            // 专业卡片：分别放在"消缺最多"与"剩余最多"下方，与前三名顺序一一对应（卡片显示该专业剩余项数）
-            const buildProfessionCard = (name) => {
+            // 专业卡片：分别放在"本月消缺最多"与"本月剩余最多"下方，与前三名顺序一一对应
+            // 消缺组卡片显示基准月消缺项数，剩余组卡片显示截至基准月底剩余项数
+            const buildProfessionCard = (name, count) => {
                 const item = document.createElement('div');
                 item.className = 'profession-item';
-                item.innerHTML = `<span class="profession-name">${displayProfession(name)}</span><span class="profession-count">${pendingByProfession[name] || 0}项</span>`;
+                item.innerHTML = `<span class="profession-name">${displayProfession(name)}</span><span class="profession-count">${count}项</span>`;
                 return item;
             };
             const completedListEl = document.getElementById('completedProfessionList');
             const pendingListEl = document.getElementById('pendingProfessionList');
             completedListEl.innerHTML = '';
             pendingListEl.innerHTML = '';
-            topCompleted.forEach(name => completedListEl.appendChild(buildProfessionCard(name)));
-            topPending.forEach(name => pendingListEl.appendChild(buildProfessionCard(name)));
+            topCompleted.forEach(name => completedListEl.appendChild(buildProfessionCard(name, classIStats.completedStats[name] || 0)));
+            topPending.forEach(name => pendingListEl.appendChild(buildProfessionCard(name, pendingByProfession[name] || 0)));
 
             // === 渲染图表 ===
             renderBarChart(yearMonths, monthlyStats, currentYear);
             renderPieChart(processedData, classIStats, baseDate, asOfDay);
         }
 
-        // ======= 柱状图（1类口径：定级1类，专业不含土建/消防，与底下月份表一致）=======
+        // ======= 柱状图（Ⅰ类口径：定级Ⅰ类，专业不含土建/消防，与底下月份表一致）=======
         function renderBarChart(months, monthlyStats, year) {
             const container = document.getElementById('barChart');
             const chart = echarts.init(container);
@@ -1043,7 +999,7 @@
             window.addEventListener('resize', () => chart.resize());
         }
 
-        // ======= 饼图（I类缺陷专业分布，与 index.html 口径完全一致）=======
+        // ======= 饼图（Ⅰ类缺陷专业分布，与 index.html 口径完全一致）=======
         // 饼图底下表格：接收站 + 总计 + 各专业（MAJOR_PROFESSIONS + Excel额外）
         function renderPieChart(processedData, classIStats, baseDate, asOfDay) {
             const { professions, remainingStats, newStats, completedStats } = classIStats;
@@ -1094,6 +1050,8 @@
             const totalRemaining = pieData.reduce((s, d) => s + d.value, 0);
             const totalNew = Object.values(newStats).reduce((s, v) => s + v, 0);
             const totalCompleted = Object.values(completedStats).reduce((s, v) => s + v, 0);
+            // 行标签用基准月份数字（本月模式=当月，上月模式=上个月），避免"本月"歧义
+            const monthLabel = parseInt(currentMonthKey.split('-')[1], 10) + '月';
 
             // 二类/土建/消防剩余（截至基准月底仍未消缺，与Ⅰ类剩余同口径；土建、消防不分Ⅰ/Ⅱ类）
             let pendingII = 0, pendingCivil = 0, pendingFire = 0;
@@ -1134,14 +1092,14 @@
 
             // 本月新增
             html += '<tr>';
-            html += '<td>本月新增</td>';
+            html += `<td>${monthLabel}新增</td>`;
             html += `<td class="st-total">${totalNew}</td>`;
             professions.forEach(p => { html += `<td>${newStats[p] || 0}</td>`; });
             html += '</tr>';
 
             // 本月消项
             html += '<tr>';
-            html += '<td>本月消项</td>';
+            html += `<td>${monthLabel}消项</td>`;
             html += `<td class="st-total">${totalCompleted}</td>`;
             professions.forEach(p => { html += `<td>${completedStats[p] || 0}</td>`; });
             html += '</tr>';
