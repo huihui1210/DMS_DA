@@ -525,11 +525,13 @@
                 <h2>二、分专业情况</h2>
                 <div class="profession-section" id="professionSection">
                     <div class="profession-block">
-                        <p>本月消缺最多前三名专业：<span id="topCompletedProfessions"></span>。</p>
+                        <p><span id="completedMonthLabel"></span>消缺最多前三名专业：<span id="topCompletedProfessions"></span>。
+                        </p>
                         <div class="profession-list" id="completedProfessionList"></div>
                     </div>
                     <div class="profession-block">
-                        <p>本月剩余最多前三名专业：<span id="topPendingProfessions"></span>。</p>
+                        <p>截至<span id="pendingMonthLabel"></span>底剩余最多前三名专业：<span id="topPendingProfessions"></span>。
+                        </p>
                         <div class="profession-list" id="pendingProfessionList"></div>
                     </div>
                 </div>
@@ -919,7 +921,7 @@
 
             // === 文本 ===
             const changeText = changeRate >= 0 ? `上升${Math.abs(changeRate)}%` : `下降${Math.abs(changeRate)}%`;
-            const summaryText = `截至${currentMonth}月${asOfDay}日，接收站Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${changeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；本月消缺前三专业为${topCompletedNames}；${currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
+            const summaryText = `截至${currentMonth}月${asOfDay}日，接收站Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${changeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；${currentMonth}月消缺前三专业为${topCompletedNames}；${currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
 
             document.getElementById('summaryText').innerHTML = summaryText;
             document.getElementById('statYearNew').textContent = yearNewTotal;
@@ -927,7 +929,9 @@
             document.getElementById('statChangeRate').textContent = lastMonthRemaining > 0 ? `${changeRate >= 0 ? '+' : ''}${changeRate}%` : '无数据';
             document.getElementById('statCompletionRate').textContent = completionRate;
 
-            // 专业排名段落
+            // 专业排名段落（用具体月份，避免"本月/上月"歧义）
+            document.getElementById('completedMonthLabel').textContent = `${currentMonth}月`;
+            document.getElementById('pendingMonthLabel').textContent = `${currentMonth}月`;
             document.getElementById('topCompletedProfessions').textContent = topCompletedNames;
             document.getElementById('topPendingProfessions').textContent = topPending.map(displayProfession).join('、') || '无';
 
