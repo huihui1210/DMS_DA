@@ -1392,8 +1392,7 @@
                 const defectDate = getDateFromDefectId(defectId);
                 const completeDate = isCompleted ? getCompleteDate(row) : null;
 
-                // === 1类口径统计（分类定级=1类，专业不含土建/消防） ===
-                // 柱状图/底下月份表 + 统计卡片第2/3行（昨日/本周/本月/今年 新增与消缺）共用
+                // === Ⅰ类口径统计（分类定级=1类，专业不含土建/消防，仅柱状图/底下月份表用） ===
                 if (isClassIScopeRow(row)) {
                     // 月度新增（只看缺陷编号前8位，取不到就不算）
                     const newMonthKey = getMonthFromDefectId(defectId);
@@ -1408,22 +1407,22 @@
                             monthlyStats[completeMonthKey].completed++;
                         }
                     }
+                }
 
-                    // 新增统计卡片（Row 2，基于缺陷编号前8位日期）
-                    if (defectDate) {
-                        if (isYesterday(defectDate)) stats.yesterdayNew++;
-                        if (isSameWeek(defectDate, now)) stats.weekNew++;
-                        if (isSameMonth(defectDate, now)) stats.monthNew++;
-                        if (isSameYear(defectDate, now)) stats.yearNew++;
-                    }
+                // === 新增统计卡片（Row 2，全部数据，基于缺陷编号前8位日期） ===
+                if (defectDate) {
+                    if (isYesterday(defectDate)) stats.yesterdayNew++;
+                    if (isSameWeek(defectDate, now)) stats.weekNew++;
+                    if (isSameMonth(defectDate, now)) stats.monthNew++;
+                    if (isSameYear(defectDate, now)) stats.yearNew++;
+                }
 
-                    // 消缺统计卡片（Row 3，基于消项时间）
-                    if (isCompleted && completeDate) {
-                        if (isYesterday(completeDate)) stats.yesterdayDone++;
-                        if (isSameWeek(completeDate, now)) stats.weekDone++;
-                        if (isSameMonth(completeDate, now)) stats.monthDone++;
-                        if (isSameYear(completeDate, now)) stats.yearCompleted++;
-                    }
+                // === 消缺统计卡片（Row 3，全部数据，基于消项时间） ===
+                if (isCompleted && completeDate) {
+                    if (isYesterday(completeDate)) stats.yesterdayDone++;
+                    if (isSameWeek(completeDate, now)) stats.weekDone++;
+                    if (isSameMonth(completeDate, now)) stats.monthDone++;
+                    if (isSameYear(completeDate, now)) stats.yearCompleted++;
                 }
 
                 // === 剩余分类统计（统计卡片 Row 1：消防/土建/Ⅰ类/Ⅱ类，全部待消缺数据） ===
