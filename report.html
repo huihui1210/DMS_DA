@@ -871,8 +871,8 @@
             document.getElementById('reportDate').textContent = `截至${currentYear}年${currentMonth}月${asOfDay}日`;
 
             // 动态年份（不再硬编码 2026）
-            document.getElementById('labelYearNew').textContent = `${currentYear}年累计新增（1类）`;
-            document.getElementById('labelYearCompleted').textContent = `${currentYear}年累计消缺（1类）`;
+            document.getElementById('labelYearNew').textContent = `${currentYear}年累计新增（Ⅰ类）`;
+            document.getElementById('labelYearCompleted').textContent = `${currentYear}年累计消缺（Ⅰ类）`;
 
             // === 12 个月范围（从基准月往回数）===
             const yearMonths = [];
@@ -932,7 +932,7 @@
 
             // === 文本 ===
             const changeText = changeRate >= 0 ? `上升${Math.abs(changeRate)}%` : `下降${Math.abs(changeRate)}%`;
-            const summaryText = `截至${currentMonth}月${asOfDay}日，接收站1类缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${changeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；本期消缺前三专业为${topCompletedNames}；${currentYear}年累计新增1类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
+            const summaryText = `截至${currentMonth}月${asOfDay}日，接收站Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${changeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；本期消缺前三专业为${topCompletedNames}；${currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
 
             document.getElementById('summaryText').innerHTML = summaryText;
             document.getElementById('statYearNew').textContent = yearNewTotal;
@@ -977,7 +977,7 @@
 
             chart.setOption({
                 title: {
-                    text: `${year}年1类缺陷管理统计`,
+                    text: `${year}年Ⅰ类缺陷管理统计`,
                     left: 'center', top: 0,
                     textStyle: { fontSize: 18, fontWeight: 'bold', color: '#333' }
                 },
@@ -1033,7 +1033,7 @@
                 const chart = echarts.init(container);
                 chart.setOption({
                     title: {
-                        text: '接收站当前主要剩余I类缺陷专业分布情况',
+                        text: '接收站当前主要剩余Ⅰ类缺陷专业分布情况',
                         left: 'center', top: 10,
                         textStyle: { fontSize: 16, fontWeight: 'bold', color: '#333' }
                     },
@@ -1066,7 +1066,7 @@
             const totalCompleted = Object.values(completedStats).reduce((s, v) => s + v, 0);
 
             const summaryEl = document.getElementById('pieChartSummary');
-            summaryEl.innerHTML = `截至${currentMonthKey.split('-')[1]}月${day}日，接收站I类缺陷剩余<span class="highlight">${totalRemaining}</span>项；${currentMonthKey.split('-')[1]}月新增${totalNew}项，消缺${totalCompleted}项。`;
+            summaryEl.innerHTML = `截至${currentMonthKey.split('-')[1]}月${day}日，接收站Ⅰ类缺陷剩余<span class="highlight">${totalRemaining}</span>项；${currentMonthKey.split('-')[1]}月新增${totalNew}项，消缺${totalCompleted}项。`;
 
             // 表格结构（与 index.html renderSummaryTable 一致）
             const totalRows = 1 + 3;  // 1行表头 + 3行数据
@@ -1076,7 +1076,7 @@
             // 表头行
             html += '<tr class="st-header-row">';
             html += `<th class="st-col" rowspan="${totalRows}">接<br>收<br>站</th>`;
-            html += '<th>I类缺陷</th>';
+            html += '<th>Ⅰ类缺陷</th>';
             html += '<th class="st-sub-total">总计</th>';
             professions.forEach(p => { html += `<th>${p}</th>`; });
             html += '</tr>';

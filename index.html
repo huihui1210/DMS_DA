@@ -831,7 +831,7 @@
                 <!-- Row 1: 剩余分类 -->
                 <div class="stat-card stat-red">
                     <div class="stat-value" id="statRemainingI">0</div>
-                    <div class="stat-label">剩余I类缺陷数</div>
+                    <div class="stat-label">剩余Ⅰ类缺陷数</div>
                 </div>
                 <div class="stat-card stat-green">
                     <div class="stat-value" id="statRemainingCivil">0</div>
@@ -839,9 +839,9 @@
                 </div>
                 <div class="stat-card stat-orange">
                     <div class="stat-value" id="statRemainingII">0</div>
-                    <div class="stat-label">剩余II类缺陷数</div>
+                    <div class="stat-label">剩余Ⅱ类缺陷数</div>
                 </div>
-                <div class="stat-card stat-blue">
+                <div class="stat-card stat-purple">
                     <div class="stat-value" id="statRemainingFire">0</div>
                     <div class="stat-label">剩余消防类缺陷数</div>
                 </div>
@@ -1376,9 +1376,9 @@
             };
 
             // ======= 柱状图/底下表格用的月度统计（1类口径：定级1类，专业不含土建/消防） =======
-            // 每个月：new = 缺陷编号前8位在该月的数量
-            //         completed = 消项时间在该月的已消缺数量
-            //         pending = 截至该月底的累计剩余（滚存：上月剩余 + 本月新增 - 本月消缺）
+            // 每个月：new = 缺陷编号前8位在该月的1类缺陷数量
+            //         completed = 消项时间在该月的已消缺1类缺陷数量
+            //         pending = 截至该月底仍未消缺的1类缺陷数量（直接判定，与饼图/汇总表口径完全一致）
             const monthlyStats = {};
             filteredMonths.forEach(m => {
                 monthlyStats[m] = { new: 0, completed: 0, pending: 0 };
@@ -1392,60 +1392,56 @@
                 const defectDate = getDateFromDefectId(defectId);
                 const completeDate = isCompleted ? getCompleteDate(row) : null;
 
-                // === 月度统计：仅统计1类缺陷（分类定级=1类，专业不含土建/消防） ===
+                // === 1类口径统计（分类定级=1类，专业不含土建/消防） ===
+                // 柱状图/底下月份表 + 统计卡片第2/3行（昨日/本周/本月/今年 新增与消缺）共用
                 if (isClassIScopeRow(row)) {
-                    // 新增（只看缺陷编号前8位，取不到就不算）
-                    let newMonthKey = getMonthFromDefectId(defectId);
+                    // 月度新增（只看缺陷编号前8位，取不到就不算）
+                    const newMonthKey = getMonthFromDefectId(defectId);
                     if (newMonthKey && filteredMonths.includes(newMonthKey)) {
                         monthlyStats[newMonthKey].new++;
                     }
 
-                    // 消缺（是否消缺=是 + 消项时间月份，取不到消项时间就不算）
+                    // 月度消缺（只看消项时间，取不到消项时间就不算）
                     if (isCompleted) {
-                        let completeMonthKey = getCompleteMonth(row);
+                        const completeMonthKey = getCompleteMonth(row);
                         if (completeMonthKey && filteredMonths.includes(completeMonthKey)) {
                             monthlyStats[completeMonthKey].completed++;
                         }
                     }
+
+                    // 新增统计卡片（Row 2，基于缺陷编号前8位日期）
+                    if (defectDate) {
+                        if (isYesterday(defectDate)) stats.yesterdayNew++;
+                        if (isSameWeek(defectDate, now)) stats.weekNew++;
+                        if (isSameMonth(defectDate, now)) stats.monthNew++;
+                        if (isSameYear(defectDate, now)) stats.yearNew++;
+                    }
+
+                    // 消缺统计卡片（Row 3，基于消项时间）
+                    if (isCompleted && completeDate) {
+                        if (isYesterday(completeDate)) stats.yesterdayDone++;
+                        if (isSameWeek(completeDate, now)) stats.weekDone++;
+                        if (isSameMonth(completeDate, now)) stats.monthDone++;
+                        if (isSameYear(completeDate, now)) stats.yearCompleted++;
+                    }
                 }
 
-                // === 剩余分类统计（统计卡片 Row 1） ===
+                // === 剩余分类统计（统计卡片 Row 1：消防/土建/Ⅰ类/Ⅱ类，全部待消缺数据） ===
                 if (isPending) {
                     const isFire = profession.includes('消防');
                     const isCivil = profession.includes('土建');
                     const levelRaw = getFieldValue(row, '分类定级') || getFieldValue(row, '定级') || getFieldValue(row, '分类');
-                    const level = isEmpty(levelRaw) ? '' : String(levelRaw);
-                    const hasI = level.includes('一') || level.includes('Ⅰ') || level.includes('I');
-                    const hasII = level.includes('二') || level.includes('Ⅱ') || level.includes('II');
 
                     if (isFire) {
                         stats.remainingFire++;
                     } else if (isCivil) {
                         stats.remainingCivil++;
-                    } else if (hasI) {
+                    } else if (!isEmpty(levelRaw) && isClassILevel(levelRaw)) {
                         stats.remainingI++;
-                    } else if (hasII) {
-                        stats.remainingII++;
                     } else {
-                        // 分类定级不明确 → 兜底算入剩余II类
+                        // 非Ⅰ类或分类定级不明确 → 兜底算入剩余Ⅱ类
                         stats.remainingII++;
                     }
-                }
-
-                // === 新增统计（统计卡片 Row 2，基于缺陷编号前8位日期） ===
-                if (defectDate) {
-                    if (isYesterday(defectDate)) stats.yesterdayNew++;
-                    if (isSameWeek(defectDate, now)) stats.weekNew++;
-                    if (isSameMonth(defectDate, now)) stats.monthNew++;
-                    if (isSameYear(defectDate, now)) stats.yearNew++;
-                }
-
-                // === 消缺统计（统计卡片 Row 3，基于消项时间） ===
-                if (isCompleted && completeDate) {
-                    if (isYesterday(completeDate)) stats.yesterdayDone++;
-                    if (isSameWeek(completeDate, now)) stats.weekDone++;
-                    if (isSameMonth(completeDate, now)) stats.monthDone++;
-                    if (isSameYear(completeDate, now)) stats.yearCompleted++;
                 }
             });
 
@@ -1962,7 +1958,7 @@
                 }];
 
                 option.title = {
-                    text: '接收站当前主要剩余I类缺陷专业分布情况',
+                    text: '接收站当前主要剩余Ⅰ类缺陷专业分布情况',
                     left: 'center',
                     top: 10,
                     textStyle: {
@@ -2077,7 +2073,7 @@
             // 表头行
             html += '<tr class="st-header-row">';
             html += `<th class="st-col" rowspan="${totalRows}">接收站</th>`;  // 跨所有行
-            html += '<th>I类缺陷</th>';
+            html += '<th>Ⅰ类缺陷</th>';
             html += '<th class="st-sub-total">总计</th>';
             professions.forEach(p => { html += `<th>${p}</th>`; });
             html += '</tr>';
