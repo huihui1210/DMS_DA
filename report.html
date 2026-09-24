@@ -257,10 +257,11 @@
             justify-content: space-between;
             align-items: center;
             padding: 8px 14px;
-            background: #f8f9fa;
+            background: white;
             border-radius: 6px;
             font-size: 14px;
-            border: 1px solid #e9ecef;
+            border: 1px solid rgba(44, 62, 80, 0.12);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
         }
 
         .profession-name {
@@ -272,7 +273,7 @@
             font-weight: 700;
             color: #2c3e50;
             font-size: 14px;
-            background: white;
+            background: #edf2f7;
             padding: 2px 10px;
             border-radius: 12px;
             min-width: 44px;
@@ -311,6 +312,9 @@
             color: white;
             font-weight: 600;
             font-size: 11px;
+            white-space: normal;
+            word-break: break-all;
+            line-height: 1.4;
         }
 
         .summary-table tr.st-header-row th.st-col {
@@ -1106,7 +1110,7 @@
             });
 
             const summaryEl = document.getElementById('pieChartSummary');
-            summaryEl.innerHTML = `截至${currentMonthKey.split('-')[1]}月${day}日，接收站Ⅰ类缺陷剩余<span class="highlight">${totalRemaining}</span>项；${currentMonthKey.split('-')[1]}月新增${totalNew}项，消缺${totalCompleted}项。二类剩余${pendingII}项，土建剩余${pendingCivil}项（不分Ⅰ、Ⅱ类），消防剩余${pendingFire}项（不分Ⅰ、Ⅱ类）。`;
+            summaryEl.innerHTML = `截至${currentMonthKey.split('-')[1]}月${day}日，接收站Ⅰ类缺陷剩余<span class="highlight">${totalRemaining}</span>项；${currentMonthKey.split('-')[1]}月新增${totalNew}项，消缺${totalCompleted}项。二类剩余${pendingII}项，土建剩余${pendingCivil}项，消防剩余${pendingFire}项。`;
 
             // 表格结构（与 index.html renderSummaryTable 一致）
             const totalRows = 1 + 3;  // 1行表头 + 3行数据
