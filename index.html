@@ -842,8 +842,8 @@
                     <div class="stat-label">剩余II类缺陷数</div>
                 </div>
                 <div class="stat-card stat-blue">
-                    <div class="stat-value" id="statRemainingTotal">0</div>
-                    <div class="stat-label">剩余缺陷总数</div>
+                    <div class="stat-value" id="statRemainingFire">0</div>
+                    <div class="stat-label">剩余消防类缺陷数</div>
                 </div>
                 <!-- Row 2: 新增统计 -->
                 <div class="stat-card stat-red">
@@ -859,8 +859,8 @@
                     <div class="stat-label">本月新增缺陷数</div>
                 </div>
                 <div class="stat-card stat-purple">
-                    <div class="stat-value" id="statYearCompleted">0</div>
-                    <div class="stat-label">今年消缺数</div>
+                    <div class="stat-value" id="statYearNew">0</div>
+                    <div class="stat-label">今年新增缺陷数</div>
                 </div>
                 <!-- Row 3: 消缺统计 -->
                 <div class="stat-card stat-red">
@@ -876,8 +876,8 @@
                     <div class="stat-label">本月消缺数</div>
                 </div>
                 <div class="stat-card stat-purple">
-                    <div class="stat-value" id="statYearNew">0</div>
-                    <div class="stat-label">今年新增缺陷数</div>
+                    <div class="stat-value" id="statYearCompleted">0</div>
+                    <div class="stat-label">今年消缺数</div>
                 </div>
             </div>
 
@@ -1320,14 +1320,11 @@
 
         function getFilteredMonths() {
             const now = new Date();
-            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            const lastMonthYear = lastMonth.getFullYear();
-            const lastMonthNum = lastMonth.getMonth() + 1;
 
-            // 生成从上个月开始的12个月列表（不包含当前月）
+            // 生成从本月往回数12个月的列表（包含当前月，数据截至最新）
             const months = [];
             for (let i = 11; i >= 0; i--) {
-                const d = new Date(lastMonthYear, lastMonthNum - 1 - i, 1);
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
                 const year = d.getFullYear();
                 const month = String(d.getMonth() + 1).padStart(2, '0');
                 months.push(`${year}-${month}`);
@@ -1359,12 +1356,12 @@
             // 图表用：筛选后的月份范围（默认12个月）
             const filteredMonths = getFilteredMonths();
 
-            // ======= 统计卡片用的 12 个指标（不区分 I/II 类、包含土建） =======
+            // ======= 统计卡片用的 12 个指标（全部数据；消防/土建单列，I/II 类不含消防土建） =======
             const stats = {
                 // Row 1: 剩余分类（未消缺的）
-                remainingTotal: 0,
-                remainingI: 0,        // 一类 + 不含土建
-                remainingII: 0,       // 二类 + 不含土建
+                remainingFire: 0,     // 含消防
+                remainingI: 0,        // 一类 + 不含土建/消防
+                remainingII: 0,       // 二类 + 不含土建/消防
                 remainingCivil: 0,    // 含土建
                 // Row 2: 新增
                 yesterdayNew: 0,
@@ -1414,15 +1411,16 @@
 
                 // === 剩余分类统计（统计卡片 Row 1） ===
                 if (isPending) {
-                    stats.remainingTotal++;
-
+                    const isFire = profession.includes('消防');
                     const isCivil = profession.includes('土建');
                     const levelRaw = getFieldValue(row, '分类定级') || getFieldValue(row, '定级') || getFieldValue(row, '分类');
                     const level = isEmpty(levelRaw) ? '' : String(levelRaw);
                     const hasI = level.includes('一') || level.includes('Ⅰ') || level.includes('I');
                     const hasII = level.includes('二') || level.includes('Ⅱ') || level.includes('II');
 
-                    if (isCivil) {
+                    if (isFire) {
+                        stats.remainingFire++;
+                    } else if (isCivil) {
                         stats.remainingCivil++;
                     } else if (hasI) {
                         stats.remainingI++;
@@ -1469,7 +1467,7 @@
             const { stats } = calculateMonthlyStats();
 
             // Row 1: 剩余分类
-            document.getElementById('statRemainingTotal').textContent = stats.remainingTotal;
+            document.getElementById('statRemainingFire').textContent = stats.remainingFire;
             document.getElementById('statRemainingI').textContent = stats.remainingI;
             document.getElementById('statRemainingCivil').textContent = stats.remainingCivil;
             document.getElementById('statRemainingII').textContent = stats.remainingII;
@@ -1515,6 +1513,8 @@
                 const map = {};
                 processedData.forEach(row => {
                     if (row.status !== '已消缺项') return;
+                    // 龙虎榜口径：仅统计1类缺陷（分类定级=1类，专业不含土建/消防）
+                    if (!isClassIScopeRow(row)) return;
                     const d = getCompleteDate(row);
                     if (!d) return;
                     if (!datePredicate(d)) return;
