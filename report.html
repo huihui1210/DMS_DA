@@ -509,10 +509,10 @@
                 <h2>二、分专业情况</h2>
                 <div class="profession-section" id="professionSection">
                     <p>本期消缺最多前三名专业：<span id="topCompletedProfessions"></span>。</p>
+                    <div class="profession-list" id="completedProfessionList"></div>
                     <p>本期剩余最多前三名专业：<span id="topPendingProfessions"></span>。</p>
+                    <div class="profession-list" id="pendingProfessionList"></div>
                 </div>
-
-                <div class="profession-list" id="professionList"></div>
 
                 <div class="chart-section">
                     <div class="chart-container" id="pieChart"></div>
@@ -909,9 +909,10 @@
                 completionRate = `${(currentCompleted / totalProcessed * 100).toFixed(1)}%`;
             }
 
-            // === 消缺龙虎榜（1类口径，年度累计按 baseDate 所在年算）===
+            // 消缺龙虎榜（1类口径，年度累计按 baseDate 所在年算）
             const lb = calculateLeaderboard(processedData, baseDate);
-            const topCompletedNames = lb.yearTop3.map(([name]) => name).join('、') || '无';
+            const topCompleted = lb.yearTop3.map(([name]) => name);
+            const topCompletedNames = topCompleted.join('、') || '无';
 
             // === I 类剩余（饼图数据口径，本月新增/消项按 baseDate 所在月）===
             const classIStats = getClassIProfessionStats(processedData, baseDate);
@@ -944,21 +945,19 @@
             document.getElementById('topCompletedProfessions').textContent = topCompletedNames;
             document.getElementById('topPendingProfessions').textContent = topPending.join('、') || '无';
 
-            // 专业剩余列表
-            const professionListEl = document.getElementById('professionList');
-            professionListEl.innerHTML = '';
-            const sortedPendingProfessions = Object.entries(pendingByProfession).sort((a, b) => {
-                if (a[0] === '其他') return 1;
-                if (b[0] === '其他') return -1;
-                if (b[1] !== a[1]) return b[1] - a[1];
-                return a[0].localeCompare(b[0], 'zh-CN');
-            });
-            sortedPendingProfessions.forEach(([name, count]) => {
+            // 专业卡片：分别放在"消缺最多"与"剩余最多"下方，与前三名顺序一一对应（卡片显示该专业剩余项数）
+            const buildProfessionCard = (name) => {
                 const item = document.createElement('div');
                 item.className = 'profession-item';
-                item.innerHTML = `<span class="profession-name">${name}</span><span class="profession-count">${count}项</span>`;
-                professionListEl.appendChild(item);
-            });
+                item.innerHTML = `<span class="profession-name">${name}</span><span class="profession-count">${pendingByProfession[name] || 0}项</span>`;
+                return item;
+            };
+            const completedListEl = document.getElementById('completedProfessionList');
+            const pendingListEl = document.getElementById('pendingProfessionList');
+            completedListEl.innerHTML = '';
+            pendingListEl.innerHTML = '';
+            topCompleted.forEach(name => completedListEl.appendChild(buildProfessionCard(name)));
+            topPending.forEach(name => pendingListEl.appendChild(buildProfessionCard(name)));
 
             // === 渲染图表 ===
             renderBarChart(yearMonths, monthlyStats, currentYear);
@@ -977,7 +976,7 @@
 
             chart.setOption({
                 title: {
-                    text: `${year}年Ⅰ类缺陷管理统计`,
+                    text: `${year}年接收站Ⅰ类设备缺陷管理统计`,
                     left: 'center', top: 0,
                     textStyle: { fontSize: 18, fontWeight: 'bold', color: '#333' }
                 },
@@ -1065,8 +1064,22 @@
             const totalNew = Object.values(newStats).reduce((s, v) => s + v, 0);
             const totalCompleted = Object.values(completedStats).reduce((s, v) => s + v, 0);
 
+            // 二类/土建/消防剩余（截至基准月底仍未消缺，与Ⅰ类剩余同口径；土建、消防不分Ⅰ/Ⅱ类）
+            let pendingII = 0, pendingCivil = 0, pendingFire = 0;
+            processedData.forEach(row => {
+                const profession = getProfession(row);
+                const newMonthKey = getMonthFromDefectId(row['缺陷编号'] || row['编号'] || row['ID']);
+                if (!newMonthKey || newMonthKey > currentMonthKey) return;
+                const ck = getCompleteMonth(row);
+                if (isCompleted(row) && (!ck || ck <= currentMonthKey)) return;
+                if (profession.includes('消防')) { pendingFire++; return; }
+                if (profession.includes('土建')) { pendingCivil++; return; }
+                const levelRaw = getFieldValue(row, '分类定级');
+                if (!isEmpty(levelRaw) && !isClassILevel(levelRaw) && /二|Ⅱ|II/i.test(String(levelRaw))) pendingII++;
+            });
+
             const summaryEl = document.getElementById('pieChartSummary');
-            summaryEl.innerHTML = `截至${currentMonthKey.split('-')[1]}月${day}日，接收站Ⅰ类缺陷剩余<span class="highlight">${totalRemaining}</span>项；${currentMonthKey.split('-')[1]}月新增${totalNew}项，消缺${totalCompleted}项。`;
+            summaryEl.innerHTML = `截至${currentMonthKey.split('-')[1]}月${day}日，接收站Ⅰ类缺陷剩余<span class="highlight">${totalRemaining}</span>项；${currentMonthKey.split('-')[1]}月新增${totalNew}项，消缺${totalCompleted}项。二类剩余${pendingII}项，土建剩余${pendingCivil}项（不分Ⅰ、Ⅱ类），消防剩余${pendingFire}项（不分Ⅰ、Ⅱ类）。`;
 
             // 表格结构（与 index.html renderSummaryTable 一致）
             const totalRows = 1 + 3;  // 1行表头 + 3行数据
