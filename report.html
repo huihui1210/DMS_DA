@@ -291,31 +291,25 @@
         }
 
         .summary-table {
-            width: auto;
-            min-width: 100%;
+            width: 100%;
             border-collapse: collapse;
-            font-size: 11px;
-            table-layout: auto;
+            font-size: 10px;
+            table-layout: fixed;
         }
 
         .summary-table th,
         .summary-table td {
             border: 1px solid rgba(0, 0, 0, 0.08);
-            padding: 4px 6px;
+            padding: 3px 2px;
             text-align: center;
             white-space: nowrap;
-        }
-
-        /* 专业列表头限制最小宽度，避免文字过挤 */
-        .summary-table tr.st-header-row th:not(.st-col):not(.st-sub-total) {
-            min-width: 64px;
         }
 
         .summary-table tr.st-header-row th {
             background: #2c3e50;
             color: white;
             font-weight: 600;
-            font-size: 11px;
+            font-size: 10px;
             white-space: normal;
             word-break: break-all;
             line-height: 1.4;
