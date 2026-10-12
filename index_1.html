@@ -2197,11 +2197,20 @@
         }
 
         function loadFromLocalStorage() {
-            const saved = localStorage.getItem(STORAGE_KEY);
+            // 从 defectData_all 读取（接收站/分输站保存时已合并写入）
+            const saved = localStorage.getItem('defectData_all') || localStorage.getItem(STORAGE_KEY);
             if (saved) {
-                processedData = JSON.parse(saved);
-                if (processedData.length > 0) {
-                    renderAll();
+                try {
+                    processedData = JSON.parse(saved);
+                    // 如果总界面有保存但 defectData_all 没数据，用自己的键
+                    if (!localStorage.getItem('defectData_all')) {
+                        localStorage.setItem('defectData_all', saved);
+                    }
+                    if (processedData.length > 0) {
+                        renderAll();
+                    }
+                } catch (e) {
+                    console.error('加载数据失败:', e);
                 }
             }
         }
@@ -2256,6 +2265,7 @@
         // ======= 重置 =======
         function resetData() {
             localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem('defectData_all');
             rawData = [];
             processedData = [];
             currentPage = 1;

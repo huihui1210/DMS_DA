@@ -2177,6 +2177,38 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(processedData));
             // 同步到共享键，供 report.html 读取
             localStorage.setItem('defectData', JSON.stringify(processedData));
+            // 合并汇总到福建LNG总界面（按缺陷编号去重）
+            mergeToAllStorage(processedData);
+        }
+
+        // 将本站数据合并到 defectData_all（福建LNG），按缺陷编号去重
+        function mergeToAllStorage(stationData) {
+            const ALL_KEY = 'defectData_all';
+            let allData = [];
+            try {
+                allData = JSON.parse(localStorage.getItem(ALL_KEY) || '[]');
+            } catch (e) { allData = []; }
+            const getKey = row => String(row['缺陷编号'] || row['编号'] || row['ID'] || '');
+            const existingKeys = new Set(allData.map(getKey).filter(k => k));
+            const newRows = stationData.filter(r => !existingKeys.has(getKey(r)));
+            allData = allData.concat(newRows);
+            localStorage.setItem(ALL_KEY, JSON.stringify(allData));
+            localStorage.setItem('defectData', JSON.stringify(allData));
+        }
+
+        // 从 defectData_all 中移除指定编号长度的站点数据
+        function removeFromAllStorage(idLength) {
+            const ALL_KEY = 'defectData_all';
+            let allData = [];
+            try {
+                allData = JSON.parse(localStorage.getItem(ALL_KEY) || '[]');
+            } catch (e) { allData = []; }
+            const filtered = allData.filter(row => {
+                const id = row['缺陷编号'] || row['编号'] || row['ID'];
+                return id ? String(id).trim().length !== idLength : true;
+            });
+            localStorage.setItem(ALL_KEY, JSON.stringify(filtered));
+            localStorage.setItem('defectData', JSON.stringify(filtered));
         }
 
         function loadFromLocalStorage() {
@@ -2244,6 +2276,8 @@
         // ======= 重置 =======
         function resetData() {
             localStorage.removeItem(STORAGE_KEY);
+            // 同步从 defectData_all 移除14位编号的分输站数据
+            removeFromAllStorage(14);
             rawData = [];
             processedData = [];
             currentPage = 1;
