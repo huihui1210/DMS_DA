@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG接收站设备缺陷管理系统</title>
+    <title>福建LNG接收站设备缺陷管理系统 v2.0</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -840,7 +840,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG接收站设备缺陷管理系统</h1>
+            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v2.0</span></h1>
             <div class="btn-group">
                 <label for="fileInput" class="btn btn-upload">
                     <span id="uploadText">选择文件</span>
@@ -2193,7 +2193,7 @@
             const newRows = stationData.filter(r => !existingKeys.has(getKey(r)));
             allData = allData.concat(newRows);
             localStorage.setItem(ALL_KEY, JSON.stringify(allData));
-            localStorage.setItem('defectData', JSON.stringify(allData));
+            // 注意：不覆盖 defectData，让 report.html 读到本站数据
         }
 
         // 从 defectData_all 中移除指定编号长度的站点数据
@@ -2208,7 +2208,6 @@
                 return id ? String(id).trim().length !== idLength : true;
             });
             localStorage.setItem(ALL_KEY, JSON.stringify(filtered));
-            localStorage.setItem('defectData', JSON.stringify(filtered));
         }
 
         function loadFromLocalStorage() {
