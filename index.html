@@ -2225,6 +2225,26 @@
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
                 processedData = JSON.parse(saved);
+                // 接收站：加载后转换"其他"→"接收站运行部"（兼容旧数据）
+                let changed = false;
+                processedData.forEach(row => {
+                    const profKey = Object.keys(row).find(k => {
+                        const ck = cleanString(k).toLowerCase();
+                        return ck === '专业' || ck === 'specialty' || ck === 'major' || ck.includes('专业');
+                    });
+                    if (profKey) {
+                        const prof = String(row[profKey] || '').trim();
+                        if (prof === '其他' || prof === '其他专业') {
+                            row[profKey] = '接收站运行部';
+                            changed = true;
+                        }
+                    }
+                });
+                if (changed) {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(processedData));
+                    removeFromAllStorage(11);
+                    mergeToAllStorage(processedData);
+                }
                 // 同步 defectData，保证从本界面生成报告时数据正确
                 localStorage.setItem('defectData', JSON.stringify(processedData));
                 if (processedData.length > 0) {

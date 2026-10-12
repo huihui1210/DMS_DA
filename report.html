@@ -584,7 +584,11 @@
 
         // ======= 导航 & 打印 =======
         function goBack() {
-            window.location.href = 'index.html';
+            const params = new URLSearchParams(window.location.search);
+            const station = params.get('station');
+            const backPage = station === 'fen' ? 'index_2.html' :
+                station === 'all' ? 'index_1.html' : 'index.html';
+            window.location.href = backPage;
         }
 
         function printReport() {
