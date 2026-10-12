@@ -811,12 +811,10 @@
                 };
             } else {
                 stationName = '福建LNG';
-                // 总界面：其他不合并，按编号长度分别显示
+                // 总界面：数据已在各站导入时转换好，直接显示
                 PROFESSION_DISPLAY_NAMES = {
                     '安全': 'QHSE部',
-                    '后勤': '综合管理部',
-                    '接收站运行部': '接收站运行部',
-                    '管道运行部': '管道运行部'
+                    '后勤': '综合管理部'
                 };
             }
             document.getElementById('reportTitle').textContent = `福建LNG${stationType === 'all' ? '' : stationName}设备缺陷数据分析报告`;
@@ -891,40 +889,6 @@
             if (processedData.length === 0) {
                 document.getElementById('noData').style.display = 'block';
                 return;
-            }
-
-            // 总界面报告：按编号长度将"其他"/"其他专业"拆分为接收站运行部/管道运行部
-            // 匹配逻辑与 getProfession 一致：先精确"专业"，再模糊包含"专业"
-            const urlParams0 = new URLSearchParams(window.location.search);
-            if (urlParams0.get('station') === 'all') {
-                processedData.forEach(row => {
-                    let profKey = null;
-                    for (const key of Object.keys(row)) {
-                        const ck = key.replace(/\s/g, '').toLowerCase();
-                        if (ck === '专业' || ck === 'specialty' || ck === 'major') { profKey = key; break; }
-                    }
-                    if (!profKey) {
-                        for (const key of Object.keys(row)) {
-                            const ck = key.replace(/\s/g, '').toLowerCase();
-                            if (ck.includes('专业')) { profKey = key; break; }
-                        }
-                    }
-                    if (!profKey) return;
-                    const prof = String(row[profKey] || '').trim();
-                    if (prof !== '其他' && prof !== '其他专业') return;
-                    let idKey = null;
-                    for (const key of Object.keys(row)) {
-                        const ck = key.replace(/\s/g, '').toLowerCase();
-                        if (ck === '缺陷编号' || ck === '编号' || ck === 'id') { idKey = key; break; }
-                    }
-                    if (!idKey) return;
-                    const id = String(row[idKey] || '').trim();
-                    if (id.length === 11) {
-                        row[profKey] = '接收站运行部';
-                    } else if (id.length === 14) {
-                        row[profKey] = '管道运行部';
-                    }
-                });
             }
 
             document.getElementById('noData').style.display = 'none';

@@ -1229,10 +1229,21 @@
                     const hasAnyData = Object.values(row).some(v => !isEmpty(v));
                     return hasAnyData;
                 })
-                .map(row => ({
-                    ...row,
-                    status: determineStatus(row)
-                }));
+                .map(row => {
+                    const newRow = { ...row, status: determineStatus(row) };
+                    // 分输站：直接把"其他"/"其他专业"转为"管道运行部"
+                    const profKey = Object.keys(newRow).find(k => {
+                        const ck = cleanString(k).toLowerCase();
+                        return ck === '专业' || ck === 'specialty' || ck === 'major' || ck.includes('专业');
+                    });
+                    if (profKey) {
+                        const prof = String(newRow[profKey] || '').trim();
+                        if (prof === '其他' || prof === '其他专业') {
+                            newRow[profKey] = '管道运行部';
+                        }
+                    }
+                    return newRow;
+                });
 
             saveToLocalStorage();
             renderAll();

@@ -1213,38 +1213,6 @@
             return '未分类';
         }
 
-        // 总界面：根据编号长度将"其他"/"其他专业"拆分为接收站运行部/管道运行部
-        // 匹配逻辑与 getProfession 一致：先精确"专业"，再模糊包含"专业"
-        function normalizeOtherProfession(row) {
-            let profKey = null;
-            for (const key of Object.keys(row)) {
-                const ck = cleanString(key).toLowerCase();
-                if (ck === '专业' || ck === 'specialty' || ck === 'major') { profKey = key; break; }
-            }
-            if (!profKey) {
-                for (const key of Object.keys(row)) {
-                    const ck = cleanString(key).toLowerCase();
-                    if (ck.includes('专业')) { profKey = key; break; }
-                }
-            }
-            if (!profKey) return;
-            const prof = String(row[profKey] || '').trim();
-            if (prof !== '其他' && prof !== '其他专业') return;
-            // 找缺陷编号（匹配逻辑与 detectDefectIdType 一致）
-            let idKey = null;
-            for (const key of Object.keys(row)) {
-                const ck = cleanString(key).toLowerCase();
-                if (ck === '缺陷编号' || ck === '编号' || ck === 'id') { idKey = key; break; }
-            }
-            if (!idKey) return;
-            const id = String(row[idKey] || '').trim();
-            if (id.length === 11) {
-                row[profKey] = '接收站运行部';
-            } else if (id.length === 14) {
-                row[profKey] = '管道运行部';
-            }
-        }
-
         function processData() {
             const filtered = filterColumns(rawData);
             warnedMissingColumn = false;
@@ -1268,12 +1236,7 @@
                     const hasAnyData = Object.values(row).some(v => !isEmpty(v));
                     return hasAnyData;
                 })
-                .map(row => {
-                    const newRow = { ...row, status: determineStatus(row) };
-                    // 总界面：根据编号长度将"其他"/"其他专业"拆分为接收站运行部/管道运行部
-                    normalizeOtherProfession(newRow);
-                    return newRow;
-                });
+                .map(row => ({ ...row, status: determineStatus(row) }));
 
             saveToLocalStorage();
             renderAll();
@@ -2242,8 +2205,6 @@
                     if (!localStorage.getItem('defectData_all')) {
                         localStorage.setItem('defectData_all', saved);
                     }
-                    // 总界面：加载后同样做"其他"拆分转换
-                    processedData.forEach(normalizeOtherProfession);
                     // 同步 defectData，保证从本界面生成报告时数据正确
                     localStorage.setItem('defectData', JSON.stringify(processedData));
                     if (processedData.length > 0) {
