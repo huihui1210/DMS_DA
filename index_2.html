@@ -2125,9 +2125,14 @@
             // 与饼图调用同一个公共函数，确保数据完全一致
             const { professions, remainingStats, newStats, completedStats } = getClassIProfessionStats();
 
-            const totalRemain = professions.reduce((s, p) => s + (remainingStats[p] || 0), 0);
-            const totalNewMonth = professions.reduce((s, p) => s + (newStats[p] || 0), 0);
-            const totalDoneMonth = professions.reduce((s, p) => s + (completedStats[p] || 0), 0);
+            // 只显示有数据的专业（剩余+新增+消缺>0），避免空列
+            const activeProfessions = professions.filter(p =>
+                (remainingStats[p] || 0) + (newStats[p] || 0) + (completedStats[p] || 0) > 0
+            );
+
+            const totalRemain = activeProfessions.reduce((s, p) => s + (remainingStats[p] || 0), 0);
+            const totalNewMonth = activeProfessions.reduce((s, p) => s + (newStats[p] || 0), 0);
+            const totalDoneMonth = activeProfessions.reduce((s, p) => s + (completedStats[p] || 0), 0);
 
             // 构建表格 HTML（严格参考图片：第一行=表头；接收站列 rowspan 跨所有行，无 colspan 合并）
             const totalRows = 1 + 3;  // 1行表头 + 3行数据
@@ -2138,28 +2143,28 @@
             html += `<th class="st-col" rowspan="${totalRows}">分<br>输<br>站</th>`;  // 跨所有行，竖排
             html += '<th>Ⅰ类缺陷</th>';
             html += '<th class="st-sub-total">总计</th>';
-            professions.forEach(p => { html += `<th>${displayProfession(p)}</th>`; });
+            activeProfessions.forEach(p => { html += `<th>${displayProfession(p)}</th>`; });
             html += '</tr>';
 
             // 剩余
             html += '<tr>';
             html += '<td>剩余</td>';
             html += `<td class="st-total">${totalRemain}</td>`;
-            professions.forEach(p => { html += `<td>${remainingStats[p] || 0}</td>`; });
+            activeProfessions.forEach(p => { html += `<td>${remainingStats[p] || 0}</td>`; });
             html += '</tr>';
 
             // 本月新增
             html += '<tr>';
             html += '<td>本月新增</td>';
             html += `<td class="st-total">${totalNewMonth}</td>`;
-            professions.forEach(p => { html += `<td>${newStats[p] || 0}</td>`; });
+            activeProfessions.forEach(p => { html += `<td>${newStats[p] || 0}</td>`; });
             html += '</tr>';
 
             // 本月消项
             html += '<tr>';
             html += '<td>本月消项</td>';
             html += `<td class="st-total">${totalDoneMonth}</td>`;
-            professions.forEach(p => { html += `<td>${completedStats[p] || 0}</td>`; });
+            activeProfessions.forEach(p => { html += `<td>${completedStats[p] || 0}</td>`; });
             html += '</tr>';
 
             html += '</tbody></table></div>';

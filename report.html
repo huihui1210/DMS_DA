@@ -578,7 +578,7 @@
 
     <script>
         // ======= 全局配置常量（与 index.html 完全一致）=======
-        const MAJOR_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '接收站运行部', '管道运行部'];
+        let MAJOR_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '接收站运行部', '管道运行部'];
 
         // ======= 导航 & 打印 =======
         function goBack() {
@@ -797,19 +797,21 @@
             const stationType = urlParams.get('station') || detectStationType(data);
             if (stationType === 'fen') {
                 stationName = '分输站';
+                MAJOR_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '管道运行部'];
                 PROFESSION_DISPLAY_NAMES = {
                     '安全': 'QHSE部',
                     '后勤': '综合管理部'
                 };
             } else if (stationType === 'recv') {
                 stationName = '接收站';
+                MAJOR_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '接收站运行部'];
                 PROFESSION_DISPLAY_NAMES = {
                     '安全': 'QHSE部',
                     '后勤': '综合管理部'
                 };
             } else {
                 stationName = '福建LNG';
-                // 总界面：数据已在各站导入时转换好，直接显示
+                MAJOR_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '接收站运行部', '管道运行部'];
                 PROFESSION_DISPLAY_NAMES = {
                     '安全': 'QHSE部',
                     '后勤': '综合管理部'
@@ -1141,10 +1143,14 @@
                 window.addEventListener('resize', () => chart.resize());
             }
 
-            // 饼图底下汇总表
-            const totalRemaining = pieData.reduce((s, d) => s + d.value, 0);
-            const totalNew = Object.values(newStats).reduce((s, v) => s + v, 0);
-            const totalCompleted = Object.values(completedStats).reduce((s, v) => s + v, 0);
+            // 只显示有数据的专业（剩余+新增+消缺>0），避免空列
+            const activeProfessions = professions.filter(p =>
+                (remainingStats[p] || 0) + (newStats[p] || 0) + (completedStats[p] || 0) > 0
+            );
+
+            const totalRemaining = activeProfessions.reduce((s, p) => s + (remainingStats[p] || 0), 0);
+            const totalNew = activeProfessions.reduce((s, p) => s + (newStats[p] || 0), 0);
+            const totalCompleted = activeProfessions.reduce((s, p) => s + (completedStats[p] || 0), 0);
             // 行标签用基准月份数字（本月模式=当月，上月模式=上个月），避免"本月"歧义
             const monthLabel = parseInt(currentMonthKey.split('-')[1], 10) + '月';
 
@@ -1175,28 +1181,28 @@
             html += `<th class="st-col" rowspan="${totalRows}">${stationName.split('').join('<br>')}</th>`;
             html += '<th>Ⅰ类缺陷</th>';
             html += '<th class="st-sub-total">总计</th>';
-            professions.forEach(p => { html += `<th>${displayProfession(p)}</th>`; });
+            activeProfessions.forEach(p => { html += `<th>${displayProfession(p)}</th>`; });
             html += '</tr>';
 
             // 剩余
             html += '<tr>';
             html += '<td>剩余</td>';
             html += `<td class="st-total">${totalRemaining}</td>`;
-            professions.forEach(p => { html += `<td>${remainingStats[p] || 0}</td>`; });
+            activeProfessions.forEach(p => { html += `<td>${remainingStats[p] || 0}</td>`; });
             html += '</tr>';
 
             // 本月新增
             html += '<tr>';
             html += `<td>${monthLabel}新增</td>`;
             html += `<td class="st-total">${totalNew}</td>`;
-            professions.forEach(p => { html += `<td>${newStats[p] || 0}</td>`; });
+            activeProfessions.forEach(p => { html += `<td>${newStats[p] || 0}</td>`; });
             html += '</tr>';
 
             // 本月消项
             html += '<tr>';
             html += `<td>${monthLabel}消项</td>`;
             html += `<td class="st-total">${totalCompleted}</td>`;
-            professions.forEach(p => { html += `<td>${completedStats[p] || 0}</td>`; });
+            activeProfessions.forEach(p => { html += `<td>${completedStats[p] || 0}</td>`; });
             html += '</tr>';
 
             html += '</tbody></table></div>';
