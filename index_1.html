@@ -147,17 +147,17 @@
 
         /* 站点切换按钮：使用醒目的蓝色调与其他按钮区分 */
         .header .btn-station {
-            background-color: #3498db;
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.35);
+            background-color: rgba(255, 255, 255, 0.95);
+            color: var(--color-primary);
+            border: 1px solid rgba(0, 0, 0, 0.15);
         }
 
         .header .btn-station:hover {
-            background-color: #2980b9;
-            color: white;
-            border-color: rgba(255, 255, 255, 0.6);
+            background-color: rgba(255, 255, 255, 1);
+            color: var(--color-primary-dark);
+            border-color: rgba(0, 0, 0, 0.25);
             transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(52, 152, 219, 0.35);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .header .btn-station:active {
@@ -799,9 +799,7 @@
 
         .modal-footer .btn {
             min-width: 100px;
-            background-color: rgba(255, 255, 255, 0.95);
-            color: var(--color-primary);
-            border: 1px solid rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .loading {
