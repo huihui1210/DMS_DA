@@ -895,6 +895,39 @@
                 return;
             }
 
+            // 总界面报告：清理残留的"其他"值，按编号长度转换
+            const urlParams0 = new URLSearchParams(window.location.search);
+            if (urlParams0.get('station') === 'all') {
+                processedData.forEach(row => {
+                    let profKey = null;
+                    for (const key of Object.keys(row)) {
+                        const ck = key.replace(/\s/g, '').toLowerCase();
+                        if (ck === '专业' || ck === 'specialty' || ck === 'major') { profKey = key; break; }
+                    }
+                    if (!profKey) {
+                        for (const key of Object.keys(row)) {
+                            const ck = key.replace(/\s/g, '').toLowerCase();
+                            if (ck.includes('专业')) { profKey = key; break; }
+                        }
+                    }
+                    if (!profKey) return;
+                    const prof = String(row[profKey] || '').trim();
+                    if (prof !== '其他' && prof !== '其他专业') return;
+                    let idKey = null;
+                    for (const key of Object.keys(row)) {
+                        const ck = key.replace(/\s/g, '').toLowerCase();
+                        if (ck === '缺陷编号' || ck === '编号' || ck === 'id') { idKey = key; break; }
+                    }
+                    if (!idKey) return;
+                    const id = String(row[idKey] || '').trim();
+                    if (id.length === 11) {
+                        row[profKey] = '接收站运行部';
+                    } else if (id.length === 14) {
+                        row[profKey] = '管道运行部';
+                    }
+                });
+            }
+
             document.getElementById('noData').style.display = 'none';
             document.getElementById('reportContent').style.display = 'block';
             document.getElementById('btnGroup').style.display = 'flex';

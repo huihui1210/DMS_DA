@@ -2200,11 +2200,11 @@
                 allData = JSON.parse(localStorage.getItem(ALL_KEY) || '[]');
             } catch (e) { allData = []; }
             const getKey = row => String(row['缺陷编号'] || row['编号'] || row['ID'] || '');
-            const existingKeys = new Set(allData.map(getKey).filter(k => k));
-            const newRows = stationData.filter(r => !existingKeys.has(getKey(r)));
-            allData = allData.concat(newRows);
+            // 用新数据覆盖同编号的旧数据
+            const stationKeys = new Set(stationData.map(getKey).filter(k => k));
+            const otherData = allData.filter(row => !stationKeys.has(getKey(row)));
+            allData = otherData.concat(stationData);
             localStorage.setItem(ALL_KEY, JSON.stringify(allData));
-            // 注意：不覆盖 defectData，让 report.html 读到本站数据
         }
 
         // 从 defectData_all 中移除指定编号长度的站点数据
