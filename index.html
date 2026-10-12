@@ -145,6 +145,26 @@
             box-shadow: none;
         }
 
+        /* 站点切换按钮：使用醒目的蓝色调与其他按钮区分 */
+        .header .btn-station {
+            background-color: #3498db;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+        }
+
+        .header .btn-station:hover {
+            background-color: #2980b9;
+            color: white;
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(52, 152, 219, 0.35);
+        }
+
+        .header .btn-station:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
         #fileInput {
             display: none;
         }
@@ -827,6 +847,7 @@
                     <span id="loadingIndicator" class="loading" style="display: none;"></span>
                 </label>
                 <input type="file" id="fileInput" accept=".csv,.xlsx">
+                <button class="btn btn-station" onclick="switchStation()">分输站</button>
                 <button class="btn btn-reset" onclick="resetData()">重置</button>
                 <button class="btn btn-chart" onclick="generateReport()">生成报告</button>
                 <button class="btn btn-export" onclick="exportBeautifiedExcel()">导出美化Excel</button>
@@ -981,6 +1002,14 @@
         let currentChartType = 'bar';
         let isTableExpanded = false;
 
+        // ======= 站点类型配置 =======
+        const STATION_TYPE = 'recv';            // 接收站
+        const DEFECT_ID_LENGTH = 11;             // 11位缺陷编号
+        const DEFECT_DATE_START = 0;             // 日期从第1位开始（0-indexed=0）
+        const DEFECT_DATE_END = 8;               // 日期8位：substring(0, 8)
+        const OTHER_PAGE = 'index_2.html';       // 转换目标页
+        const STORAGE_KEY = 'defectData_recv';   // 独立localStorage键
+
         // ======= 全局配置常量 =======
         const DELETE_COLUMNS = ['缺陷图片', '消缺完成月', '消缺完成年', '缺陷登记年', '缺陷登记月'];
         const MAJOR_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '其他'];
@@ -1050,6 +1079,11 @@
 
                     if (rawData.length === 0) {
                         throw new Error('文件为空');
+                    }
+
+                    // 自动检测：14位编号→分输站，11位编号→接收站
+                    if (checkAndRedirect(rawData)) {
+                        return;
                     }
 
                     // 调试信息：显示原始字段数量
@@ -1224,8 +1258,9 @@
         function getMonthFromDefectId(defectId) {
             if (isEmpty(defectId)) return null;
             const idStr = String(defectId);
-            if (idStr.length >= 8) {
-                const datePart = idStr.substring(0, 8);
+            // 11位编号：前8位为日期（YYYYMMDD）
+            if (idStr.length >= DEFECT_DATE_END) {
+                const datePart = idStr.substring(DEFECT_DATE_START, DEFECT_DATE_END);
                 const year = datePart.substring(0, 4);
                 const month = datePart.substring(4, 6);
                 if (!isNaN(year) && !isNaN(month) && year.length === 4 && month.length === 2) {
@@ -1239,8 +1274,8 @@
         function getDateFromDefectId(defectId) {
             if (isEmpty(defectId)) return null;
             const idStr = String(defectId);
-            if (idStr.length < 8) return null;
-            const datePart = idStr.substring(0, 8);
+            if (idStr.length < DEFECT_DATE_END) return null;
+            const datePart = idStr.substring(DEFECT_DATE_START, DEFECT_DATE_END);
             const year = parseInt(datePart.substring(0, 4), 10);
             const month = parseInt(datePart.substring(4, 6), 10);
             const day = parseInt(datePart.substring(6, 8), 10);
@@ -2138,11 +2173,13 @@
 
         // ======= localStorage 持久化 =======
         function saveToLocalStorage() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(processedData));
+            // 同步到共享键，供 report.html 读取
             localStorage.setItem('defectData', JSON.stringify(processedData));
         }
 
         function loadFromLocalStorage() {
-            const saved = localStorage.getItem('defectData');
+            const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
                 processedData = JSON.parse(saved);
                 if (processedData.length > 0) {
@@ -2151,9 +2188,55 @@
             }
         }
 
+        // ======= 站点切换 =======
+        function switchStation() {
+            window.location.href = OTHER_PAGE;
+        }
+
+        // ======= 自动检测：根据缺陷编号长度判断数据归属 =======
+        function detectDefectIdType(data) {
+            if (!data || data.length === 0) return null;
+            for (const row of data) {
+                const id = row['缺陷编号'] || row['编号'] || row['ID'];
+                if (id) {
+                    const idStr = String(id).trim();
+                    if (idStr.length === 14) return 'fen';
+                    if (idStr.length === 11) return 'recv';
+                }
+            }
+            return null;
+        }
+
+        // 检测数据是否属于本站，不属于则重定向
+        function checkAndRedirect(data) {
+            const detectedType = detectDefectIdType(data);
+            if (detectedType && detectedType !== STATION_TYPE) {
+                localStorage.setItem('pendingTransferData', JSON.stringify(data));
+                window.location.href = detectedType === 'fen' ? 'index_2.html' : 'index.html';
+                return true;
+            }
+            return false;
+        }
+
+        // 加载待转移数据（从另一站跳转过来时）
+        function loadPendingTransfer() {
+            const pending = localStorage.getItem('pendingTransferData');
+            if (pending) {
+                localStorage.removeItem('pendingTransferData');
+                try {
+                    rawData = JSON.parse(pending);
+                    processData();
+                    return true;
+                } catch (err) {
+                    console.error('加载待处理数据失败:', err);
+                }
+            }
+            return false;
+        }
+
         // ======= 重置 =======
         function resetData() {
-            localStorage.removeItem('defectData');
+            localStorage.removeItem(STORAGE_KEY);
             rawData = [];
             processedData = [];
             currentPage = 1;
@@ -2400,7 +2483,12 @@
             }
         });
 
-        window.addEventListener('DOMContentLoaded', loadFromLocalStorage);
+        window.addEventListener('DOMContentLoaded', function () {
+            // 优先加载待转移数据，否则加载本站历史数据
+            if (!loadPendingTransfer()) {
+                loadFromLocalStorage();
+            }
+        });
 
         // ======= 外部联动：从网址锚点读取多维表格插件发送的数据 =======
         // 数据格式：#dms=<lz-string 压缩后的 JSON>，锚点不经过服务器
@@ -2418,6 +2506,10 @@
                 const rows = Array.isArray(payload) ? payload : payload.rows;
                 if (!Array.isArray(rows)) throw new Error('数据格式不正确');
                 rawData = rows;
+                // 自动检测：14位编号→分输站，11位编号→接收站
+                if (checkAndRedirect(rawData)) {
+                    return false;
+                }
                 processData();
                 // 尽力通知来源页面（被沙箱拦截也不影响导入）
                 try {
