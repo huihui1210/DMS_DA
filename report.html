@@ -787,10 +787,12 @@
             '安全': 'QHSE部',
             '后勤': '综合管理部'
         };
-        // 站点名称（根据数据自动判断）
+        // 站点名称（根据来源界面URL参数判断，不再依赖数据自动检测）
         let stationName = '福建LNG';
         function setupStationConfig(data) {
-            const stationType = detectStationType(data);
+            // 从URL参数读取站点类型，来源界面决定报告类型
+            const urlParams = new URLSearchParams(window.location.search);
+            const stationType = urlParams.get('station') || detectStationType(data);
             if (stationType === 'fen') {
                 stationName = '分输站';
                 PROFESSION_DISPLAY_NAMES = {
@@ -810,6 +812,8 @@
             } else {
                 stationName = '福建LNG';
                 PROFESSION_DISPLAY_NAMES = {
+                    '其他': '合并',
+                    '其他专业': '合并',
                     '安全': 'QHSE部',
                     '后勤': '综合管理部'
                 };
