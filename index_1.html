@@ -368,13 +368,15 @@
             background: white;
             border-radius: var(--radius);
             box-shadow: var(--shadow-sm);
+            overflow-x: auto;
         }
 
         .summary-table {
-            width: 100%;
+            width: auto;
+            min-width: 100%;
             border-collapse: collapse;
             font-size: 11px;
-            table-layout: fixed;
+            table-layout: auto;
         }
 
         .summary-table th,
@@ -383,8 +385,6 @@
             padding: 5px 6px;
             text-align: center;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .summary-table tr.st-header-row th {
@@ -1016,7 +1016,7 @@
 
         // ======= 全局配置常量 =======
         const DELETE_COLUMNS = ['缺陷图片', '消缺完成月', '消缺完成年', '缺陷登记年', '缺陷登记月'];
-        const MAJOR_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '其他', '接收站运行部', '管道运行部'];
+        const MAJOR_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '接收站运行部', '管道运行部'];
 
         // 专业显示名映射（仅显示层，不改动数据统计）
         const PROFESSION_DISPLAY_NAMES = {

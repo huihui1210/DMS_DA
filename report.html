@@ -291,20 +291,24 @@
         }
 
         .summary-table {
-            width: 100%;
+            width: auto;
+            min-width: 100%;
             border-collapse: collapse;
             font-size: 11px;
-            table-layout: fixed;
+            table-layout: auto;
         }
 
         .summary-table th,
         .summary-table td {
             border: 1px solid rgba(0, 0, 0, 0.08);
-            padding: 4px 4px;
+            padding: 4px 6px;
             text-align: center;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        }
+
+        /* 专业列表头限制最小宽度，避免文字过挤 */
+        .summary-table tr.st-header-row th:not(.st-col):not(.st-sub-total) {
+            min-width: 64px;
         }
 
         .summary-table tr.st-header-row th {
@@ -580,7 +584,7 @@
 
     <script>
         // ======= 全局配置常量（与 index.html 完全一致）=======
-        const MAJOR_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '其他', '接收站运行部', '管道运行部'];
+        const MAJOR_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '接收站运行部', '管道运行部'];
 
         // ======= 导航 & 打印 =======
         function goBack() {
@@ -800,16 +804,12 @@
             if (stationType === 'fen') {
                 stationName = '分输站';
                 PROFESSION_DISPLAY_NAMES = {
-                    '其他': '管道运行部',
-                    '其他专业': '管道运行部',
                     '安全': 'QHSE部',
                     '后勤': '综合管理部'
                 };
             } else if (stationType === 'recv') {
                 stationName = '接收站';
                 PROFESSION_DISPLAY_NAMES = {
-                    '其他': '接收站运行部',
-                    '其他专业': '接收站运行部',
                     '安全': 'QHSE部',
                     '后勤': '综合管理部'
                 };
