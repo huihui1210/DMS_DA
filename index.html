@@ -2214,6 +2214,8 @@
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
                 processedData = JSON.parse(saved);
+                // 同步 defectData，保证从本界面生成报告时数据正确
+                localStorage.setItem('defectData', JSON.stringify(processedData));
                 if (processedData.length > 0) {
                     renderAll();
                 }
