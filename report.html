@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG接收站设备缺陷数据分析报告</title>
+    <title>福建LNG设备缺陷数据分析报告</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         /* ======= Reset & 全局 ======= */
@@ -506,7 +506,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG接收站设备缺陷数据分析报告</h1>
+            <h1 id="reportTitle">福建LNG设备缺陷数据分析报告</h1>
             <div class="date" id="reportDate"></div>
         </div>
 
@@ -635,15 +635,20 @@
         function getDateFromDefectId(defectId) {
             if (!defectId) return null;
             const idStr = String(defectId);
-            if (idStr.length >= 8) {
-                const datePart = idStr.substring(0, 8);
-                const year = parseInt(datePart.substring(0, 4));
-                const month = parseInt(datePart.substring(4, 6));
-                const day = parseInt(datePart.substring(6, 8));
-                if (!isNaN(year) && !isNaN(month) && !isNaN(day) &&
-                    year >= 2000 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-                    return new Date(year, month - 1, day);
-                }
+            let datePart;
+            if (idStr.length === 14) {
+                datePart = idStr.substring(3, 11);
+            } else if (idStr.length >= 8) {
+                datePart = idStr.substring(0, 8);
+            } else {
+                return null;
+            }
+            const year = parseInt(datePart.substring(0, 4));
+            const month = parseInt(datePart.substring(4, 6));
+            const day = parseInt(datePart.substring(6, 8));
+            if (!isNaN(year) && !isNaN(month) && !isNaN(day) &&
+                year >= 2000 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                return new Date(year, month - 1, day);
             }
             return null;
         }
@@ -651,15 +656,37 @@
         function getMonthFromDefectId(defectId) {
             if (!defectId) return null;
             const idStr = String(defectId);
-            if (idStr.length >= 8) {
-                const datePart = idStr.substring(0, 8);
-                const year = datePart.substring(0, 4);
-                const month = datePart.substring(4, 6);
-                if (!isNaN(year) && !isNaN(month) && year.length === 4 && month.length === 2) {
-                    return `${year}-${month}`;
-                }
+            let datePart;
+            if (idStr.length === 14) {
+                datePart = idStr.substring(3, 11);
+            } else if (idStr.length >= 8) {
+                datePart = idStr.substring(0, 8);
+            } else {
+                return null;
+            }
+            const year = datePart.substring(0, 4);
+            const month = datePart.substring(4, 6);
+            if (!isNaN(year) && !isNaN(month) && year.length === 4 && month.length === 2) {
+                return `${year}-${month}`;
             }
             return null;
+        }
+
+        // 自动检测站点类型
+        function detectStationType(data) {
+            if (!data || data.length === 0) return 'recv';
+            let has11 = false, has14 = false;
+            for (const row of data) {
+                const id = row['缺陷编号'] || row['编号'] || row['ID'];
+                if (id) {
+                    const idStr = String(id).trim();
+                    if (idStr.length === 11) has11 = true;
+                    if (idStr.length === 14) has14 = true;
+                }
+            }
+            if (has11 && has14) return 'all';
+            if (has14) return 'fen';
+            return 'recv';
         }
 
         function getCompleteDate(row) {
@@ -755,13 +782,40 @@
             return monthlyStats;
         }
 
-        // 专业显示名映射（仅显示层，不改动数据统计）
-        const PROFESSION_DISPLAY_NAMES = {
-            '其他': '接收站运行部',
-            '其他专业': '接收站运行部',
+        // 专业显示名映射（根据站点类型动态设置）
+        let PROFESSION_DISPLAY_NAMES = {
             '安全': 'QHSE部',
             '后勤': '综合管理部'
         };
+        // 站点名称（根据数据自动判断）
+        let stationName = '福建LNG';
+        function setupStationConfig(data) {
+            const stationType = detectStationType(data);
+            if (stationType === 'fen') {
+                stationName = '分输站';
+                PROFESSION_DISPLAY_NAMES = {
+                    '其他': '管道运行部',
+                    '其他专业': '管道运行部',
+                    '安全': 'QHSE部',
+                    '后勤': '综合管理部'
+                };
+            } else if (stationType === 'recv') {
+                stationName = '接收站';
+                PROFESSION_DISPLAY_NAMES = {
+                    '其他': '接收站运行部',
+                    '其他专业': '接收站运行部',
+                    '安全': 'QHSE部',
+                    '后勤': '综合管理部'
+                };
+            } else {
+                stationName = '福建LNG';
+                PROFESSION_DISPLAY_NAMES = {
+                    '安全': 'QHSE部',
+                    '后勤': '综合管理部'
+                };
+            }
+            document.getElementById('reportTitle').textContent = `福建LNG${stationType === 'all' ? '' : stationName}设备缺陷数据分析报告`;
+        }
         function displayProfession(name) {
             return PROFESSION_DISPLAY_NAMES[name] || name;
         }
@@ -837,6 +891,9 @@
             document.getElementById('noData').style.display = 'none';
             document.getElementById('reportContent').style.display = 'block';
             document.getElementById('btnGroup').style.display = 'flex';
+
+            // 自动检测站点类型，设置站名和专业显示名
+            setupStationConfig(processedData);
 
             const now = new Date();
 
@@ -921,7 +978,7 @@
 
             // === 文本 ===
             const changeText = changeRate >= 0 ? `上升${Math.abs(changeRate)}%` : `下降${Math.abs(changeRate)}%`;
-            const summaryText = `截至${currentMonth}月${asOfDay}日，接收站Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${changeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；${currentMonth}月消缺前三专业为${topCompletedNames}；${currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
+            const summaryText = `截至${currentMonth}月${asOfDay}日，${stationName}Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${changeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；${currentMonth}月消缺前三专业为${topCompletedNames}；${currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
 
             document.getElementById('summaryText').innerHTML = summaryText;
             document.getElementById('statYearNew').textContent = yearNewTotal;
@@ -967,7 +1024,7 @@
 
             chart.setOption({
                 title: {
-                    text: `${year}年接收站Ⅰ类设备缺陷管理统计`,
+                    text: `${year}年${stationName}Ⅰ类设备缺陷管理统计`,
                     left: 'center', top: 0,
                     textStyle: { fontSize: 18, fontWeight: 'bold', color: '#333' }
                 },
@@ -1023,7 +1080,7 @@
                 const chart = echarts.init(container);
                 chart.setOption({
                     title: {
-                        text: '接收站当前主要剩余Ⅰ类缺陷专业分布情况',
+                        text: `${stationName}当前主要剩余Ⅰ类缺陷专业分布情况`,
                         left: 'center', top: 10,
                         textStyle: { fontSize: 16, fontWeight: 'bold', color: '#333' }
                     },
@@ -1072,7 +1129,7 @@
             });
 
             const summaryEl = document.getElementById('pieChartSummary');
-            summaryEl.innerHTML = `截至${currentMonthKey.split('-')[1]}月${day}日，接收站Ⅰ类缺陷剩余<span class="highlight">${totalRemaining}</span>项；${currentMonthKey.split('-')[1]}月新增${totalNew}项，消缺${totalCompleted}项。Ⅱ类剩余${pendingII}项，土建剩余${pendingCivil}项，消防剩余${pendingFire}项。`;
+            summaryEl.innerHTML = `截至${currentMonthKey.split('-')[1]}月${day}日，${stationName}Ⅰ类缺陷剩余<span class="highlight">${totalRemaining}</span>项；${currentMonthKey.split('-')[1]}月新增${totalNew}项，消缺${totalCompleted}项。Ⅱ类剩余${pendingII}项，土建剩余${pendingCivil}项，消防剩余${pendingFire}项。`;
 
             // 表格结构（与 index.html renderSummaryTable 一致）
             const totalRows = 1 + 3;  // 1行表头 + 3行数据
@@ -1081,7 +1138,7 @@
             html += '<tbody>';
             // 表头行
             html += '<tr class="st-header-row">';
-            html += `<th class="st-col" rowspan="${totalRows}">接<br>收<br>站</th>`;
+            html += `<th class="st-col" rowspan="${totalRows}">${stationName.split('').join('<br>')}</th>`;
             html += '<th>Ⅰ类缺陷</th>';
             html += '<th class="st-sub-total">总计</th>';
             professions.forEach(p => { html += `<th>${displayProfession(p)}</th>`; });

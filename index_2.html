@@ -848,6 +848,7 @@
                 </label>
                 <input type="file" id="fileInput" accept=".csv,.xlsx">
                 <button class="btn btn-station" onclick="switchStation()">接收站</button>
+                <button class="btn btn-station" onclick="window.location.href='index_1.html'">福建LNG</button>
                 <button class="btn btn-reset" onclick="resetData()">重置</button>
                 <button class="btn btn-chart" onclick="generateReport()">生成报告</button>
                 <button class="btn btn-export" onclick="exportBeautifiedExcel()">导出美化Excel</button>
@@ -1016,8 +1017,8 @@
 
         // 专业显示名映射（仅显示层，不改动数据统计）
         const PROFESSION_DISPLAY_NAMES = {
-            '其他': '接收站运行部',
-            '其他专业': '接收站运行部',
+            '其他': '管道运行部',
+            '其他专业': '管道运行部',
             '安全': 'QHSE部',
             '后勤': '综合管理部'
         };
@@ -2196,14 +2197,18 @@
         // ======= 自动检测：根据缺陷编号长度判断数据归属 =======
         function detectDefectIdType(data) {
             if (!data || data.length === 0) return null;
+            let has11 = false, has14 = false;
             for (const row of data) {
                 const id = row['缺陷编号'] || row['编号'] || row['ID'];
                 if (id) {
                     const idStr = String(id).trim();
-                    if (idStr.length === 14) return 'fen';
-                    if (idStr.length === 11) return 'recv';
+                    if (idStr.length === 11) has11 = true;
+                    if (idStr.length === 14) has14 = true;
                 }
             }
+            if (has11 && has14) return 'all';
+            if (has14) return 'fen';
+            if (has11) return 'recv';
             return null;
         }
 
@@ -2212,7 +2217,9 @@
             const detectedType = detectDefectIdType(data);
             if (detectedType && detectedType !== STATION_TYPE) {
                 localStorage.setItem('pendingTransferData', JSON.stringify(data));
-                window.location.href = detectedType === 'fen' ? 'index_2.html' : 'index.html';
+                const targetPage = detectedType === 'fen' ? 'index_2.html' :
+                    detectedType === 'recv' ? 'index.html' : 'index_1.html';
+                window.location.href = targetPage;
                 return true;
             }
             return false;
