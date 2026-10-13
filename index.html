@@ -1883,12 +1883,13 @@
             // 固定顺序：预定义专业在前，Excel额外专业在后
             const professions = [...MAJOR_PROFESSIONS, ...extraProfessions];
 
-            // ======= 诊断：列出所有"机械"专业的数据，标注哪条被跳过 =======
-            console.log('========== 机械专业诊断 ==========');
+            // ======= 诊断：搜索特定编号 20261009024 =======
+            console.log('========== 编号 20261009024 诊断 ==========');
             processedData.forEach((row, idx) => {
-                const prof = getProfession(row);
-                if (prof !== '机械') return;
                 const defectId = row['缺陷编号'] || row['编号'] || row['ID'];
+                const idStr = String(defectId || '');
+                if (!idStr.includes('20261009024')) return;
+                const prof = getProfession(row);
                 const newMonthKey = getMonthFromDefectId(defectId);
                 const levelRaw = getDefectLevel(row);
                 const isI = !isEmpty(levelRaw) && isClassILevel(levelRaw);
@@ -1896,10 +1897,24 @@
                 const isCivil = prof.includes('土建');
                 const isFire = prof.includes('消防');
                 const isNewThisMonth = newMonthKey && newMonthKey === currentMonthKey;
-                // 判断是否被计入"本月新增"
-                const passFilter = !isCivil && !isFire && isI;
+                const passFilter = prof !== '未分类' && !isCivil && !isFire && isI;
                 const countedAsNew = passFilter && isNewThisMonth;
-                console.log(`[机械#${idx}] ID=${defectId} | 解析月=${newMonthKey} | 定级=${levelRaw}(Ⅰ类=${isI}) | 状态=${status} | 通过过滤=${passFilter} | ✅计入本月新增=${countedAsNew}`);
+                console.log(`[${idx}] ID=${defectId} | 专业=${prof} | 解析月=${newMonthKey} | 定级=${levelRaw}(Ⅰ类=${isI}) | 状态=${status} | 通过过滤=${passFilter} | ✅计入本月新增=${countedAsNew}`);
+                console.log('  完整数据:', JSON.stringify(row));
+                // 列出所有字段名
+                console.log('  字段列表:', Object.keys(row).join('、'));
+            });
+            // 也搜索所有本月（2026-10）的机械数据
+            console.log('----- 所有本月新增的机械数据 -----');
+            processedData.forEach((row, idx) => {
+                const prof = getProfession(row);
+                if (prof !== '机械') return;
+                const defectId = row['缺陷编号'] || row['编号'] || row['ID'];
+                const newMonthKey = getMonthFromDefectId(defectId);
+                if (!newMonthKey || newMonthKey !== currentMonthKey) return;
+                const levelRaw = getDefectLevel(row);
+                const isI = !isEmpty(levelRaw) && isClassILevel(levelRaw);
+                console.log(`[机械本月#${idx}] ID=${defectId} | 定级=${levelRaw}(Ⅰ类=${isI}) | 状态=${row.status} | 计入=${isI}`);
             });
             console.log('==================================');
             console.log('[Ⅰ类专业统计] 完整专业列表:', professions.join('、'));
