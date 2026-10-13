@@ -1883,8 +1883,28 @@
             // 固定顺序：预定义专业在前，Excel额外专业在后
             const professions = [...MAJOR_PROFESSIONS, ...extraProfessions];
 
+            // ======= 诊断：列出所有"机械"专业的数据，标注哪条被跳过 =======
+            console.log('========== 机械专业诊断 ==========');
+            processedData.forEach((row, idx) => {
+                const prof = getProfession(row);
+                if (prof !== '机械') return;
+                const defectId = row['缺陷编号'] || row['编号'] || row['ID'];
+                const newMonthKey = getMonthFromDefectId(defectId);
+                const levelRaw = getDefectLevel(row);
+                const isI = !isEmpty(levelRaw) && isClassILevel(levelRaw);
+                const status = row.status;
+                const isCivil = prof.includes('土建');
+                const isFire = prof.includes('消防');
+                const isNewThisMonth = newMonthKey && newMonthKey === currentMonthKey;
+                // 判断是否被计入"本月新增"
+                const passFilter = !isCivil && !isFire && isI;
+                const countedAsNew = passFilter && isNewThisMonth;
+                console.log(`[机械#${idx}] ID=${defectId} | 解析月=${newMonthKey} | 定级=${levelRaw}(Ⅰ类=${isI}) | 状态=${status} | 通过过滤=${passFilter} | ✅计入本月新增=${countedAsNew}`);
+            });
+            console.log('==================================');
             console.log('[Ⅰ类专业统计] 完整专业列表:', professions.join('、'));
             console.log('[Ⅰ类专业统计] 剩余:', JSON.stringify(remainingStats));
+            console.log('[Ⅰ类专业统计] 本月新增:', JSON.stringify(newStats));
 
             return { professions, remainingStats, newStats, completedStats, extraProfessions };
         }
