@@ -1410,26 +1410,10 @@
             return /[一Ⅰ1I]/.test(s);
         }
 
-        // Ⅰ类缺陷范围：分类定级=Ⅰ类 且 专业不含土建、消防（未分类专业不计入）
-        function getDefectLevel(row) {
-            const exactNames = ['分类定级', '定级', '分类', '类别', '等级'];
-            for (const name of exactNames) {
-                const v = getFieldValue(row, name);
-                if (!isEmpty(v)) return v;
-            }
-            for (const key of Object.keys(row)) {
-                const ck = cleanString(key).toLowerCase();
-                if ((ck.includes('级') || ck.includes('类')) && !isEmpty(row[key])) {
-                    return row[key];
-                }
-            }
-            return undefined;
-        }
-
         function isClassIScopeRow(row) {
             const profession = getProfession(row);
             if (profession === '未分类' || profession.includes('土建') || profession.includes('消防')) return false;
-            const levelRaw = getDefectLevel(row);
+            const levelRaw = getFieldValue(row, '分类定级') || getFieldValue(row, '定级') || getFieldValue(row, '分类');
             return !isEmpty(levelRaw) && isClassILevel(levelRaw);
         }
 
@@ -1514,7 +1498,7 @@
                 if (isPending) {
                     const isFire = profession.includes('消防');
                     const isCivil = profession.includes('土建');
-                    const levelRaw = getDefectLevel(row);
+                    const levelRaw = getFieldValue(row, '分类定级') || getFieldValue(row, '定级') || getFieldValue(row, '分类');
 
                     if (isFire) {
                         stats.remainingFire++;
@@ -1852,7 +1836,9 @@
                 const profession = getProfession(row);
                 if (profession === '未分类' || isCivil(profession) || profession.includes('消防')) return;
 
-                const levelRaw = getDefectLevel(row);
+                const levelRaw = getFieldValue(row, '分类定级')
+                    || getFieldValue(row, '定级')
+                    || getFieldValue(row, '分类');
                 if (isEmpty(levelRaw) || !isClassILevel(levelRaw)) return;
 
                 // 注册额外专业
