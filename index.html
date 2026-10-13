@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -1579,9 +1579,8 @@
             function countByProfession(datePredicate) {
                 const map = {};
                 processedData.forEach(row => {
+                    // 龙虎榜口径：Ⅰ/Ⅱ类均统计，土建/消防也参与排名
                     if (row.status !== '已消缺项') return;
-                    // 龙虎榜口径：仅统计Ⅰ类缺陷（分类定级=Ⅰ类，专业不含土建/消防）
-                    if (!isClassIScopeRow(row)) return;
                     const d = getCompleteDate(row);
                     if (!d) return;
                     if (!datePredicate(d)) return;
