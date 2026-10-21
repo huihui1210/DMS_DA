@@ -98,6 +98,15 @@
             align-items: center;
         }
 
+        .chart-block-title {
+            color: #2c3e50;
+            font-size: 15px;
+            font-weight: 600;
+            margin: 18px 0 10px 0;
+            padding-left: 10px;
+            border-left: 3px solid #3498db;
+        }
+
         .report-section p {
             color: #444;
             line-height: 1.8;
@@ -519,21 +528,34 @@
                 </div>
 
                 <div class="chart-section">
+                    <h3 class="chart-block-title" id="pieOverallTitle">（一）福建LNG</h3>
                     <div class="chart-container" id="pieChart"></div>
                     <p class="chart-summary" id="pieChartSummary"></p>
                     <div id="pieChartTable"></div>
                 </div>
 
                 <div class="chart-section" id="recvPieSection" style="display: none;">
+                    <h3 class="chart-block-title">（二）接收站</h3>
                     <div class="chart-container" id="pieChartRecv"></div>
                     <p class="chart-summary" id="pieChartSummaryRecv"></p>
                     <div id="pieChartTableRecv"></div>
                 </div>
 
                 <div class="chart-section" id="fenPieSection" style="display: none;">
+                    <h3 class="chart-block-title">（三）分输站</h3>
                     <div class="chart-container" id="pieChartFen"></div>
                     <p class="chart-summary" id="pieChartSummaryFen"></p>
                     <div id="pieChartTableFen"></div>
+                </div>
+
+                <div class="chart-section">
+                    <h3 class="chart-block-title">土建类缺陷</h3>
+                    <p class="chart-summary" id="civilSummary"></p>
+                </div>
+
+                <div class="chart-section">
+                    <h3 class="chart-block-title">消防类缺陷</h3>
+                    <p class="chart-summary" id="fireSummary"></p>
                 </div>
             </div>
 
@@ -830,6 +852,8 @@
                 };
             }
             document.getElementById('reportTitle').textContent = `福建LNG${stationType === 'all' ? '' : stationName}设备缺陷数据分析报告`;
+            // 饼图区块标题：总界面=（一）福建LNG，接收站=（一）接收站，分输站=（一）分输站
+            document.getElementById('pieOverallTitle').textContent = stationType === 'all' ? '（一）福建LNG' : `（一）${stationName}`;
         }
         function displayProfession(name) {
             return PROFESSION_DISPLAY_NAMES[name] || name;
@@ -1054,6 +1078,28 @@
             pendingListEl.innerHTML = '';
             topCompleted.forEach(name => completedListEl.appendChild(buildProfessionCard(name, classIStats.completedStats[name] || 0)));
             topPending.forEach(name => pendingListEl.appendChild(buildProfessionCard(name, pendingByProfession[name] || 0)));
+
+            // === 土建/消防：新增（基准月按编号解析）与剩余（截至基准月底仍未消缺，不分Ⅰ/Ⅱ类）===
+            let civilNew = 0, civilPending = 0, fireNew = 0, firePending = 0;
+            processedData.forEach(row => {
+                const profession = getProfession(row);
+                const isCiv = profession.includes('土建');
+                const isFir = profession.includes('消防');
+                if (!isCiv && !isFir) return;
+                const newMonthKey = getMonthFromDefectId(row['缺陷编号'] || row['编号'] || row['ID']);
+                if (!newMonthKey) return;
+                if (newMonthKey === currentMonthKey) {
+                    if (isCiv) civilNew++; else fireNew++;
+                }
+                if (newMonthKey <= currentMonthKey) {
+                    const ck = getCompleteMonth(row);
+                    if (!isCompleted(row) || (ck && ck > currentMonthKey)) {
+                        if (isCiv) civilPending++; else firePending++;
+                    }
+                }
+            });
+            document.getElementById('civilSummary').innerHTML = `截至${currentMonth}月${asOfDay}日，土建类缺陷新增<span class="highlight">${civilNew}</span>项，剩余<span class="highlight">${civilPending}</span>项。`;
+            document.getElementById('fireSummary').innerHTML = `截至${currentMonth}月${asOfDay}日，消防类缺陷新增<span class="highlight">${fireNew}</span>项，剩余<span class="highlight">${firePending}</span>项。`;
 
             // === 渲染图表 ===
             renderBarChart(yearMonths, monthlyStats, currentYear);
