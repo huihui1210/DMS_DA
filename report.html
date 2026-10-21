@@ -945,68 +945,106 @@
             return { professions, remainingStats, newStats, completedStats };
         }
 
-        // ======= 消缺龙虎榜表：日/周/月/年榜，每天取消缺第一专业，上榜率=上榜天数/统计天数 =======
+        // ======= 消缺龙虎榜表：日/周/月/年榜，各按对应周期取第一，上榜率=拿第一的周期数/周期总数 =======
+        // 日榜=报告期内每天的第一（21天拿20次第一即20/21）；周榜=报告期内每周的第一；
+        // 月榜=当年内每月的第一；年榜=历年每年的第一
         // 口径与主界面龙虎榜一致：Ⅰ/Ⅱ类均统计，土建/消防参与排名，未分类不计，仅统计已消缺且有消缺完成日期的数据
         function buildLeaderboardTable(processedData, baseDate, asOfDay) {
             const refDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), asOfDay);
-            const dayMs = 24 * 3600 * 1000;
 
-            // 预提取：每天每专业消缺数
-            const dailyCount = {};
+            // 预提取：日/月/年三个粒度的各专业消缺数
+            const dailyCount = {}, monthCount = {}, yearCount = {};
             processedData.forEach(row => {
                 if (!isCompleted(row)) return;
                 const d = getCompleteDate(row);
                 if (!d) return;
                 const profession = getProfession(row);
                 if (profession === '未分类') return;
-                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                if (!dailyCount[key]) dailyCount[key] = {};
-                dailyCount[key][profession] = (dailyCount[key][profession] || 0) + 1;
+                const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+                (dailyCount[`${y}-${m}-${day}`] = dailyCount[`${y}-${m}-${day}`] || {})[profession] = (dailyCount[`${y}-${m}-${day}`][profession] || 0) + 1;
+                (monthCount[`${y}-${m}`] = monthCount[`${y}-${m}`] || {})[profession] = (monthCount[`${y}-${m}`][profession] || 0) + 1;
+                (yearCount[y] = yearCount[y] || {})[profession] = (yearCount[y][profession] || 0) + 1;
             });
 
-            // 某天消缺第一的专业（并列时取其一）
-            const topOfDay = key => {
-                const entries = Object.entries(dailyCount[key] || {}).sort((a, b) => b[1] - a[1]);
+            const topOf = counts => {
+                const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
                 return entries.length ? entries[0][0] : null;
             };
-
             const fmt = d => `${d.getMonth() + 1}月${d.getDate()}日`;
-            const yearDays = Math.round((refDate - new Date(refDate.getFullYear(), 0, 1)) / dayMs) + 1;
-            const periods = [
-                { name: '日榜', days: 1 },
-                { name: '周榜', days: 7 },
-                { name: '月榜', days: refDate.getDate() },  // 基准月1日~基准日
-                { name: '年榜', days: yearDays }            // 当年1月1日~基准日
+            const rateTextOf = (onList, total, unit) => {
+                const entries = Object.entries(onList).sort((a, b) => b[1] - a[1]);
+                if (!entries.length) return '无上榜专业';
+                const [name, times] = entries[0];
+                return `${displayProfession(name)}${(times / total * 100).toFixed(0)}%（${times}/${total}${unit}）`;
+            };
+            const volTextOf = volume => {
+                const entries = Object.entries(volume).sort((a, b) => b[1] - a[1]);
+                return entries.length ? `${displayProfession(entries[0][0])}${entries[0][1]}项` : '无消缺记录';
+            };
+
+            // === 日榜 & 周榜：窗口=基准月1日~基准日 ===
+            const periodDays = refDate.getDate();
+            const dayTop = {}, periodVolume = {}, weekCount = {}, weekKeys = new Set();
+            for (let i = 1; i <= periodDays; i++) {
+                const d = new Date(refDate.getFullYear(), refDate.getMonth(), i);
+                const dk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                Object.entries(dailyCount[dk] || {}).forEach(([name, c]) => { periodVolume[name] = (periodVolume[name] || 0) + c; });
+                const t = topOf(dailyCount[dk]);
+                if (t) dayTop[t] = (dayTop[t] || 0) + 1;
+                // 自然周（周一起始）分组
+                const monday = new Date(d);
+                monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+                const wk = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+                weekKeys.add(wk);
+                (weekCount[wk] = weekCount[wk] || {});
+                Object.entries(dailyCount[dk] || {}).forEach(([name, c]) => { weekCount[wk][name] = (weekCount[wk][name] || 0) + c; });
+            }
+            const weekTop = {};
+            weekKeys.forEach(wk => { const t = topOf(weekCount[wk]); if (t) weekTop[t] = (weekTop[t] || 0) + 1; });
+
+            // === 月榜：窗口=当年1月~基准月 ===
+            const totalMonths = refDate.getMonth() + 1;
+            const monthTop = {}, yearVolume = {};
+            for (let m = 1; m <= totalMonths; m++) {
+                const mk = `${refDate.getFullYear()}-${String(m).padStart(2, '0')}`;
+                Object.entries(monthCount[mk] || {}).forEach(([name, c]) => { yearVolume[name] = (yearVolume[name] || 0) + c; });
+                const t = topOf(monthCount[mk]);
+                if (t) monthTop[t] = (monthTop[t] || 0) + 1;
+            }
+
+            // === 年榜：窗口=数据中最早年份~基准年 ===
+            const dataYears = Object.keys(yearCount).map(Number);
+            const minYear = Math.min(refDate.getFullYear(), ...(dataYears.length ? dataYears : [refDate.getFullYear()]));
+            const maxYear = refDate.getFullYear();
+            const totalYears = maxYear - minYear + 1;
+            const yearTop = {}, allVolume = {};
+            for (let y = minYear; y <= maxYear; y++) {
+                Object.entries(yearCount[y] || {}).forEach(([name, c]) => { allVolume[name] = (allVolume[name] || 0) + c; });
+                const t = topOf(yearCount[y]);
+                if (t) yearTop[t] = (yearTop[t] || 0) + 1;
+            }
+
+            // === 组装表格 ===
+            const periodStart = new Date(refDate.getFullYear(), refDate.getMonth(), 1);
+            const rows = [
+                {
+                    name: '日榜', vol: volTextOf(periodVolume), rate: rateTextOf(dayTop, periodDays, '天'),
+                    note: `统计${fmt(periodStart)}至${fmt(refDate)}共${periodDays}天，每日消缺第一计入榜单`
+                },
+                {
+                    name: '周榜', vol: volTextOf(periodVolume), rate: rateTextOf(weekTop, weekKeys.size, '周'),
+                    note: `统计${fmt(periodStart)}至${fmt(refDate)}共${weekKeys.size}周，每周消缺第一计入榜单`
+                },
+                {
+                    name: '月榜', vol: volTextOf(yearVolume), rate: rateTextOf(monthTop, totalMonths, '月'),
+                    note: `统计${refDate.getFullYear()}年1月至${refDate.getMonth() + 1}月共${totalMonths}个月，每月消缺第一计入榜单`
+                },
+                {
+                    name: '年榜', vol: volTextOf(allVolume), rate: rateTextOf(yearTop, totalYears, '年'),
+                    note: `统计${minYear}年至${maxYear}年共${totalYears}年，每年消缺第一计入榜单`
+                }
             ];
-
-            const rowsHtml = periods.map(p => {
-                // 汇总周期内：各专业消缺总量 + 各专业上榜（每日第一）天数
-                const volume = {};
-                const onListDays = {};
-                for (let i = 0; i < p.days; i++) {
-                    const d = new Date(refDate.getTime() - i * dayMs);
-                    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                    Object.entries(dailyCount[key] || {}).forEach(([name, c]) => { volume[name] = (volume[name] || 0) + c; });
-                    const top = topOfDay(key);
-                    if (top) onListDays[top] = (onListDays[top] || 0) + 1;
-                }
-                // 消缺量第一
-                const volEntries = Object.entries(volume).sort((a, b) => b[1] - a[1]);
-                const volText = volEntries.length ? `${displayProfession(volEntries[0][0])}${volEntries[0][1]}项` : '无消缺记录';
-                // 上榜率第一：上榜天数/统计天数（日榜上榜1次即为100%）
-                const rateEntries = Object.entries(onListDays).sort((a, b) => b[1] - a[1]);
-                const rateText = rateEntries.length ?
-                    `${displayProfession(rateEntries[0][0])}${(rateEntries[0][1] / p.days * 100).toFixed(0)}%（上榜${rateEntries[0][1]}天）` : '无上榜专业';
-
-                let note;
-                if (p.name === '日榜') {
-                    note = volEntries.length ? `${fmt(refDate)}当日消缺第一专业` : `${fmt(refDate)}当日无消缺记录`;
-                } else {
-                    const start = new Date(refDate.getTime() - (p.days - 1) * dayMs);
-                    note = `统计${fmt(start)}至${fmt(refDate)}共${p.days}天，每日消缺第一计入榜单`;
-                }
-                return `<tr><td>${p.name}</td><td>${volText}</td><td>${rateText}</td><td>${note}</td></tr>`;
-            }).join('');
+            const rowsHtml = rows.map(r => `<tr><td>${r.name}</td><td>${r.vol}</td><td>${r.rate}</td><td>${r.note}</td></tr>`).join('');
 
             return `<table class="lb-table"><thead>` +
                 `<tr><th rowspan="2" style="width:10%;">周期</th><th colspan="2">消缺龙虎榜</th><th rowspan="2">备注</th></tr>` +
@@ -1180,7 +1218,7 @@
             topCompleted.forEach(name => completedListEl.appendChild(buildProfessionCard(name, classIStats.completedStats[name] || 0)));
             topPending.forEach(name => pendingListEl.appendChild(buildProfessionCard(name, pendingByProfession[name] || 0)));
 
-            // 消缺上榜率表（日/周/月榜，按每天消缺前三专业计算上榜天数）
+            // 消缺龙虎榜表（日/周/月/年榜，各按对应周期取第一计算上榜率）
             document.getElementById('leaderboardTable').innerHTML = buildLeaderboardTable(processedData, baseDate, asOfDay);
 
             // === 土建/消防：新增（基准月按编号解析）与剩余（截至基准月底仍未消缺，不分Ⅰ/Ⅱ类）===
