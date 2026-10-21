@@ -175,40 +175,71 @@
         }
 
         /* ======= 生产重点关注缺陷情况 ======= */
+        .focus-table-wrap {
+            border: 1px solid #dfe3e8;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #ffffff;
+            box-shadow: 0 1px 4px rgba(44, 62, 80, 0.07);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
         .focus-table-wrap+.focus-table-wrap {
             margin-top: 14px;
         }
 
         .focus-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
             table-layout: fixed;
             font-size: 12px;
             background-color: #ffffff;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
         }
 
         .focus-table th,
         .focus-table td {
-            border: 1px solid #cfcfcf;
-            padding: 7px 8px;
+            padding: 8px;
             text-align: center;
             vertical-align: middle;
             word-break: break-all;
             line-height: 1.6;
+            border-right: 1px solid #e6e9ed;
+            border-bottom: 1px solid #e6e9ed;
+        }
+
+        .focus-table th:nth-child(1),
+        .focus-table td:nth-child(1),
+        .focus-table td:nth-child(3),
+        .focus-table td:nth-child(4),
+        .focus-table td:nth-child(5) {
+            white-space: nowrap;
+            word-break: keep-all;
+        }
+
+        .focus-table tr th:last-child,
+        .focus-table tr td:last-child {
+            border-right: none;
+        }
+
+        .focus-table tbody tr:last-child td {
+            border-bottom: none;
         }
 
         .focus-table thead th {
-            background-color: #f8f9fa;
+            background-color: #f5f7fa;
             color: #2c3e50;
             font-weight: 600;
         }
 
         .focus-table thead .focus-group-title {
-            background-color: #f1f3f5;
+            background: linear-gradient(135deg, #eef3f8 0%, #e6edf4 100%);
+            color: #1f3b57;
             font-weight: 700;
             font-size: 13px;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #dbe3ec;
         }
 
         .focus-table td.focus-desc {
@@ -1211,9 +1242,10 @@
                     const actualDate = isCompleted(row) ? formatCnDate(getCompleteDate(row)) : '';
                     return `<tr><td>${seq}</td><td class="focus-desc">${desc}</td><td>${owner}</td><td>${planDate}</td><td>${actualDate}</td></tr>`;
                 }).join('');
-                return `<div class="focus-table-wrap"><table class="focus-table"><thead>` +
-                    `<tr><th style="width:6%;"></th><th colspan="4" class="focus-group-title">${group.name}</th></tr>` +
-                    `<tr><th style="width:6%;">序号</th><th style="width:46%;">缺陷描述</th><th style="width:12%;">责任人</th><th style="width:18%;">计划完成时间</th><th style="width:18%;">实际完成时间</th></tr>` +
+                return `<div class="focus-table-wrap"><table class="focus-table">` +
+                    `<colgroup><col style="width:6%;"><col style="width:56%;"><col style="width:10%;"><col style="width:14%;"><col style="width:14%;"></colgroup><thead>` +
+                    `<tr><th colspan="5" class="focus-group-title">${group.name}</th></tr>` +
+                    `<tr><th>序号</th><th>缺陷描述</th><th>责任人</th><th>计划完成时间</th><th>实际完成时间</th></tr>` +
                     `</thead><tbody>${bodyHtml}</tbody></table></div>`;
             }).join('');
 
