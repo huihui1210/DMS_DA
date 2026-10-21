@@ -127,6 +127,30 @@
             flex: 1;
         }
 
+        .lb-stat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+            padding: 10px 14px;
+            background: white;
+            border: 1px solid rgba(44, 62, 80, 0.12);
+            border-radius: 6px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        .lb-stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .lb-stat-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
         .lb-right {
             flex: 1;
             min-width: 0;
@@ -974,11 +998,11 @@
             return { professions, remainingStats, newStats, completedStats };
         }
 
-        // ======= 消缺龙虎榜表：日/周/月榜，各按对应周期取消缺前三计入榜单，上榜率=上榜次数/周期总数 =======
-        // 日榜=报告期内每天的前三（21天上榜20次即20/21天）；周榜=报告期内每周的前三（本月过了3周即除3）；
-        // 月榜=当年每月的前三（10月即除10）
+        // ======= 消缺龙虎榜：左侧冠军卡片（以上榜率排名的第一名）+ 右侧日/周/月上榜率表 =======
+        // 各周期均按"就第一"计榜：每日/每周/每月消缺第一的专业才计入榜单，上榜率=拿第一次数/周期总数
+        // 冠军按上榜率排名（并列时按消缺量），卡片展示其专业名称、消缺量、上榜率
         // 口径与主界面龙虎榜一致：Ⅰ/Ⅱ类均统计，土建/消防参与排名，未分类不计，仅统计已消缺且有消缺完成日期的数据
-        function buildLeaderboardTable(processedData, baseDate, asOfDay) {
+        function buildLeaderboard(processedData, baseDate, asOfDay) {
             const refDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), asOfDay);
 
             // 预提取：日/月两个粒度的各专业消缺数
@@ -994,20 +1018,26 @@
                 (monthCount[`${y}-${m}`] = monthCount[`${y}-${m}`] || {})[profession] = (monthCount[`${y}-${m}`][profession] || 0) + 1;
             });
 
-            const top3Of = counts => Object.entries(counts || {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name]) => name);
+            const topOf = counts => {
+                const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+                return entries.length ? entries[0][0] : null;
+            };
             const rateTextOf = (onList, total, unit) => {
-                const entries = Object.entries(onList).sort((a, b) => b[1] - a[1]).slice(0, 3);
+                const entries = Object.entries(onList).sort((a, b) => b[1] - a[1]);
                 if (!entries.length) return '无上榜专业';
-                return entries.map(([name, times]) => `${displayProfession(name)}${(times / total * 100).toFixed(0)}%（${times}/${total}${unit}）`).join('、');
+                const [name, times] = entries[0];
+                return `${displayProfession(name)}${(times / total * 100).toFixed(0)}%（${times}/${total}${unit}）`;
             };
 
-            // === 日榜 & 周榜：窗口=基准月1日~基准日，每日/每周消缺前三计入榜单 ===
+            // === 日榜 & 周榜：窗口=基准月1日~基准日，每日/每周消缺第一计入榜单 ===
             const periodDays = refDate.getDate();
-            const dayTop = {}, weekCount = {}, weekKeys = new Set();
+            const dayTop = {}, periodVolume = {}, weekCount = {}, weekKeys = new Set();
             for (let i = 1; i <= periodDays; i++) {
                 const d = new Date(refDate.getFullYear(), refDate.getMonth(), i);
                 const dk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                top3Of(dailyCount[dk]).forEach(name => { dayTop[name] = (dayTop[name] || 0) + 1; });
+                Object.entries(dailyCount[dk] || {}).forEach(([name, c]) => { periodVolume[name] = (periodVolume[name] || 0) + c; });
+                const t = topOf(dailyCount[dk]);
+                if (t) dayTop[t] = (dayTop[t] || 0) + 1;
                 // 自然周（周一起始）分组
                 const monday = new Date(d);
                 monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
@@ -1017,27 +1047,44 @@
                 Object.entries(dailyCount[dk] || {}).forEach(([name, c]) => { weekCount[wk][name] = (weekCount[wk][name] || 0) + c; });
             }
             const weekTop = {};
-            weekKeys.forEach(wk => { top3Of(weekCount[wk]).forEach(name => { weekTop[name] = (weekTop[name] || 0) + 1; }); });
+            weekKeys.forEach(wk => { const t = topOf(weekCount[wk]); if (t) weekTop[t] = (weekTop[t] || 0) + 1; });
 
-            // === 月榜：窗口=当年1月~基准月（分母=已过月数，10月即除10），每月消缺前三计入榜单 ===
+            // === 月榜：窗口=当年1月~基准月（分母=已过月数，10月即除10），每月消缺第一计入榜单 ===
             const elapsedMonths = refDate.getMonth() + 1;
             const monthTop = {};
             for (let m = 1; m <= elapsedMonths; m++) {
                 const mk = `${refDate.getFullYear()}-${String(m).padStart(2, '0')}`;
-                top3Of(monthCount[mk]).forEach(name => { monthTop[name] = (monthTop[name] || 0) + 1; });
+                const t = topOf(monthCount[mk]);
+                if (t) monthTop[t] = (monthTop[t] || 0) + 1;
             }
 
-            // === 组装表格（备注列预留为空） ===
+            // === 左侧冠军卡片：以上榜率排名（并列时按消缺量），报告期为口径 ===
+            const champEntries = Object.entries(dayTop).sort((a, b) => b[1] - a[1] || (periodVolume[b[0]] || 0) - (periodVolume[a[0]] || 0));
+            let cardsHtml = '';
+            if (champEntries.length) {
+                const [champName, champDays] = champEntries[0];
+                const champRate = `${(champDays / periodDays * 100).toFixed(0)}%（${champDays}/${periodDays}天）`;
+                const champVol = periodVolume[champName] || 0;
+                cardsHtml =
+                    `<div class="lb-stat"><span class="lb-stat-label">消缺排名第一</span><span class="lb-stat-value">${displayProfession(champName)}</span></div>` +
+                    `<div class="lb-stat"><span class="lb-stat-label">消缺量</span><span class="lb-stat-value">${champVol}项</span></div>` +
+                    `<div class="lb-stat"><span class="lb-stat-label">上榜率</span><span class="lb-stat-value">${champRate}</span></div>`;
+            } else {
+                cardsHtml = `<div class="lb-stat"><span class="lb-stat-label">消缺排名第一</span><span class="lb-stat-value">暂无消缺记录</span></div>`;
+            }
+
+            // === 右侧表格（备注列预留为空） ===
             const rows = [
                 { name: '日榜', rate: rateTextOf(dayTop, periodDays, '天') },
                 { name: '周榜', rate: rateTextOf(weekTop, weekKeys.size, '周') },
                 { name: '月榜', rate: rateTextOf(monthTop, elapsedMonths, '月') }
             ];
             const rowsHtml = rows.map(r => `<tr><td>${r.name}</td><td>${r.rate}</td><td></td></tr>`).join('');
-
-            return `<table class="lb-table"><thead><tr>` +
-                `<th style="width:16%;">龙虎榜周期</th><th>消缺上榜率前三</th><th style="width:20%;">备注</th>` +
+            const tableHtml = `<table class="lb-table"><thead><tr>` +
+                `<th style="width:16%;">龙虎榜周期</th><th>消缺上榜率第一</th><th style="width:20%;">备注</th>` +
                 `</tr></thead><tbody>${rowsHtml}</tbody></table>`;
+
+            return { cardsHtml, tableHtml };
         }
 
         // ======= 加载 & 渲染主流程 =======
@@ -1203,11 +1250,12 @@
             const pendingListEl = document.getElementById('pendingProfessionList');
             completedListEl.innerHTML = '';
             pendingListEl.innerHTML = '';
-            topCompleted.forEach(name => completedListEl.appendChild(buildProfessionCard(name, classIStats.completedStats[name] || 0)));
             topPending.forEach(name => pendingListEl.appendChild(buildProfessionCard(name, pendingByProfession[name] || 0)));
 
-            // 消缺龙虎榜表（日/周/月榜，各按对应周期取第一计算上榜率）
-            document.getElementById('leaderboardTable').innerHTML = buildLeaderboardTable(processedData, baseDate, asOfDay);
+            // 消缺龙虎榜：左侧冠军卡片 + 右侧日/周/月上榜率表
+            const lb = buildLeaderboard(processedData, baseDate, asOfDay);
+            completedListEl.innerHTML = lb.cardsHtml;
+            document.getElementById('leaderboardTable').innerHTML = lb.tableHtml;
 
             // === 土建/消防：新增（基准月按编号解析）与剩余（截至基准月底仍未消缺，不分Ⅰ/Ⅱ类）===
             let civilNew = 0, civilPending = 0, fireNew = 0, firePending = 0;
