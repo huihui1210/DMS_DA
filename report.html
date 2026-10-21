@@ -154,8 +154,8 @@
             border-right: 1px solid #e0e0e0;
         }
 
-        .lb-table tr th:last-child,
-        .lb-table tr td:last-child {
+        .lb-table thead tr:first-child th:last-child,
+        .lb-table tbody tr td:last-child {
             border-right: none;
         }
 
@@ -172,6 +172,47 @@
         .lb-table td:first-child {
             font-weight: 600;
             color: #2c3e50;
+        }
+
+        /* ======= 生产重点关注缺陷情况 ======= */
+        .focus-table-wrap+.focus-table-wrap {
+            margin-top: 14px;
+        }
+
+        .focus-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 12px;
+            background-color: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .focus-table th,
+        .focus-table td {
+            border: 1px solid #cfcfcf;
+            padding: 7px 8px;
+            text-align: center;
+            vertical-align: middle;
+            word-break: break-all;
+            line-height: 1.6;
+        }
+
+        .focus-table thead th {
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .focus-table thead .focus-group-title {
+            background-color: #f1f3f5;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .focus-table td.focus-desc {
+            text-align: left;
         }
 
         .report-section p {
@@ -533,6 +574,17 @@
                 page-break-inside: avoid;
             }
 
+            /* 重点关注缺陷清单可能较长：允许跨页，但单行不拆分 */
+            .focus-report-section {
+                break-inside: auto !important;
+                page-break-inside: auto !important;
+            }
+
+            .focus-table tr {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
             /* 打印时汇总表允许换行，避免文字被截断 */
             .summary-table {
                 font-size: 10px !important;
@@ -645,8 +697,15 @@
                 </div>
             </div>
 
+            <div class="report-section focus-report-section">
+                <h2>三、生产重点关注缺陷情况</h2>
+                <p id="focusSummary"></p>
+                <p>附：重点关注缺陷处理清单：</p>
+                <div id="focusTable"></div>
+            </div>
+
             <div class="report-section">
-                <h2>三、年度累计统计</h2>
+                <h2>四、年度累计统计</h2>
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-label" id="labelYearNew"></div>
@@ -1061,6 +1120,113 @@
                 `</thead><tbody>${rowsHtml}</tbody></table>`;
         }
 
+        // ======= 生产重点关注缺陷情况：是否督办=是 =======
+        // 缺陷描述=区域部位/设备名称/位号+缺陷描述；责任人=党员责任人；计划完成时间=计划期限；实际完成时间=消项时间
+        function buildFocusSection(processedData, stationParam) {
+            const normalize = s => String(s == null ? '' : s).replace(/[\s\/\\（）()·\-—_、，,。.:：]/g, '').toLowerCase();
+
+            // 汇总所有行出现过的列名（首行可能缺列）
+            const allKeys = [];
+            const seenKeys = new Set();
+            processedData.forEach(row => Object.keys(row).forEach(k => {
+                if (!seenKeys.has(k)) { seenKeys.add(k); allKeys.push(k); }
+            }));
+
+            const findKey = (candidates, fuzzy) => {
+                for (const cand of candidates) {
+                    const nc = normalize(cand);
+                    const hit = allKeys.find(k => normalize(k) === nc);
+                    if (hit) return hit;
+                }
+                if (!fuzzy) return null;
+                for (const cand of candidates) {
+                    const nc = normalize(cand);
+                    const hit = allKeys.find(k => normalize(k).includes(nc));
+                    if (hit) return hit;
+                }
+                return null;
+            };
+
+            const keySupervise = findKey(['是否督办'], true);
+            const keyAreaCombined = findKey(['区域部位/设备名称/位号'], false);
+            const keyArea = findKey(['区域部位'], false);
+            const keyDevice = findKey(['设备名称'], false);
+            const keyTag = findKey(['位号'], false);
+            const keyDesc = findKey(['缺陷描述'], true);
+            const keyOwner = findKey(['党员责任人'], true);
+            const keyPlan = findKey(['计划期限'], true);
+
+            const parseDateValue = raw => {
+                if (isEmpty(raw)) return null;
+                let d;
+                if (raw instanceof Date) d = raw;
+                else if (typeof raw === 'number') d = new Date((raw - 25569) * 86400 * 1000);
+                else d = new Date(String(raw).trim().replace(/[年\/.]/g, '-').replace(/月/g, '-').replace(/日/g, ''));
+                return isNaN(d.getTime()) ? null : d;
+            };
+            const formatCnDate = d => d ? `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日` : '';
+
+            // 重点关注：是否督办=是
+            const isSupervised = row => keySupervise && String(row[keySupervise] == null ? '' : row[keySupervise]).trim() === '是';
+            const focusRows = processedData.filter(isSupervised);
+
+            // 总界面按缺陷编号长度拆分接收站(11位)/分输站(14位)；单站报告只统计本站
+            const idLenOf = row => String(row['缺陷编号'] || row['编号'] || row['ID'] || '').trim().length;
+            const isFenRow = row => idLenOf(row) === 14;
+            const isAll = stationParam === 'all';
+            const recvRows = focusRows.filter(row => !isFenRow(row));
+            const fenRows = focusRows.filter(isFenRow);
+            const ownRows = stationParam === 'fen' ? fenRows : recvRows;
+            const groups = isAll
+                ? [{ name: '接收站', rows: recvRows }, { name: '分输站', rows: fenRows }]
+                : [{ name: stationParam === 'fen' ? '分输站' : '接收站', rows: ownRows }];
+
+            const doneCount = rows => rows.filter(isCompleted).length;
+            let summary;
+            if (isAll) {
+                summary = `累计梳理重点关注缺陷<span class="highlight">${focusRows.length}</span>项（接收站 ${recvRows.length} 项、分输站 ${fenRows.length} 项），已完成<span class="highlight">${doneCount(focusRows)}</span>项（接收站 ${doneCount(recvRows)} 项、分输站 ${doneCount(fenRows)} 项）。`;
+            } else {
+                summary = `累计梳理重点关注缺陷<span class="highlight">${ownRows.length}</span>项，已完成<span class="highlight">${doneCount(ownRows)}</span>项。`;
+            }
+
+            // 清单表：按站分组，每组带“接收站/分输站”标题行
+            let seq = 0;
+            const tableHtml = groups.map(group => {
+                if (!group.rows.length) return '';
+                const bodyHtml = group.rows.map(row => {
+                    seq++;
+                    const areaParts = [];
+                    if (keyAreaCombined) {
+                        const v = row[keyAreaCombined];
+                        if (!isEmpty(v)) areaParts.push(String(v).trim());
+                    } else {
+                        [keyArea, keyDevice, keyTag].forEach(k => {
+                            if (k && !isEmpty(row[k])) areaParts.push(String(row[k]).trim());
+                        });
+                    }
+                    const descText = keyDesc ? String(row[keyDesc] == null ? '' : row[keyDesc]).trim() : '';
+                    const desc = [areaParts.join('/'), descText].filter(Boolean).join(' ');
+                    const owner = keyOwner ? String(row[keyOwner] == null ? '' : row[keyOwner]).trim() : '';
+                    const planDate = formatCnDate(parseDateValue(keyPlan ? row[keyPlan] : ''));
+                    const actualDate = isCompleted(row) ? formatCnDate(getCompleteDate(row)) : '';
+                    return `<tr><td>${seq}</td><td class="focus-desc">${desc}</td><td>${owner}</td><td>${planDate}</td><td>${actualDate}</td></tr>`;
+                }).join('');
+                return `<div class="focus-table-wrap"><table class="focus-table"><thead>` +
+                    `<tr><th style="width:6%;"></th><th colspan="4" class="focus-group-title">${group.name}</th></tr>` +
+                    `<tr><th style="width:6%;">序号</th><th style="width:46%;">缺陷描述</th><th style="width:12%;">责任人</th><th style="width:18%;">计划完成时间</th><th style="width:18%;">实际完成时间</th></tr>` +
+                    `</thead><tbody>${bodyHtml}</tbody></table></div>`;
+            }).join('');
+
+            return { summary, tableHtml: tableHtml || '<p>暂无重点关注缺陷。</p>' };
+        }
+
+        function renderFocusSection(processedData) {
+            const stationParam = new URLSearchParams(window.location.search).get('station') || 'recv';
+            const { summary, tableHtml } = buildFocusSection(processedData, stationParam);
+            document.getElementById('focusSummary').innerHTML = summary;
+            document.getElementById('focusTable').innerHTML = tableHtml;
+        }
+
         // ======= 加载 & 渲染主流程 =======
         function loadReport() {
             const saved = localStorage.getItem('defectData');
@@ -1229,6 +1395,9 @@
 
             // 消缺龙虎榜表（日/周/月榜，每行显示各周期自己的第一）
             document.getElementById('leaderboardTable').innerHTML = buildLeaderboard(processedData, baseDate, asOfDay);
+
+            // 生产重点关注缺陷情况（是否督办=是）
+            renderFocusSection(processedData);
 
             // === 土建/消防：新增（基准月按编号解析）与剩余（截至基准月底仍未消缺，不分Ⅰ/Ⅱ类）===
             let civilNew = 0, civilPending = 0, fireNew = 0, firePending = 0;
