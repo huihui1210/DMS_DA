@@ -549,12 +549,12 @@
                 </div>
 
                 <div class="chart-section">
-                    <h3 class="chart-block-title">土建类缺陷</h3>
+                    <h3 class="chart-block-title" id="civilTitle">土建类缺陷</h3>
                     <p class="chart-summary" id="civilSummary"></p>
                 </div>
 
                 <div class="chart-section">
-                    <h3 class="chart-block-title">消防类缺陷</h3>
+                    <h3 class="chart-block-title" id="fireTitle">消防类缺陷</h3>
                     <p class="chart-summary" id="fireSummary"></p>
                 </div>
             </div>
@@ -854,6 +854,11 @@
             document.getElementById('reportTitle').textContent = `福建LNG${stationType === 'all' ? '' : stationName}设备缺陷数据分析报告`;
             // 饼图区块标题：总界面=（一）福建LNG，接收站=（一）接收站，分输站=（一）分输站
             document.getElementById('pieOverallTitle').textContent = stationType === 'all' ? '（一）福建LNG' : `（一）${stationName}`;
+            // 土建/消防区块编号：总界面排在三个饼图后为（四）（五），单站报告排在自身饼图后为（二）（三）
+            const civilNo = stationType === 'all' ? '（四）' : '（二）';
+            const fireNo = stationType === 'all' ? '（五）' : '（三）';
+            document.getElementById('civilTitle').textContent = `${civilNo}土建类缺陷`;
+            document.getElementById('fireTitle').textContent = `${fireNo}消防类缺陷`;
         }
         function displayProfession(name) {
             return PROFESSION_DISPLAY_NAMES[name] || name;
