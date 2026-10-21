@@ -107,7 +107,7 @@
             border-left: 3px solid #3498db;
         }
 
-        /* 消缺上榜率（龙虎榜）表格 */
+        /* 消缺龙虎榜表格 */
         .lb-table {
             width: 100%;
             border-collapse: collapse;
@@ -128,8 +128,8 @@
             font-weight: 600;
         }
 
-        .lb-table td:nth-child(2),
-        .lb-table td:nth-child(3) {
+        .lb-table td:nth-child(3),
+        .lb-table td:nth-child(4) {
             text-align: left;
         }
 
@@ -945,7 +945,7 @@
             return { professions, remainingStats, newStats, completedStats };
         }
 
-        // ======= 消缺上榜率（龙虎榜）：每天取消缺前三专业，上榜率=上榜天数/统计天数 =======
+        // ======= 消缺龙虎榜表：日/周/月/年榜，每天取消缺第一专业，上榜率=上榜天数/统计天数 =======
         // 口径与主界面龙虎榜一致：Ⅰ/Ⅱ类均统计，土建/消防参与排名，未分类不计，仅统计已消缺且有消缺完成日期的数据
         function buildLeaderboardTable(processedData, baseDate, asOfDay) {
             const refDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), asOfDay);
@@ -964,42 +964,54 @@
                 dailyCount[key][profession] = (dailyCount[key][profession] || 0) + 1;
             });
 
-            // 某天的消缺前三专业（按消缺数降序取3）
+            // 某天消缺第一的专业（并列时取其一）
             const topOfDay = key => {
-                const counts = dailyCount[key] || {};
-                return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name]) => name);
+                const entries = Object.entries(dailyCount[key] || {}).sort((a, b) => b[1] - a[1]);
+                return entries.length ? entries[0][0] : null;
             };
 
             const fmt = d => `${d.getMonth() + 1}月${d.getDate()}日`;
+            const yearDays = Math.round((refDate - new Date(refDate.getFullYear(), 0, 1)) / dayMs) + 1;
             const periods = [
                 { name: '日榜', days: 1 },
                 { name: '周榜', days: 7 },
-                { name: '月榜', days: refDate.getDate() }  // 基准月1日~基准日
+                { name: '月榜', days: refDate.getDate() },  // 基准月1日~基准日
+                { name: '年榜', days: yearDays }            // 当年1月1日~基准日
             ];
 
             const rowsHtml = periods.map(p => {
-                // 统计周期内每天的上榜专业
+                // 汇总周期内：各专业消缺总量 + 各专业上榜（每日第一）天数
+                const volume = {};
                 const onListDays = {};
                 for (let i = 0; i < p.days; i++) {
                     const d = new Date(refDate.getTime() - i * dayMs);
                     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                    topOfDay(key).forEach(name => { onListDays[name] = (onListDays[name] || 0) + 1; });
+                    Object.entries(dailyCount[key] || {}).forEach(([name, c]) => { volume[name] = (volume[name] || 0) + c; });
+                    const top = topOfDay(key);
+                    if (top) onListDays[top] = (onListDays[top] || 0) + 1;
                 }
-                const top3 = Object.entries(onListDays).sort((a, b) => b[1] - a[1]).slice(0, 3);
-                const topText = top3.length === 0 ? '无上榜专业' :
-                    top3.map(([name, days]) => `${displayProfession(name)}${(days / p.days * 100).toFixed(0)}%`).join('、');
+                // 消缺量第一
+                const volEntries = Object.entries(volume).sort((a, b) => b[1] - a[1]);
+                const volText = volEntries.length ? `${displayProfession(volEntries[0][0])}${volEntries[0][1]}项` : '无消缺记录';
+                // 上榜率第一：上榜天数/统计天数（日榜上榜1次即为100%）
+                const rateEntries = Object.entries(onListDays).sort((a, b) => b[1] - a[1]);
+                const rateText = rateEntries.length ?
+                    `${displayProfession(rateEntries[0][0])}${(rateEntries[0][1] / p.days * 100).toFixed(0)}%（上榜${rateEntries[0][1]}天）` : '无上榜专业';
 
                 let note;
                 if (p.name === '日榜') {
-                    note = top3.length === 0 ? `${fmt(refDate)}当日无消缺记录` : `${fmt(refDate)}当日消缺前三专业均上榜`;
+                    note = volEntries.length ? `${fmt(refDate)}当日消缺第一专业` : `${fmt(refDate)}当日无消缺记录`;
                 } else {
                     const start = new Date(refDate.getTime() - (p.days - 1) * dayMs);
-                    note = `统计${fmt(start)}至${fmt(refDate)}共${p.days}天，每日消缺前三计入榜单`;
+                    note = `统计${fmt(start)}至${fmt(refDate)}共${p.days}天，每日消缺第一计入榜单`;
                 }
-                return `<tr><td>${p.name}</td><td>${topText}</td><td>${note}</td></tr>`;
+                return `<tr><td>${p.name}</td><td>${volText}</td><td>${rateText}</td><td>${note}</td></tr>`;
             }).join('');
 
-            return `<table class="lb-table"><thead><tr><th style="width:16%;">龙虎榜周期</th><th style="width:36%;">消缺上榜率前三</th><th>情况说明</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
+            return `<table class="lb-table"><thead>` +
+                `<tr><th rowspan="2" style="width:10%;">周期</th><th colspan="2">消缺龙虎榜</th><th rowspan="2">备注</th></tr>` +
+                `<tr><th style="width:26%;">消缺量第一</th><th style="width:32%;">上榜率第一</th></tr>` +
+                `</thead><tbody>${rowsHtml}</tbody></table>`;
         }
 
         // ======= 加载 & 渲染主流程 =======
