@@ -980,7 +980,8 @@
         }
 
         // ======= 消缺龙虎榜表：日/周/月榜，各按对应周期取第一，上榜率=拿第一次数/周期总数 =======
-        // 日榜=报告期内每天的第一（21天拿20次第一即20/21天）；周榜=当年每周的第一（分母52周）；月榜=当年每月的第一（分母12月）
+        // 日榜=报告期内每天的第一（21天拿20次第一即20/21天）；周榜=报告期内每周的第一（本月过了3周即除3）；
+        // 月榜=当年每月的第一（10月即除10）
         // 口径与主界面龙虎榜一致：Ⅰ/Ⅱ类均统计，土建/消防参与排名，未分类不计，仅统计已消缺且有消缺完成日期的数据
         function buildLeaderboardTable(processedData, baseDate, asOfDay) {
             const refDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), asOfDay);
@@ -1033,9 +1034,10 @@
             const weekTop = {};
             weekKeys.forEach(wk => { const t = topOf(weekCount[wk]); if (t) weekTop[t] = (weekTop[t] || 0) + 1; });
 
-            // === 月榜：窗口=当年1月~基准月（分母固定12月） ===
+            // === 月榜：窗口=当年1月~基准月（分母=已过月数，10月即除10） ===
+            const elapsedMonths = refDate.getMonth() + 1;
             const monthTop = {}, yearVolume = {};
-            for (let m = 1; m <= refDate.getMonth() + 1; m++) {
+            for (let m = 1; m <= elapsedMonths; m++) {
                 const mk = `${refDate.getFullYear()}-${String(m).padStart(2, '0')}`;
                 Object.entries(monthCount[mk] || {}).forEach(([name, c]) => { yearVolume[name] = (yearVolume[name] || 0) + c; });
                 const t = topOf(monthCount[mk]);
@@ -1045,8 +1047,8 @@
             // === 组装表格 ===
             const rows = [
                 { name: '日榜', vol: volTextOf(periodVolume), rate: rateTextOf(dayTop, periodDays, '天') },
-                { name: '周榜', vol: volTextOf(yearVolume), rate: rateTextOf(weekTop, 52, '周') },
-                { name: '月榜', vol: volTextOf(yearVolume), rate: rateTextOf(monthTop, 12, '月') }
+                { name: '周榜', vol: volTextOf(periodVolume), rate: rateTextOf(weekTop, weekKeys.size, '周') },
+                { name: '月榜', vol: volTextOf(yearVolume), rate: rateTextOf(monthTop, elapsedMonths, '月') }
             ];
             const rowsHtml = rows.map(r => `<tr><td>${r.name}</td><td>${r.vol}</td><td>${r.rate}</td></tr>`).join('');
 
