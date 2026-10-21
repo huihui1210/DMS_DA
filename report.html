@@ -517,6 +517,24 @@
                     <div class="chart-container" id="barChart"></div>
                     <div class="chart-data-table" id="barChartTable"></div>
                 </div>
+
+                <div class="chart-section">
+                    <div class="chart-container" id="pieChart"></div>
+                    <p class="chart-summary" id="pieChartSummary"></p>
+                    <div id="pieChartTable"></div>
+                </div>
+
+                <div class="chart-section" id="recvPieSection" style="display: none;">
+                    <div class="chart-container" id="pieChartRecv"></div>
+                    <p class="chart-summary" id="pieChartSummaryRecv"></p>
+                    <div id="pieChartTableRecv"></div>
+                </div>
+
+                <div class="chart-section" id="fenPieSection" style="display: none;">
+                    <div class="chart-container" id="pieChartFen"></div>
+                    <p class="chart-summary" id="pieChartSummaryFen"></p>
+                    <div id="pieChartTableFen"></div>
+                </div>
             </div>
 
             <div class="report-section">
@@ -532,12 +550,6 @@
                         </p>
                         <div class="profession-list" id="pendingProfessionList"></div>
                     </div>
-                </div>
-
-                <div class="chart-section">
-                    <div class="chart-container" id="pieChart"></div>
-                    <p class="chart-summary" id="pieChartSummary"></p>
-                    <div id="pieChartTable"></div>
                 </div>
             </div>
 
@@ -1046,6 +1058,30 @@
             // === 渲染图表 ===
             renderBarChart(yearMonths, monthlyStats, currentYear);
             renderPieChart(processedData, classIStats, baseDate, asOfDay);
+
+            // === 总界面：饼图后追加接收站、分输站分站饼图（按缺陷编号长度拆分：11位=接收站，14位=分输站）===
+            const urlParams2 = new URLSearchParams(window.location.search);
+            if (urlParams2.get('station') === 'all') {
+                const idOf = row => String(row['缺陷编号'] || row['编号'] || row['ID'] || '').trim();
+                const recvData = processedData.filter(row => idOf(row).length === 11);
+                const fenData = processedData.filter(row => idOf(row).length === 14);
+                const allProfessions = MAJOR_PROFESSIONS.slice();
+                const RECV_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '接收站运行部'];
+                const FEN_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '管道运行部'];
+                if (recvData.length > 0) {
+                    MAJOR_PROFESSIONS = RECV_PROFESSIONS;
+                    document.getElementById('recvPieSection').style.display = 'block';
+                    renderPieChart(recvData, getClassIProfessionStats(recvData, baseDate), baseDate, asOfDay,
+                        { station: '接收站', chartId: 'pieChartRecv', summaryId: 'pieChartSummaryRecv', tableId: 'pieChartTableRecv' });
+                }
+                if (fenData.length > 0) {
+                    MAJOR_PROFESSIONS = FEN_PROFESSIONS;
+                    document.getElementById('fenPieSection').style.display = 'block';
+                    renderPieChart(fenData, getClassIProfessionStats(fenData, baseDate), baseDate, asOfDay,
+                        { station: '分输站', chartId: 'pieChartFen', summaryId: 'pieChartSummaryFen', tableId: 'pieChartTableFen' });
+                }
+                MAJOR_PROFESSIONS = allProfessions;
+            }
         }
 
         // ======= 柱状图（Ⅰ类口径：定级Ⅰ类，专业不含土建/消防，与底下月份表一致）=======
@@ -1098,15 +1134,20 @@
 
         // ======= 饼图（Ⅰ类缺陷专业分布，与 index.html 口径完全一致）=======
         // 饼图底下表格：接收站 + 总计 + 各专业（MAJOR_PROFESSIONS + Excel额外）
-        function renderPieChart(processedData, classIStats, baseDate, asOfDay) {
+        // opts：station=站名覆盖、chartId/summaryId/tableId=渲染目标容器（总界面分站饼图用）
+        function renderPieChart(processedData, classIStats, baseDate, asOfDay, opts = {}) {
             const { professions, remainingStats, newStats, completedStats } = classIStats;
             const currentMonthKey = `${baseDate.getFullYear()}-${String(baseDate.getMonth() + 1).padStart(2, '0')}`;
             const day = asOfDay || new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0).getDate();
+            const labelStation = opts.station || stationName;
+            const chartId = opts.chartId || 'pieChart';
+            const summaryId = opts.summaryId || 'pieChartSummary';
+            const tableId = opts.tableId || 'pieChartTable';
 
             const pieData = professions
                 .map(name => ({ name: displayProfession(name), value: remainingStats[name] || 0 }));
 
-            const container = document.getElementById('pieChart');
+            const container = document.getElementById(chartId);
             if (!container) return;
 
             if (pieData.every(d => d.value === 0)) {
@@ -1116,7 +1157,7 @@
                 const chart = echarts.init(container);
                 chart.setOption({
                     title: {
-                        text: `${stationName}当前主要剩余Ⅰ类缺陷专业分布情况`,
+                        text: `${labelStation}当前主要剩余Ⅰ类缺陷专业分布情况`,
                         left: 'center', top: 10,
                         textStyle: { fontSize: 16, fontWeight: 'bold', color: '#333' }
                     },
@@ -1164,17 +1205,17 @@
                 if (!isEmpty(levelRaw) && !isClassILevel(levelRaw) && /二|Ⅱ|II/i.test(String(levelRaw))) pendingII++;
             });
 
-            const summaryEl = document.getElementById('pieChartSummary');
-            summaryEl.innerHTML = `截至${currentMonthKey.split('-')[1]}月${day}日，${stationName}Ⅰ类缺陷剩余<span class="highlight">${totalRemaining}</span>项；${currentMonthKey.split('-')[1]}月新增${totalNew}项，消缺${totalCompleted}项。Ⅱ类剩余${pendingII}项，土建剩余${pendingCivil}项，消防剩余${pendingFire}项。`;
+            const summaryEl = document.getElementById(summaryId);
+            summaryEl.innerHTML = `截至${currentMonthKey.split('-')[1]}月${day}日，${labelStation}Ⅰ类缺陷剩余<span class="highlight">${totalRemaining}</span>项；${currentMonthKey.split('-')[1]}月新增${totalNew}项，消缺${totalCompleted}项。Ⅱ类剩余${pendingII}项，土建剩余${pendingCivil}项，消防剩余${pendingFire}项。`;
 
             // 表格结构（与 index.html renderSummaryTable 一致）
             const totalRows = 1 + 3;  // 1行表头 + 3行数据
-            const tbl = document.getElementById('pieChartTable');
+            const tbl = document.getElementById(tableId);
             let html = '<div class="summary-table-wrap"><table class="summary-table">';
             html += '<tbody>';
             // 表头行
             html += '<tr class="st-header-row">';
-            html += `<th class="st-col" rowspan="${totalRows}">${stationName.split('').join('<br>')}</th>`;
+            html += `<th class="st-col" rowspan="${totalRows}">${labelStation.split('').join('<br>')}</th>`;
             html += '<th>Ⅰ类缺陷</th>';
             html += '<th class="st-sub-total">总计</th>';
             professions.forEach(p => { html += `<th>${displayProfession(p)}</th>`; });
