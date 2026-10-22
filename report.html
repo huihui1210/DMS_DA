@@ -806,19 +806,16 @@
                 background: transparent !important;
             }
 
+            /* 打印时外框改由单元格边线拼成：表格跨页分片后每页左右竖线仍完整，
+               圆角由四角单元格承担；表格外层不再描边，避免分片处竖线丢失 */
             .focus-table {
-                border: 1px solid #d5dce6 !important;
+                border: none !important;
                 border-radius: 6px !important;
                 font-size: 10px !important;
             }
 
             .focus-table th,
-            .focus-table td,
-            .focus-table th:nth-child(1),
-            .focus-table td:nth-child(1),
-            .focus-table td:nth-child(3),
-            .focus-table td:nth-child(4),
-            .focus-table td:nth-child(5) {
+            .focus-table td {
                 border-top: none !important;
                 border-left: none !important;
                 border-right: 1px solid #d5dce6 !important;
@@ -829,13 +826,20 @@
                 line-height: 1.5 !important;
             }
 
-            .focus-table tr th:last-child,
-            .focus-table tr td:last-child {
-                border-right: none !important;
+            /* 日期列保持一行显示 */
+            .focus-table td:nth-child(4),
+            .focus-table td:nth-child(5) {
+                white-space: nowrap !important;
+                word-break: normal;
             }
 
-            .focus-table tbody tr:last-child td {
-                border-bottom: none !important;
+            .focus-table tr th:first-child,
+            .focus-table tr td:first-child {
+                border-left: 1px solid #d5dce6 !important;
+            }
+
+            .focus-table thead tr:first-child th {
+                border-top: 1px solid #d5dce6 !important;
             }
 
             .focus-table thead tr:first-child th:first-child {
@@ -1584,7 +1588,7 @@
                     return `<tr><td>${seq}</td><td class="focus-desc">${desc}</td><td>${owner}</td><td>${planDate}</td><td>${actualDate}</td></tr>`;
                 }).join('');
                 return `<div class="focus-table-wrap"><table class="focus-table">` +
-                    `<colgroup><col style="width:6%;"><col style="width:56%;"><col style="width:10%;"><col style="width:14%;"><col style="width:14%;"></colgroup><thead>` +
+                    `<colgroup><col style="width:5%;"><col style="width:51%;"><col style="width:8%;"><col style="width:18%;"><col style="width:18%;"></colgroup><thead>` +
                     `<tr><th colspan="5" class="focus-group-title">${group.name}</th></tr>` +
                     `<tr><th>序号</th><th>缺陷描述</th><th>责任人</th><th>计划完成时间</th><th>实际完成时间</th></tr>` +
                     `</thead><tbody>${bodyHtml}</tbody></table></div>`;
