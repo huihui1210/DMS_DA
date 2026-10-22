@@ -960,12 +960,37 @@
 
         // 打印时压缩图表高度，减少分页留白；打印结束后恢复屏幕高度
         // 注意：必须同时清掉屏幕样式的 min-height:260px，否则 resize 读到的容器高度仍是260
+        // 同时压缩图表内部布局（标题字号、饼图半径/中心、图例间距），避免标题与图形/标签重叠
         function resizeChartsForPrint(height) {
+            const printMode = !!height;
             document.querySelectorAll('.chart-container').forEach(el => {
                 el.style.minHeight = height ? '0' : '';
                 el.style.height = height;
                 const inst = echarts.getInstanceByDom(el);
-                if (inst) inst.resize();
+                if (!inst) return;
+                const type = inst.getOption() && inst.getOption().series && inst.getOption().series[0] ? inst.getOption().series[0].type : '';
+                if (type === 'pie') {
+                    inst.setOption(printMode ? {
+                        title: { top: 2, textStyle: { fontSize: 13, fontWeight: 'bold', color: '#333' } },
+                        legend: { top: 30, itemGap: 4, textStyle: { fontSize: 10 } },
+                        series: [{ radius: ['30%', '60%'], center: ['50%', '60%'], label: { fontSize: 10 }, labelLine: { length: 8, length2: 10 } }]
+                    } : {
+                        title: { top: 10, textStyle: { fontSize: 16, fontWeight: 'bold', color: '#333' } },
+                        legend: { top: 60, itemGap: 8, textStyle: { fontSize: 11 } },
+                        series: [{ radius: ['35%', '70%'], center: ['50%', '55%'], label: { fontSize: 12 }, labelLine: { length: 15, length2: 20 } }]
+                    });
+                } else if (type === 'bar') {
+                    inst.setOption(printMode ? {
+                        title: { textStyle: { fontSize: 14, fontWeight: 'bold', color: '#333' } },
+                        grid: { top: '18%' },
+                        series: [{ label: { fontSize: 9 } }, { label: { fontSize: 9 } }, { label: { fontSize: 9 } }]
+                    } : {
+                        title: { textStyle: { fontSize: 18, fontWeight: 'bold', color: '#333' } },
+                        grid: { top: '10%' },
+                        series: [{ label: { fontSize: 11 } }, { label: { fontSize: 11 } }, { label: { fontSize: 11 } }]
+                    });
+                }
+                inst.resize();
             });
         }
 
