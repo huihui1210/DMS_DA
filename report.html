@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -635,6 +635,14 @@
                 height: 200px !important;
                 min-height: 0 !important;
                 margin-bottom: 6px !important;
+                overflow: hidden !important;
+            }
+
+            /* 双保险：canvas 位图等比缩放到容器内，防止溢出重叠下方表格 */
+            .chart-container>div,
+            .chart-container canvas {
+                max-width: 100% !important;
+                max-height: 100% !important;
             }
 
             .chart-summary {
@@ -939,8 +947,10 @@
         }
 
         // 打印时压缩图表高度，减少分页留白；打印结束后恢复屏幕高度
+        // 注意：必须同时清掉屏幕样式的 min-height:260px，否则 resize 读到的容器高度仍是260
         function resizeChartsForPrint(height) {
             document.querySelectorAll('.chart-container').forEach(el => {
+                el.style.minHeight = height ? '0' : '';
                 el.style.height = height;
                 const inst = echarts.getInstanceByDom(el);
                 if (inst) inst.resize();
