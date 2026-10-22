@@ -549,8 +549,9 @@
         }
 
         /* ======= 打印样式 ======= */
+        /* 上下页边距对每一页生效，避免第2页起内容顶格 */
         @page {
-            margin: 0;
+            margin: 8mm 0;
         }
 
         @media print {
@@ -580,7 +581,7 @@
             /* section 允许跨页：避免长章节整体被推到下一页导致首页空白 */
             .report-section {
                 margin: 0 !important;
-                padding: 5mm 0 0 !important;
+                padding: 4mm 0 0 !important;
                 break-inside: auto;
                 page-break-inside: auto;
             }
@@ -606,9 +607,11 @@
                 padding: 5px 12px !important;
             }
 
+            /* 打印时龙虎榜强制完整网格边框，覆盖屏幕端去右边框/底边框的规则 */
             .lb-table th,
             .lb-table td {
                 padding: 5px 8px !important;
+                border: 1px solid #999 !important;
             }
 
             /* 标题不与正文分离 */
@@ -638,9 +641,17 @@
                 overflow: hidden !important;
             }
 
-            /* 双保险：canvas 位图等比缩放到容器内，防止溢出重叠下方表格 */
-            .chart-container>div,
+            /* 双保险：canvas 位图等比缩放到容器内，防止溢出重叠下方表格；
+               canvas 必须 width/height auto 保持宽高比（否则单边压缩饼图变椭圆）；
+               注意 auto 只能加在 canvas 上：外层 div 的子元素是绝对定位，高度 auto 会塌成 0 */
+            .chart-container>div {
+                max-width: 100% !important;
+                max-height: 100% !important;
+            }
+
             .chart-container canvas {
+                width: auto !important;
+                height: auto !important;
                 max-width: 100% !important;
                 max-height: 100% !important;
             }
