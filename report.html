@@ -433,8 +433,9 @@
             margin: 0;
             padding: 8px 10px;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e3e8ef;
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
             overflow-x: auto;
         }
 
@@ -682,11 +683,70 @@
                 page-break-inside: avoid;
             }
 
+            /* 打印保留圆角：圆角与边框做在表格本身，包裹层透明并恢复可见溢出，
+               避免 overflow 非 visible 导致表格无法分页而被整体推到下一页 */
             .summary-table-wrap,
             .chart-data-table {
                 overflow: visible !important;
-                border-radius: 0 !important;
                 box-shadow: none !important;
+                border: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+            }
+
+            .summary-table,
+            .chart-data-table table {
+                border-collapse: separate !important;
+                border-spacing: 0 !important;
+                border: 1px solid #d5dce6 !important;
+                border-radius: 8px !important;
+            }
+
+            /* 单元格只保留右、下边框，避免与表格外框重叠出双线 */
+            .summary-table th,
+            .summary-table td,
+            .chart-data-table th,
+            .chart-data-table td {
+                border-top: none !important;
+                border-left: none !important;
+                border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+            }
+
+            .summary-table tr>*:last-child,
+            .chart-data-table tr>*:last-child {
+                border-right: none !important;
+            }
+
+            .summary-table tbody tr:last-child>*,
+            .chart-data-table tbody tr:last-child>* {
+                border-bottom: none !important;
+            }
+
+            /* 四角单元格补圆角，防止表头深色底溢出圆角外框 */
+            .summary-table tr.st-header-row th:first-child,
+            .chart-data-table thead tr:first-child th:first-child {
+                border-top-left-radius: 8px !important;
+            }
+
+            .summary-table tr.st-header-row th:last-child,
+            .chart-data-table thead tr:first-child th:last-child {
+                border-top-right-radius: 8px !important;
+            }
+
+            .chart-data-table tbody tr:last-child>*:first-child {
+                border-bottom-left-radius: 8px !important;
+            }
+
+            .summary-table tbody tr:last-child>*:last-child,
+            .chart-data-table tbody tr:last-child>*:last-child {
+                border-bottom-right-radius: 8px !important;
+            }
+
+            /* st-col 跨行单元格同时覆盖左上和左下角，且底边不再画线 */
+            .summary-table th.st-col {
+                border-bottom-left-radius: 8px !important;
+                border-bottom: none !important;
             }
 
             /* 图表数据表列多，打印时压缩字号并允许换行，避免超出纸张被截断 */
