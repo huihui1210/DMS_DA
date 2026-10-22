@@ -577,12 +577,139 @@
                 padding: 10mm 0 5mm !important;
             }
 
-            /* 每个 section 顶部内边距作为新页顶部页边距；break-inside 避免跨页截断 */
+            /* section 允许跨页：避免长章节整体被推到下一页导致首页空白 */
             .report-section {
                 margin: 0 !important;
-                padding: 10mm 0 0 !important;
+                padding: 5mm 0 0 !important;
+                break-inside: auto;
+                page-break-inside: auto;
+            }
+
+            /* 打印时整体收紧字号与间距，提升每页信息密度 */
+            .report-section h2 {
+                font-size: 16px !important;
+                margin-bottom: 8px !important;
+                padding: 6px 12px !important;
+            }
+
+            .report-section p {
+                font-size: 12px !important;
+                line-height: 1.6 !important;
+                margin-bottom: 8px !important;
+            }
+
+            .profession-section {
+                padding: 10px 14px !important;
+            }
+
+            .profession-item {
+                padding: 5px 12px !important;
+            }
+
+            .lb-table th,
+            .lb-table td {
+                padding: 5px 8px !important;
+            }
+
+            /* 标题不与正文分离 */
+            .report-section h2,
+            .chart-block-title {
+                break-after: avoid;
+                page-break-after: avoid;
                 break-inside: avoid;
                 page-break-inside: avoid;
+            }
+
+            /* 图表区块作为整体，避免图表与数据表被拆开 */
+            .chart-section {
+                break-inside: avoid;
+                page-break-inside: avoid;
+                box-shadow: none !important;
+                border: 1px solid #e8ebef;
+                padding: 6px 10px !important;
+                margin-bottom: 8px !important;
+            }
+
+            /* 打印时压缩图表高度，让每页容纳更多内容，减少大面积留白 */
+            .chart-container {
+                height: 200px !important;
+                min-height: 0 !important;
+                margin-bottom: 6px !important;
+            }
+
+            .chart-summary {
+                font-size: 12px !important;
+                line-height: 1.6 !important;
+                margin-bottom: 6px !important;
+                padding: 5px 10px !important;
+            }
+
+            /* 表格：表头跨页重复，行内不拆分，避免边框断裂 */
+            .summary-table thead,
+            .chart-data-table thead,
+            .lb-table thead,
+            .focus-table thead {
+                display: table-header-group;
+            }
+
+            .summary-table tr,
+            .chart-data-table tr,
+            .lb-table tr,
+            .focus-table tr {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .summary-table-wrap,
+            .chart-data-table {
+                overflow: visible !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+            }
+
+            /* 图表数据表列多，打印时压缩字号并允许换行，避免超出纸张被截断 */
+            .chart-data-table table {
+                font-size: 9px !important;
+            }
+
+            .chart-data-table th,
+            .chart-data-table td {
+                white-space: normal !important;
+                word-break: break-all;
+                padding: 3px 2px !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
+            }
+
+            /* 重点关注缺陷表：去掉圆角容器，改为单元格完整边框，跨页时不断线 */
+            .focus-table-wrap {
+                border: none !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+            }
+
+            .focus-table {
+                border-collapse: collapse !important;
+                font-size: 10px !important;
+            }
+
+            .focus-table th,
+            .focus-table td,
+            .focus-table th:nth-child(1),
+            .focus-table td:nth-child(1),
+            .focus-table td:nth-child(3),
+            .focus-table td:nth-child(4),
+            .focus-table td:nth-child(5) {
+                border: 1px solid #cfcfcf !important;
+                padding: 4px 5px !important;
+                white-space: normal !important;
+                word-break: break-all;
+                line-height: 1.5 !important;
+            }
+
+            .focus-table thead .focus-group-title {
+                background: #eef3f8 !important;
             }
 
             .report-section:last-of-type {
@@ -601,7 +728,31 @@
                 page-break-inside: avoid;
             }
 
+            /* 年度累计统计：打印改为单行四卡，节省高度，避免单独占一页 */
             .stats-grid {
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 8px !important;
+                margin-top: 8px !important;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .stat-card {
+                padding: 10px 8px !important;
+            }
+
+            .stat-label {
+                font-size: 12px !important;
+                margin-bottom: 4px !important;
+            }
+
+            .stat-value {
+                font-size: 20px !important;
+            }
+
+            /* 重点关注缺陷分组表整体尽量不被拆开，避免表头悬挂在页底 */
+            .focus-table-wrap {
+                break-inside: avoid;
                 page-break-inside: avoid;
             }
 
@@ -786,6 +937,18 @@
         function printReport() {
             window.print();
         }
+
+        // 打印时压缩图表高度，减少分页留白；打印结束后恢复屏幕高度
+        function resizeChartsForPrint(height) {
+            document.querySelectorAll('.chart-container').forEach(el => {
+                el.style.height = height;
+                const inst = echarts.getInstanceByDom(el);
+                if (inst) inst.resize();
+            });
+        }
+
+        window.addEventListener('beforeprint', () => resizeChartsForPrint('200px'));
+        window.addEventListener('afterprint', () => resizeChartsForPrint(''));
 
         // ======= 通用工具函数（与 index.html 对齐）=======
         function isEmpty(value) {
