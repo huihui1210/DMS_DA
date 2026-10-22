@@ -164,7 +164,7 @@
         }
 
         .lb-table th {
-            background-color: #ffffff;
+            background-color: #f5f7fa;
             color: #2c3e50;
             font-weight: 600;
         }
@@ -791,16 +791,19 @@
                 text-overflow: clip !important;
             }
 
-            /* 重点关注缺陷表：去掉圆角容器，改为单元格完整边框，跨页时不断线 */
+            /* 重点关注缺陷表：打印保留圆角，圆角做在表格本身（separate 模式），
+               包裹层透明且恢复可见溢出，保证长表可跨页分片 */
             .focus-table-wrap {
                 border: none !important;
                 border-radius: 0 !important;
                 box-shadow: none !important;
                 overflow: visible !important;
+                background: transparent !important;
             }
 
             .focus-table {
-                border-collapse: collapse !important;
+                border: 1px solid #d5dce6 !important;
+                border-radius: 6px !important;
                 font-size: 10px !important;
             }
 
@@ -811,11 +814,39 @@
             .focus-table td:nth-child(3),
             .focus-table td:nth-child(4),
             .focus-table td:nth-child(5) {
-                border: 1px solid #cfcfcf !important;
+                border-top: none !important;
+                border-left: none !important;
+                border-right: 1px solid #d5dce6 !important;
+                border-bottom: 1px solid #d5dce6 !important;
                 padding: 4px 5px !important;
                 white-space: normal !important;
                 word-break: break-all;
                 line-height: 1.5 !important;
+            }
+
+            .focus-table tr th:last-child,
+            .focus-table tr td:last-child {
+                border-right: none !important;
+            }
+
+            .focus-table tbody tr:last-child td {
+                border-bottom: none !important;
+            }
+
+            .focus-table thead tr:first-child th:first-child {
+                border-top-left-radius: 6px !important;
+            }
+
+            .focus-table thead tr:first-child th:last-child {
+                border-top-right-radius: 6px !important;
+            }
+
+            .focus-table tbody tr:last-child td:first-child {
+                border-bottom-left-radius: 6px !important;
+            }
+
+            .focus-table tbody tr:last-child td:last-child {
+                border-bottom-right-radius: 6px !important;
             }
 
             .focus-table thead .focus-group-title {
