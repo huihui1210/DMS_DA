@@ -961,11 +961,15 @@
         // 打印时压缩图表高度，减少分页留白；打印结束后恢复屏幕高度
         // 注意：必须同时清掉屏幕样式的 min-height:260px，否则 resize 读到的容器高度仍是260
         // 同时压缩图表内部布局（标题字号、饼图半径/中心、图例间距），避免标题与图形/标签重叠
+        // 宽度直接设为打印实际宽度（A4：210mm-容器左右24mm-chart-section内边距/边框≈681px），
+        // 让 ECharts 按打印尺寸重绘，保证图表与下方表格同宽，不靠 CSS 缩放避免图小表大
+        const PRINT_CHART_WIDTH = '681px';
         function resizeChartsForPrint(height) {
             const printMode = !!height;
             document.querySelectorAll('.chart-container').forEach(el => {
                 el.style.minHeight = height ? '0' : '';
                 el.style.height = height;
+                el.style.width = height ? PRINT_CHART_WIDTH : '';
                 const inst = echarts.getInstanceByDom(el);
                 if (!inst) return;
                 const type = inst.getOption() && inst.getOption().series && inst.getOption().series[0] ? inst.getOption().series[0].type : '';
