@@ -607,11 +607,11 @@
                 padding: 5px 12px !important;
             }
 
-            /* 打印时龙虎榜强制完整网格边框，覆盖屏幕端去右边框/底边框的规则 */
+            /* 打印时龙虎榜强制完整网格边框（浅灰，与其他表格一致），覆盖屏幕端去右边框/底边框的规则 */
             .lb-table th,
             .lb-table td {
                 padding: 5px 8px !important;
-                border: 1px solid #999 !important;
+                border: 1px solid #cfcfcf !important;
             }
 
             /* 标题不与正文分离 */
@@ -775,10 +775,11 @@
                 page-break-inside: avoid;
             }
 
-            /* 重点关注缺陷清单可能较长：允许跨页，但单行不拆分 */
+            /* 重点关注缺陷整块尽量放一起：当前页剩余空间放得下就留，放不下整体移到下一页；
+               内容超过一页时浏览器会自动忽略 avoid 正常拆分，单行仍不拆分 */
             .focus-report-section {
-                break-inside: auto !important;
-                page-break-inside: auto !important;
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
             }
 
             .focus-table tr {
