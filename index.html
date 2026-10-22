@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG接收站设备缺陷管理系统 v4.6</title>
+    <title>福建LNG接收站设备缺陷管理系统 v4.7</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -873,7 +873,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v4.6</span></h1>
+            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v4.7</span></h1>
             <div class="btn-group">
                 <label for="fileInput" class="btn btn-upload">
                     <span id="uploadText">选择文件</span>
@@ -2393,18 +2393,30 @@
             // 合并表头配置（字段组 -> 组名）
             const mergeGroups = [
                 { groupName: '制约因素', fields: ['方案', '备件', '条件', '人员', '窗口'] },
-                { groupName: '消项确认记录', fields: ['消缺人', '班长', '消项时间'] }
+                { groupName: '消项确认记录', fields: ['消缺人', '班长', '消项时间', '成因分析', '备注'] }
             ];
             // 需要加宽的列（保证字在一行）
             const wideCols = ['分类定级', '党员责任人'];
             // 需要缩窄的列
-            const narrowCols = ['备注', '是否消缺', '是否逾期'];
+            const narrowCols = ['备注', '是否消缺', '是否逾期', '是否督办'];
             // 制约因素组子列统一宽度
             const groupCols = ['方案', '备件', '条件', '人员', '窗口'];
 
             // 获取所有列（排除status内部字段，删除状态字段），保留原始顺序
             const allColumns = Object.keys(processedData[0]).filter(col => col !== 'status');
             const exportColumns = allColumns; // 不再追加"状态"列
+
+            // 成因分析、备注并入消项确认记录组：移动到消项时间之后，保证合并区域连续
+            const movingCols = [];
+            ['成因分析', '备注'].forEach(name => {
+                const i = exportColumns.findIndex(c => cleanString(c).toLowerCase() === cleanString(name).toLowerCase());
+                if (i >= 0) movingCols.push(exportColumns[i]);
+            });
+            if (movingCols.length > 0 && exportColumns.some(c => cleanString(c).toLowerCase() === '消项时间')) {
+                movingCols.forEach(col => exportColumns.splice(exportColumns.indexOf(col), 1));
+                const anchorIdx = exportColumns.findIndex(c => cleanString(c).toLowerCase() === '消项时间');
+                exportColumns.splice(anchorIdx + 1, 0, ...movingCols);
+            }
 
             // 构建合并组信息：每个组记录 start/end 列索引
             const groupInfos = mergeGroups.map(g => {
