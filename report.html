@@ -431,27 +431,55 @@
         /* ======= 汇总表样式（与 index.html 一致） ======= */
         .summary-table-wrap {
             margin: 0;
-            padding: 8px 10px;
-            background: white;
-            border: 1px solid #e3e8ef;
-            border-radius: 10px;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
             overflow-x: auto;
         }
 
+        /* 圆角直接做在表格本身：separate + 表格外框圆角 + 四角单元格补圆角 */
         .summary-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
+            border: 1px solid #e3e8ef;
+            border-radius: 10px;
             font-size: 10px;
             table-layout: fixed;
         }
 
         .summary-table th,
         .summary-table td {
-            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-top: none;
+            border-left: none;
+            border-right: 1px solid rgba(0, 0, 0, 0.08);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
             padding: 3px 2px;
             text-align: center;
             white-space: nowrap;
+        }
+
+        .summary-table tr>*:last-child {
+            border-right: none;
+        }
+
+        .summary-table tbody tr:last-child>* {
+            border-bottom: none;
+        }
+
+        .summary-table tr.st-header-row th:first-child {
+            border-top-left-radius: 10px;
+        }
+
+        .summary-table tr.st-header-row th:last-child {
+            border-top-right-radius: 10px;
+        }
+
+        .summary-table tbody tr:last-child>*:last-child {
+            border-bottom-right-radius: 10px;
+        }
+
+        /* st-col 跨行单元格同时覆盖左上和左下角，且底边不再画线 */
+        .summary-table th.st-col {
+            border-bottom-left-radius: 10px;
+            border-bottom: none;
         }
 
         .summary-table tr.st-header-row th {
@@ -699,7 +727,7 @@
                 border-collapse: separate !important;
                 border-spacing: 0 !important;
                 border: 1px solid #d5dce6 !important;
-                border-radius: 8px !important;
+                border-radius: 10px !important;
             }
 
             /* 单元格只保留右、下边框，避免与表格外框重叠出双线 */
@@ -726,26 +754,26 @@
             /* 四角单元格补圆角，防止表头深色底溢出圆角外框 */
             .summary-table tr.st-header-row th:first-child,
             .chart-data-table thead tr:first-child th:first-child {
-                border-top-left-radius: 8px !important;
+                border-top-left-radius: 10px !important;
             }
 
             .summary-table tr.st-header-row th:last-child,
             .chart-data-table thead tr:first-child th:last-child {
-                border-top-right-radius: 8px !important;
+                border-top-right-radius: 10px !important;
             }
 
             .chart-data-table tbody tr:last-child>*:first-child {
-                border-bottom-left-radius: 8px !important;
+                border-bottom-left-radius: 10px !important;
             }
 
             .summary-table tbody tr:last-child>*:last-child,
             .chart-data-table tbody tr:last-child>*:last-child {
-                border-bottom-right-radius: 8px !important;
+                border-bottom-right-radius: 10px !important;
             }
 
             /* st-col 跨行单元格同时覆盖左上和左下角，且底边不再画线 */
             .summary-table th.st-col {
-                border-bottom-left-radius: 8px !important;
+                border-bottom-left-radius: 10px !important;
                 border-bottom: none !important;
             }
 

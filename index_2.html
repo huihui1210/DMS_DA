@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG分输站设备缺陷管理系统 v4.4</title>
+    <title>福建LNG分输站设备缺陷管理系统 v4.5</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -364,29 +364,57 @@
         /* ======= 汇总表样式 ======= */
         .summary-table-wrap {
             margin: 0 0 16px 0;
-            padding: 14px 16px;
-            background: white;
-            border: 1px solid var(--color-border);
-            border-radius: 10px;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
             overflow-x: auto;
         }
 
+        /* 圆角直接做在表格本身：separate + 表格外框圆角 + 四角单元格补圆角 */
         .summary-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
             font-size: 11px;
             table-layout: fixed;
         }
 
         .summary-table th,
         .summary-table td {
-            border: 1px solid #d0d7de;
+            border-top: none;
+            border-left: none;
+            border-right: 1px solid #d0d7de;
+            border-bottom: 1px solid #d0d7de;
             padding: 5px 6px;
             text-align: center;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        .summary-table tr>*:last-child {
+            border-right: none;
+        }
+
+        .summary-table tbody tr:last-child>* {
+            border-bottom: none;
+        }
+
+        .summary-table tr.st-header-row th:first-child {
+            border-top-left-radius: 10px;
+        }
+
+        .summary-table tr.st-header-row th:last-child {
+            border-top-right-radius: 10px;
+        }
+
+        .summary-table tbody tr:last-child>*:last-child {
+            border-bottom-right-radius: 10px;
+        }
+
+        /* st-col 跨行单元格同时覆盖左上和左下角，且底边不再画线 */
+        .summary-table th.st-col {
+            border-bottom-left-radius: 10px;
+            border-bottom: none;
         }
 
         .summary-table tr.st-header-row th {
@@ -845,7 +873,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG分输站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v4.4</span></h1>
+            <h1>福建LNG分输站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v4.5</span></h1>
             <div class="btn-group">
                 <label for="fileInput" class="btn btn-upload">
                     <span id="uploadText">选择文件</span>
