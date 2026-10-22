@@ -1695,13 +1695,13 @@
             const monthlyStats = calculateMonthlyStats(processedData, yearMonths, true);
 
             // === 本月（基准月）数据 ===
-            const currentCompleted = monthlyStats[currentMonthKey].completed;
             const currentRemaining = monthlyStats[currentMonthKey].pending;
             const lastMonthRemaining = monthlyStats[lastMonthKey] ? monthlyStats[lastMonthKey].pending : 0;
 
             // === 环比（剩余缺陷环比，与"剩余"口径一致）===
-            let changeRate = 0;
-            if (lastMonthRemaining > 0) {
+            // 本月模式数据不完整（仅截至当日），不显示环比；仅上月模式（完整月）才计算
+            let changeRate = null;
+            if (!isThisMonth && lastMonthRemaining > 0) {
                 changeRate = ((currentRemaining - lastMonthRemaining) / lastMonthRemaining * 100).toFixed(1);
             }
 
@@ -1710,11 +1710,10 @@
             const yearNewTotal = ytdMonths.reduce((sum, m) => sum + monthlyStats[m].new, 0);
             const yearCompletedTotal = ytdMonths.reduce((sum, m) => sum + monthlyStats[m].completed, 0);
 
-            // === 消缺完成率 = 本月消缺 / (本月消缺 + 本月剩余) ===
+            // === 消缺完成率 = 今年累计消缺 / 今年累计新增 ===
             let completionRate = '无数据';
-            const totalDefects = currentCompleted + currentRemaining;
-            if (totalDefects > 0) {
-                completionRate = `${(currentCompleted / totalDefects * 100).toFixed(1)}%`;
+            if (yearNewTotal > 0) {
+                completionRate = `${(yearCompletedTotal / yearNewTotal * 100).toFixed(1)}%`;
             }
 
             // === I 类剩余 + 本月消缺（饼图/汇总表/分专业卡片共用，按 baseDate 所在月统计）===
@@ -1740,13 +1739,18 @@
             const topPending = Object.entries(pendingByProfession).sort((a, b) => b[1] - a[1]).slice(0, 3).map(item => item[0]);
 
             // === 文本 ===
-            const changeText = changeRate >= 0 ? `上升${Math.abs(changeRate)}%` : `下降${Math.abs(changeRate)}%`;
-            const summaryText = `截至${currentMonth}月${asOfDay}日，${stationName}Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${changeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；${currentMonth}月消缺前三专业为${topCompletedNames}；${currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
+            let summaryText;
+            if (changeRate !== null) {
+                const changeText = changeRate >= 0 ? `上升${Math.abs(changeRate)}%` : `下降${Math.abs(changeRate)}%`;
+                summaryText = `截至${currentMonth}月${asOfDay}日，${stationName}Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${changeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；${currentMonth}月消缺前三专业为${topCompletedNames}；${currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
+            } else {
+                summaryText = `截至${currentMonth}月${asOfDay}日，${stationName}Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项（本月数据截至今日，环比待完整月数据）；${currentMonth}月消缺前三专业为${topCompletedNames}；${currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
+            }
 
             document.getElementById('summaryText').innerHTML = summaryText;
             document.getElementById('statYearNew').textContent = yearNewTotal;
             document.getElementById('statYearCompleted').textContent = yearCompletedTotal;
-            document.getElementById('statChangeRate').textContent = lastMonthRemaining > 0 ? `${changeRate >= 0 ? '+' : ''}${changeRate}%` : '无数据';
+            document.getElementById('statChangeRate').textContent = changeRate !== null ? `${changeRate >= 0 ? '+' : ''}${changeRate}%` : '—';
             document.getElementById('statCompletionRate').textContent = completionRate;
 
             // 专业排名段落（用具体月份，避免"本月/上月"歧义）
