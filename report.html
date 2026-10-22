@@ -1038,7 +1038,7 @@
             </div>
 
             <div class="report-section">
-                <h2>四、年度累计统计</h2>
+                <h2>四、年度累计及环比变化</h2>
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-label" id="labelYearNew"></div>
@@ -1695,7 +1695,6 @@
             const monthlyStats = calculateMonthlyStats(processedData, yearMonths, true);
 
             // === 本月（基准月）数据 ===
-            const currentNew = monthlyStats[currentMonthKey].new;
             const currentCompleted = monthlyStats[currentMonthKey].completed;
             const currentRemaining = monthlyStats[currentMonthKey].pending;
             const lastMonthRemaining = monthlyStats[lastMonthKey] ? monthlyStats[lastMonthKey].pending : 0;
@@ -1706,15 +1705,16 @@
                 changeRate = ((currentRemaining - lastMonthRemaining) / lastMonthRemaining * 100).toFixed(1);
             }
 
-            // === 年度累计 ===
-            const yearNewTotal = yearMonths.reduce((sum, m) => sum + monthlyStats[m].new, 0);
-            const yearCompletedTotal = yearMonths.reduce((sum, m) => sum + monthlyStats[m].completed, 0);
+            // === 年度累计（仅当年1月~基准月，非滚动12个月；柱状图仍用 yearMonths 滚动12个月）===
+            const ytdMonths = yearMonths.filter(m => m.startsWith(`${currentYear}-`));
+            const yearNewTotal = ytdMonths.reduce((sum, m) => sum + monthlyStats[m].new, 0);
+            const yearCompletedTotal = ytdMonths.reduce((sum, m) => sum + monthlyStats[m].completed, 0);
 
-            // === 消缺完成率 = 本月消缺 / (本月消缺 + 本月新增) ===
+            // === 消缺完成率 = 本月消缺 / (本月消缺 + 本月剩余) ===
             let completionRate = '无数据';
-            const totalProcessed = currentCompleted + currentNew;
-            if (totalProcessed > 0) {
-                completionRate = `${(currentCompleted / totalProcessed * 100).toFixed(1)}%`;
+            const totalDefects = currentCompleted + currentRemaining;
+            if (totalDefects > 0) {
+                completionRate = `${(currentCompleted / totalDefects * 100).toFixed(1)}%`;
             }
 
             // === I 类剩余 + 本月消缺（饼图/汇总表/分专业卡片共用，按 baseDate 所在月统计）===
