@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 v5.2</title>
+    <title>福建LNG设备缺陷管理系统 v5.3</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -871,7 +871,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v5.2</span></h1>
+            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v5.3</span></h1>
             <div class="btn-group">
                 <label for="fileInput" class="btn btn-upload">
                     <span id="uploadText">选择文件</span>
@@ -883,6 +883,7 @@
                 <button class="btn btn-reset" onclick="resetData()">重置</button>
                 <button class="btn btn-chart" onclick="generateReport()">生成报告</button>
                 <button class="btn btn-export" onclick="exportBeautifiedExcel()">导出美化Excel</button>
+                <span id="lastSyncTime" style="display:none; margin-left:auto; font-size:12px; color:#8f959e; align-self:center;"></span>
             </div>
         </div>
 
@@ -2324,6 +2325,7 @@
         function resetData() {
             localStorage.removeItem(STORAGE_KEY);
             localStorage.removeItem('defectData_all');
+            localStorage.removeItem('defectData_all_ver');
             rawData = [];
             processedData = [];
             currentPage = 1;
@@ -2632,41 +2634,42 @@
             importRowsFromHash();
         });
 
-        // ======= 自动同步：轮询 defectData_all 变化 =======
-        // 接收站/分输站自动同步插件会实时写入 defectData_all，总界面无需手动刷新即可感知
+        // ======= 自动同步：监听 defectData_all_ver 版本号 =======
+        // 接收站/分输站每次同步都会更新 defectData_all_ver 时间戳，总界面据此刷新
         (function () {
-            const POLL_INTERVAL_MS = 8000;
-            const KEY = 'defectData_all';
-            let lastHash = '';
+            const POLL_INTERVAL_MS = 5000;
+            const VER_KEY = 'defectData_all_ver';
+            let lastVer = localStorage.getItem(VER_KEY) || '';
 
-            // 页面首次加载时记录当前 hash，避免启动时立即误触发
-            try {
-                const initial = localStorage.getItem(KEY);
-                if (initial) lastHash = String(initial.length) + '_' + initial.slice(0, 80);
-            } catch (e) { }
+            function onDataChanged() {
+                try {
+                    if (typeof loadFromLocalStorage === 'function') {
+                        loadFromLocalStorage();
+                    }
+                    const el = document.getElementById('lastSyncTime');
+                    if (el) {
+                        el.textContent = '数据同步于 ' + new Date().toLocaleTimeString('zh-CN');
+                        el.style.display = '';
+                    }
+                } catch (e) { }
+            }
 
+            // 轮询兜底（后台标签页定时器可能被浏览器降频，主要靠 storage 事件）
             setInterval(function () {
                 try {
-                    const raw = localStorage.getItem(KEY);
-                    if (!raw) return;
-                    const currentHash = String(raw.length) + '_' + raw.slice(0, 80);
-                    if (currentHash !== lastHash && typeof processData === 'function') {
-                        lastHash = currentHash;
-                        // 重新从 localStorage 加载并刷新
-                        if (typeof loadFromLocalStorage === 'function') {
-                            loadFromLocalStorage();
-                        }
+                    const ver = localStorage.getItem(VER_KEY) || '';
+                    if (ver && ver !== lastVer) {
+                        lastVer = ver;
+                        onDataChanged();
                     }
                 } catch (e) { }
             }, POLL_INTERVAL_MS);
 
-            // 跨标签页 storage 事件（同浏览器其他 tab 修改 localStorage 时触发）
+            // 跨标签页 storage 事件：分界面写入时立即触发，不受节流影响
             window.addEventListener('storage', function (e) {
-                if (e.key === KEY && typeof processData === 'function') {
-                    try {
-                        lastHash = (e.newValue || '').length + '_' + (e.newValue || '').slice(0, 80);
-                    } catch (err) { }
-                    if (typeof loadFromLocalStorage === 'function') loadFromLocalStorage();
+                if (e.key === VER_KEY && e.newValue && e.newValue !== lastVer) {
+                    lastVer = e.newValue;
+                    onDataChanged();
                 }
             });
         })();
