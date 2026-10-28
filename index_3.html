@@ -1,0 +1,2245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>福建LNG设备缺陷管理系统 v5.6 · 整体看板</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #050c18;
+            --panel: rgba(6, 26, 44, 0.72);
+            --line: rgba(34, 211, 238, 0.16);
+            --cyan: #22d3ee;
+            --cyan-dim: #0e7490;
+            --amber: #f5b942;
+            --red: #ff5d5d;
+            --green: #34d399;
+            --purple: #a78bfa;
+            --text: #d8f2ff;
+            --muted: #7fa6bf;
+            --num-font: 'Bahnschrift', 'DIN Alternate', 'Microsoft YaHei', sans-serif;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #03080f;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+        }
+
+        #stage {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 1920px;
+            height: 1080px;
+            transform: translate(-50%, -50%);
+            transform-origin: center center;
+            display: flex;
+            flex-direction: column;
+            padding: 12px 18px 18px;
+            overflow: hidden;
+            background:
+                radial-gradient(1300px 620px at 50% -8%, rgba(34, 211, 238, 0.12), transparent 62%),
+                radial-gradient(900px 520px at 4% 104%, rgba(34, 211, 238, 0.06), transparent 70%),
+                radial-gradient(900px 520px at 96% 104%, rgba(245, 185, 66, 0.04), transparent 70%),
+                #050c18;
+        }
+
+        #stage::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(34, 211, 238, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34, 211, 238, 0.035) 1px, transparent 1px);
+            background-size: 56px 56px;
+            -webkit-mask-image: radial-gradient(circle at 50% 45%, #000 30%, transparent 86%);
+            mask-image: radial-gradient(circle at 50% 45%, #000 30%, transparent 86%);
+            pointer-events: none;
+        }
+
+        /* ================= Header ================= */
+        .top {
+            position: relative;
+            z-index: 3;
+            flex: 0 0 58px;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .top::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.55), transparent);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .brand-bar {
+            width: 4px;
+            height: 26px;
+            flex-shrink: 0;
+            background: linear-gradient(180deg, #5ee7fb, #0e7490);
+            box-shadow: 0 0 12px rgba(34, 211, 238, 0.8);
+        }
+
+        .brand h1 {
+            font-size: 25px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            white-space: nowrap;
+            background: linear-gradient(180deg, #eafcff, #6fdcf6 68%, #22d3ee);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .brand .ver {
+            font-size: 12px;
+            color: #5ee7fb;
+            border: 1px solid rgba(34, 211, 238, 0.35);
+            border-radius: 3px;
+            padding: 1px 6px;
+            letter-spacing: 1px;
+            flex-shrink: 0;
+        }
+
+        .brand .sync {
+            font-size: 11px;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .seg {
+            display: flex;
+            gap: 4px;
+            padding: 4px;
+            background: rgba(10, 32, 54, 0.72);
+            border: 1px solid var(--line);
+            border-radius: 5px;
+        }
+
+        .seg-btn {
+            min-width: 88px;
+            padding: 7px 16px;
+            font-family: inherit;
+            font-size: 14px;
+            letter-spacing: 1px;
+            color: #8fb6cf;
+            background: transparent;
+            border: 0;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .seg-btn:hover {
+            color: #eafcff;
+            background: rgba(34, 211, 238, 0.08);
+        }
+
+        .seg-btn.active {
+            color: #04121c;
+            font-weight: 700;
+            background: linear-gradient(180deg, #5ee7fb, #22d3ee);
+            box-shadow: 0 0 16px rgba(34, 211, 238, 0.45);
+        }
+
+        .top-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        .clock {
+            text-align: right;
+            line-height: 1.15;
+        }
+
+        .clock b {
+            display: block;
+            font-family: var(--num-font);
+            font-size: 23px;
+            letter-spacing: 2px;
+            color: #eafcff;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .clock span {
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 1px;
+        }
+
+        .sys-link {
+            font-size: 12px;
+            color: #9fd6ea;
+            text-decoration: none;
+            border: 1px solid rgba(34, 211, 238, 0.28);
+            border-radius: 3px;
+            padding: 6px 10px;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .sys-link:hover {
+            color: #04121c;
+            background: #22d3ee;
+            border-color: #22d3ee;
+        }
+
+        /* ================= Layout ================= */
+        .layout {
+            position: relative;
+            z-index: 2;
+            flex: 1;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: 424px minmax(0, 1fr) 424px;
+            gap: 12px;
+            padding-top: 12px;
+        }
+
+        .col {
+            display: grid;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        .col-left {
+            grid-template-rows: 250px 380px minmax(0, 1fr);
+        }
+
+        .col-center {
+            grid-template-rows: 44px 452px minmax(0, 1fr);
+        }
+
+        .col-right {
+            grid-template-rows: 330px 316px minmax(0, 1fr);
+        }
+
+        /* ================= Panel ================= */
+        .panel {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            padding: 0 12px 10px;
+            border: 1px solid var(--line);
+            border-radius: 3px;
+            background: linear-gradient(180deg, rgba(8, 30, 50, 0.78), rgba(5, 18, 32, 0.72));
+            box-shadow: inset 0 0 44px rgba(34, 211, 238, 0.04);
+        }
+
+        .panel::before,
+        .panel::after {
+            content: '';
+            position: absolute;
+            width: 13px;
+            height: 13px;
+            border-color: var(--cyan);
+            opacity: 0.8;
+            pointer-events: none;
+        }
+
+        .panel::before {
+            left: -1px;
+            top: -1px;
+            border-left: 2px solid;
+            border-top: 2px solid;
+        }
+
+        .panel::after {
+            right: -1px;
+            bottom: -1px;
+            border-right: 2px solid;
+            border-bottom: 2px solid;
+        }
+
+        .panel-head {
+            flex: 0 0 38px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .panel-head .bar {
+            width: 3px;
+            height: 14px;
+            flex-shrink: 0;
+            background: var(--cyan);
+            box-shadow: 0 0 8px var(--cyan);
+        }
+
+        .panel-head h2 {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: #dff6ff;
+            white-space: nowrap;
+        }
+
+        .panel-head .hint {
+            margin-left: auto;
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        .panel-body {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+        }
+
+        /* ================= KPI ================= */
+        .kpi-grid {
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .kpi {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            overflow: hidden;
+            border: 1px solid rgba(34, 211, 238, 0.1);
+            border-radius: 3px;
+            background: rgba(34, 211, 238, 0.045);
+        }
+
+        .kpi::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, currentColor, transparent);
+            opacity: 0.7;
+        }
+
+        .kpi .val {
+            font-family: var(--num-font);
+            font-size: 30px;
+            font-weight: 700;
+            line-height: 1;
+            color: currentColor;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .kpi .val.small {
+            font-size: 25px;
+        }
+
+        .kpi .lbl {
+            font-size: 12px;
+            color: #8fb6cf;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+
+        .kpi.cyan {
+            color: var(--cyan);
+        }
+
+        .kpi.amber {
+            color: var(--amber);
+        }
+
+        .kpi.red {
+            color: var(--red);
+        }
+
+        .kpi.green {
+            color: var(--green);
+        }
+
+        .kpi.purple {
+            color: var(--purple);
+        }
+
+        /* ================= Center ================= */
+        .alert-bar {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 14px 0 16px;
+            overflow: hidden;
+            border: 1px solid rgba(245, 185, 66, 0.22);
+            border-radius: 3px;
+            background: linear-gradient(90deg, rgba(245, 185, 66, 0.12), rgba(245, 185, 66, 0.02));
+        }
+
+        .alert-bar::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--amber);
+            box-shadow: 0 0 10px var(--amber);
+        }
+
+        .alert-tag {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 12px;
+            letter-spacing: 2px;
+            color: var(--amber);
+            flex-shrink: 0;
+        }
+
+        .alert-tag i {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--amber);
+            box-shadow: 0 0 10px var(--amber);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .alert-text {
+            flex: 1;
+            min-width: 0;
+            font-size: 12.5px;
+            color: #cfe6f2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .alert-text.swap {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        .alert-count {
+            flex-shrink: 0;
+            font-family: var(--num-font);
+            font-size: 12px;
+            color: var(--amber);
+            letter-spacing: 1px;
+        }
+
+        .map-panel {
+            padding-bottom: 10px;
+        }
+
+        .map-grid {
+            height: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        body[data-view="recv"] .map-grid,
+        body[data-view="fen"] .map-grid {
+            grid-template-columns: 1fr;
+        }
+
+        body[data-view="recv"] .map-box[data-station="fen"],
+        body[data-view="fen"] .map-box[data-station="recv"] {
+            display: none;
+        }
+
+        .map-box {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(34, 211, 238, 0.12);
+            border-radius: 3px;
+            background: #03101c;
+        }
+
+        .map-canvas {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+            background-size: 38px 38px;
+        }
+
+        .map-canvas::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 54%, rgba(34, 211, 238, 0.13), transparent 58%);
+        }
+
+        .map-canvas svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-top {
+            position: absolute;
+            z-index: 5;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 0 10px;
+            background: linear-gradient(180deg, rgba(4, 18, 31, 0.92), transparent);
+        }
+
+        .map-name {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            letter-spacing: 2px;
+            color: #bfeaff;
+        }
+
+        .map-name i {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--cyan);
+            box-shadow: 0 0 8px var(--cyan);
+        }
+
+        .map-stats {
+            display: flex;
+            gap: 10px;
+            font-size: 11px;
+            color: #7fa6bf;
+            white-space: nowrap;
+        }
+
+        .map-stats b {
+            margin-left: 3px;
+            font-family: var(--num-font);
+            font-size: 13px;
+            color: #eafcff;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .map-foot {
+            position: absolute;
+            left: 10px;
+            bottom: 8px;
+            z-index: 4;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: #4f748c;
+        }
+
+        .map-empty {
+            position: absolute;
+            left: 50%;
+            top: 56%;
+            z-index: 2;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            line-height: 1.7;
+            letter-spacing: 1px;
+            color: #5f8aa5;
+            font-size: 12px;
+        }
+
+        .map-empty b {
+            display: block;
+            margin-bottom: 2px;
+            font-size: 13px;
+            letter-spacing: 3px;
+            color: #8fd8ee;
+        }
+
+        .ghost-dot {
+            position: absolute;
+            z-index: 2;
+            width: 6px;
+            height: 6px;
+            margin: -3px 0 0 -3px;
+            border-radius: 50%;
+            background: rgba(34, 211, 238, 0.65);
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.85);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        .marker {
+            position: absolute;
+            z-index: 3;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .marker i {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.75);
+            background: var(--cyan);
+            box-shadow: 0 0 12px var(--cyan);
+        }
+
+        .marker span {
+            padding: 1px 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            color: #cfeeff;
+            background: rgba(4, 20, 34, 0.82);
+            border: 1px solid rgba(34, 211, 238, 0.28);
+            border-radius: 2px;
+        }
+
+        .marker.alert i {
+            background: var(--red);
+            box-shadow: 0 0 12px var(--red);
+        }
+
+        .list-head,
+        .list-row {
+            display: grid;
+            grid-template-columns: 148px 92px minmax(0, 1fr) 148px 66px 76px 86px;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .list-head {
+            flex: 0 0 28px;
+            padding: 0 4px;
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: #6f96ae;
+            border-bottom: 1px solid rgba(34, 211, 238, 0.12);
+        }
+
+        .list-viewport {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            margin-top: 2px;
+        }
+
+        .scroll-track {
+            animation: scrollUp linear infinite;
+        }
+
+        .list-viewport:hover .scroll-track {
+            animation-play-state: paused;
+        }
+
+        .list-row {
+            height: 34px;
+            padding: 0 4px;
+            font-size: 12px;
+            color: #b9dcec;
+            border-bottom: 1px solid rgba(34, 211, 238, 0.06);
+        }
+
+        .list-row:nth-child(even) {
+            background: rgba(34, 211, 238, 0.025);
+        }
+
+        .c-id {
+            font-family: var(--num-font);
+            letter-spacing: 0.5px;
+            color: #9fd6ea;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .c-desc {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #8fb6cf;
+        }
+
+        .c-zone {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .c-date {
+            font-family: var(--num-font);
+            color: #7fa6bf;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 1px 6px;
+            font-size: 11px;
+            border-radius: 2px;
+        }
+
+        .badge.pending {
+            color: #ffb4b4;
+            background: rgba(255, 93, 93, 0.12);
+            border: 1px solid rgba(255, 93, 93, 0.3);
+        }
+
+        .badge.supervised {
+            color: var(--amber);
+            background: rgba(245, 185, 66, 0.12);
+            border: 1px solid rgba(245, 185, 66, 0.32);
+        }
+
+        .sp-list {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow: hidden;
+            padding-top: 2px;
+        }
+
+        .sp-item {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 44px;
+            padding: 4px 8px;
+            overflow: hidden;
+            border-left: 2px solid var(--amber);
+            border-radius: 2px;
+            background: rgba(245, 185, 66, 0.05);
+        }
+
+        .sp-item.red {
+            border-left-color: var(--red);
+            background: rgba(255, 93, 93, 0.05);
+        }
+
+        .sp-item.normal {
+            border-left-color: rgba(34, 211, 238, 0.55);
+            background: rgba(34, 211, 238, 0.04);
+        }
+
+        .sp-item.normal .sp-side b {
+            color: #7fd4e8;
+        }
+
+        .sp-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sp-id {
+            font-family: var(--num-font);
+            font-size: 11px;
+            color: #9fd6ea;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sp-desc {
+            margin-top: 1px;
+            font-size: 12px;
+            color: #c5e4f2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sp-side {
+            flex-shrink: 0;
+            text-align: right;
+            font-size: 10px;
+            color: #7fa6bf;
+            white-space: nowrap;
+        }
+
+        .sp-side b {
+            display: block;
+            font-size: 11px;
+            color: var(--amber);
+        }
+
+        .sp-item.red .sp-side b {
+            color: var(--red);
+        }
+
+        .sp-empty {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            letter-spacing: 2px;
+            color: #5f8aa5;
+        }
+
+        .empty-row {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            letter-spacing: 2px;
+            color: #5f8aa5;
+        }
+
+        /* ================= Animations & responsive ================= */
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.45;
+                transform: scale(0.82);
+            }
+        }
+
+        @keyframes scrollUp {
+            0% {
+                transform: translateY(0);
+            }
+            100% {
+                transform: translateY(-50%);
+            }
+        }
+
+        /* ================= 周期切换 ================= */
+        .period-tabs {
+            margin-left: auto;
+            display: flex;
+            gap: 4px;
+        }
+
+        .pbtn {
+            padding: 3px 9px;
+            font-family: inherit;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            color: #7fa6bf;
+            background: rgba(34, 211, 238, 0.05);
+            border: 1px solid rgba(34, 211, 238, 0.18);
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .pbtn:hover {
+            color: #eafcff;
+            border-color: rgba(34, 211, 238, 0.4);
+        }
+
+        .pbtn.active {
+            color: #04121c;
+            font-weight: 700;
+            background: var(--cyan);
+            border-color: var(--cyan);
+        }
+
+        /* ================= Empty state ================= */
+        #emptyState {
+            position: absolute;
+            inset: 70px 0 0 0;
+            z-index: 40;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-align: center;
+            background: rgba(3, 8, 15, 0.88);
+        }
+
+        #emptyState h3 {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            color: #bfeaff;
+        }
+
+        #emptyState p {
+            font-size: 13px;
+            line-height: 1.8;
+            letter-spacing: 1px;
+            color: var(--muted);
+        }
+
+        #emptyState.show {
+            display: flex;
+        }
+
+        @media (max-width: 1440px) {
+            #stage {
+                padding: 8px 10px 12px;
+            }
+            .brand h1 {
+                font-size: 21px;
+            }
+            .brand .sync {
+                max-width: 150px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .layout {
+                grid-template-columns: 380px minmax(0, 1fr) 380px;
+                gap: 8px;
+            }
+            .brand h1 {
+                font-size: 19px;
+                letter-spacing: 1px;
+            }
+            .clock b {
+                font-size: 20px;
+            }
+            .list-head,
+            .list-row {
+                grid-template-columns: 132px 84px minmax(0, 1fr) 128px 58px 68px 78px;
+            }
+        }
+    </style>
+</head>
+
+<body data-view="all">
+    <div id="stage">
+        <!-- ===== Header ===== -->
+        <div class="top">
+            <div class="brand">
+                <span class="brand-bar"></span>
+                <h1>福建LNG设备缺陷管理系统</h1>
+                <span class="ver">v5.6</span>
+                <span class="sync" id="syncText"></span>
+            </div>
+
+            <div class="seg" id="seg">
+                <button class="seg-btn active" data-view="all">看板总览</button>
+                <button class="seg-btn" data-view="recv">接收站</button>
+                <button class="seg-btn" data-view="fen">分输站</button>
+            </div>
+
+            <div class="top-right">
+                <a class="sys-link" href="index_1.html">福建LNG</a>
+                <div class="clock">
+                    <b id="clockTime">00:00:00</b>
+                    <span id="clockDate"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Layout ===== -->
+        <div class="layout">
+            <!-- 左列 -->
+            <div class="col col-left">
+                <div class="panel">
+                    <div class="panel-head">
+                        <span class="bar"></span>
+                        <h2>关键指标</h2>
+                        <span class="hint">当前视图</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="kpi-grid" id="kpiGrid"></div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-head">
+                        <span class="bar"></span>
+                        <h2>缺陷趋势</h2>
+                        <span class="hint">近12个月 · Ⅰ类</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="chart" id="chartTrend"></div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-head">
+                        <span class="bar"></span>
+                        <h2>专业分布</h2>
+                        <span class="hint">Ⅰ类 · 剩余</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="chart" id="chartProf"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中列 -->
+            <div class="col col-center">
+                <div class="alert-bar" id="alertBar">
+                    <span class="alert-tag"><i></i>督办预警</span>
+                    <span class="alert-text" id="alertText">加载中…</span>
+                    <span class="alert-count" id="alertCount"></span>
+                </div>
+
+                <div class="panel map-panel">
+                    <div class="panel-head">
+                        <span class="bar"></span>
+                        <h2 id="mapTitle">厂区分布</h2>
+                        <span class="hint" id="mapHint">俯视图待补充 · 占位示意</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="map-grid" id="mapGrid"></div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-head">
+                        <span class="bar"></span>
+                        <h2>缺陷滚动清单</h2>
+                        <span class="hint" id="listHint"></span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="list-head">
+                            <span>缺陷编号</span>
+                            <span>专业</span>
+                            <span>缺陷描述</span>
+                            <span>所属岗位/站点</span>
+                            <span>状态</span>
+                            <span>督办</span>
+                            <span>登记日期</span>
+                        </div>
+                        <div class="list-viewport" id="listViewport"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右列 -->
+            <div class="col col-right">
+                <div class="panel">
+                    <div class="panel-head">
+                        <span class="bar"></span>
+                        <h2>分类构成</h2>
+                        <span class="hint">剩余 · 全口径</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="chart" id="chartClass"></div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-head">
+                        <span class="bar"></span>
+                        <h2>消缺龙虎榜</h2>
+                        <div class="period-tabs" id="periodTabs">
+                            <button class="pbtn" data-period="yesterday">昨日</button>
+                            <button class="pbtn" data-period="week">本周</button>
+                            <button class="pbtn active" data-period="month">本月</button>
+                            <button class="pbtn" data-period="year">今年</button>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="chart" id="chartBoard"></div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-head">
+                        <span class="bar"></span>
+                        <h2>督办清单</h2>
+                        <span class="hint" id="superviseHint"></span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="list-viewport" id="superviseViewport"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="emptyState">
+            <h3>暂无缺陷数据</h3>
+            <p>请先在接收站 / 分输站页面同步数据，看板会自动刷新。</p>
+            <p><a class="sys-link" href="index_1.html">前往福建LNG总系统</a></p>
+        </div>
+    </div>
+
+    <script>
+        /* ================= 常量 ================= */
+        const STORAGE_KEY = 'defectData_all';
+        const VER_KEY = 'defectData_all_ver';
+        const MAJOR_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '接收站运行部', '管道运行部'];
+        const PROFESSION_DISPLAY_NAMES = {
+            '安全': 'QHSE部',
+            '后勤': '综合管理部'
+        };
+        const PERIOD_LABELS = { yesterday: '昨日', week: '本周', month: '本月', year: '今年' };
+
+        // 俯视图点位配置：x / y 为 0~1 的相对坐标；后续拿到俯视图后在此补充
+        // 例：{ name: '工艺区', x: 0.42, y: 0.55 }
+        const HOTSPOTS_RECV = [];
+        const HOTSPOTS_FEN = [];
+
+        const state = {
+            view: 'all',
+            period: 'month',
+            allRows: [],
+            rows: [],
+            charts: {},
+            alertIndex: 0,
+            alertItems: [],
+            lastVer: ''
+        };
+
+        /* ================= 通用工具（与 index_1 保持一致） ================= */
+        function isEmpty(value) {
+            return value === null || value === undefined || value === '' ||
+                (typeof value === 'string' && value.trim() === '');
+        }
+
+        function cleanString(str) {
+            if (typeof str !== 'string') return '';
+            return str.replace(/[\s\u00A0\u2000-\u200B\uFEFF]/g, '');
+        }
+
+        function getFieldValue(row, fieldName) {
+            const cleanField = cleanString(fieldName).toLowerCase();
+            for (const key of Object.keys(row)) {
+                if (cleanString(key).toLowerCase() === cleanField) return row[key];
+            }
+            return undefined;
+        }
+
+        function determineStatus(row) {
+            const columns = Object.keys(row);
+            const excludeColumns = ['备注'];
+
+            const isCompletedField = getFieldValue(row, '是否消缺');
+            if (!isEmpty(isCompletedField)) {
+                const val = String(isCompletedField).trim().toLowerCase();
+                const isPending = ['否', '未', 'no', 'false', '×', 'n'].some(v => val.includes(v));
+                if (isPending) return '待消缺项目';
+                const isCompleted = ['是', '已', '完', '√', '✔', 'y', 'yes', 'true'].some(v => val.includes(v));
+                if (isCompleted) return '已消缺项';
+            }
+
+            const repairPerson = getFieldValue(row, '消缺人');
+            if (isEmpty(repairPerson)) return '待消缺项目';
+
+            const hasEmptyColumn = columns.some(col => {
+                if (excludeColumns.some(exclude => col.includes(exclude) || exclude.includes(col))) return false;
+                return isEmpty(row[col]);
+            });
+            return hasEmptyColumn ? '待消缺项目' : '已消缺项';
+        }
+
+        function getProfession(row) {
+            for (const key of Object.keys(row)) {
+                const cleanKey = cleanString(key).toLowerCase();
+                if (cleanKey === '专业' || cleanKey === 'specialty' || cleanKey === 'major') {
+                    const value = row[key];
+                    return isEmpty(value) ? '未分类' : String(value).trim();
+                }
+            }
+            for (const key of Object.keys(row)) {
+                const cleanKey = cleanString(key).toLowerCase();
+                if (cleanKey.includes('专业')) {
+                    const value = row[key];
+                    return isEmpty(value) ? '未分类' : String(value).trim();
+                }
+            }
+            return '未分类';
+        }
+
+        function displayProfession(name) {
+            return PROFESSION_DISPLAY_NAMES[name] || name;
+        }
+
+        function getId(row) {
+            const raw = row['缺陷编号'] || row['编号'] || row['ID'];
+            return isEmpty(raw) ? '' : String(raw).trim();
+        }
+
+        function getStationType(id) {
+            const s = String(id || '').trim();
+            if (s.length === 14) return 'fen';
+            if (s.length === 11) return 'recv';
+            return '';
+        }
+
+        const ZONE_FIELDS = ['所属岗位', '所属站场', '站点', '所属岗位/站场', '区域', '岗位', '区域名称'];
+        function getZone(row) {
+            for (const field of ZONE_FIELDS) {
+                const value = getFieldValue(row, field);
+                if (!isEmpty(value)) return String(value).trim();
+            }
+            return '未归属';
+        }
+
+        function isFlag(row, field) {
+            const value = getFieldValue(row, field);
+            if (isEmpty(value)) return false;
+            const s = String(value).trim().toLowerCase();
+            return ['是', '有', '√', '✔', 'true', 'yes', '1'].some(v => s === v || s.includes(v));
+        }
+
+        function getLevelRaw(row) {
+            return getFieldValue(row, '分类定级') || getFieldValue(row, '定级') || getFieldValue(row, '分类');
+        }
+
+        /* ================= 日期工具（与 index_1 保持一致） ================= */
+        function getMonthFromDefectId(defectId) {
+            if (isEmpty(defectId)) return null;
+            const idStr = String(defectId);
+            let datePart;
+            if (idStr.length === 14) {
+                datePart = idStr.substring(3, 11);
+            } else if (idStr.length >= 8) {
+                datePart = idStr.substring(0, 8);
+            } else {
+                return null;
+            }
+            const year = datePart.substring(0, 4);
+            const month = datePart.substring(4, 6);
+            if (!isNaN(year) && !isNaN(month) && year.length === 4 && month.length === 2) {
+                return `${year}-${month}`;
+            }
+            return null;
+        }
+
+        function getDateFromDefectId(defectId) {
+            if (isEmpty(defectId)) return null;
+            const idStr = String(defectId);
+            let datePart;
+            if (idStr.length === 14) {
+                datePart = idStr.substring(3, 11);
+            } else if (idStr.length >= 8) {
+                datePart = idStr.substring(0, 8);
+            } else {
+                return null;
+            }
+            const year = parseInt(datePart.substring(0, 4), 10);
+            const month = parseInt(datePart.substring(4, 6), 10);
+            const day = parseInt(datePart.substring(6, 8), 10);
+            if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+            if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+            const d = new Date(year, month - 1, day);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        function toDate(dateValue) {
+            if (isEmpty(dateValue)) return null;
+            let date;
+            if (typeof dateValue === 'number') {
+                date = new Date((dateValue - 25569) * 86400 * 1000);
+            } else {
+                date = new Date(dateValue);
+            }
+            return isNaN(date.getTime()) ? null : date;
+        }
+
+        function formatDateOnly(val) {
+            if (isEmpty(val)) return '';
+            const d = toDate(val);
+            if (d) {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            }
+            return String(val).replace(/\s+\d{1,2}:\d{2}(:\d{2})?$/, '').trim();
+        }
+
+        function getCompleteDate(row) {
+            const raw = row['消项时间'] || row['消缺完成日期'] || row['完成日期'] || row['消缺时间'];
+            return toDate(raw);
+        }
+
+        function getCompleteMonth(row) {
+            const d = getCompleteDate(row);
+            if (!d) return null;
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        function getFilteredMonths() {
+            const now = new Date();
+            const months = [];
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+            }
+            return months;
+        }
+
+        function isClassILevel(level) {
+            const s = String(level || '');
+            if (/[二Ⅱ]/.test(s) || /II/i.test(s)) return false;
+            return /[一Ⅰ1I]/.test(s);
+        }
+
+        function isClassIScopeRow(row) {
+            const profession = getProfession(row);
+            if (profession === '未分类' || profession.includes('土建') || profession.includes('消防')) return false;
+            const levelRaw = getLevelRaw(row);
+            return !isEmpty(levelRaw) && isClassILevel(levelRaw);
+        }
+
+        /* ================= 数据加载 ================= */
+        function normalizeRow(row) {
+            const copy = { ...row };
+            const id = getId(copy);
+
+            const profKey = Object.keys(copy).find(k => {
+                const ck = cleanString(k).toLowerCase();
+                return ck === '专业' || ck === 'specialty' || ck === 'major' || ck.includes('专业');
+            });
+            if (profKey) {
+                const p = String(copy[profKey] || '').trim();
+                if (p === '其他' || p === '其他专业') {
+                    if (id.length === 11) copy[profKey] = '接收站运行部';
+                    else if (id.length === 14) copy[profKey] = '管道运行部';
+                }
+            }
+            copy.status = determineStatus(copy);
+            return copy;
+        }
+
+        function loadData() {
+            let raw = null;
+            try {
+                raw = localStorage.getItem(STORAGE_KEY);
+            } catch (e) {
+                raw = null;
+            }
+            if (!raw) {
+                state.allRows = [];
+                return;
+            }
+            try {
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) {
+                    state.allRows = [];
+                    return;
+                }
+                state.allRows = parsed
+                    .filter(row => row && Object.values(row).some(v => !isEmpty(v)))
+                    .map(normalizeRow);
+            } catch (e) {
+                console.error('[index_3] 数据解析失败:', e);
+                state.allRows = [];
+            }
+        }
+
+        function applyView() {
+            if (state.view === 'all') {
+                state.rows = state.allRows.slice();
+            } else {
+                state.rows = state.allRows.filter(row => getStationType(getId(row)) === state.view);
+            }
+        }
+
+        /* ================= 视图 / 时钟 / 同步 ================= */
+        function parseHashView() {
+            const h = (location.hash || '').replace('#', '').trim();
+            return ['all', 'recv', 'fen'].includes(h) ? h : 'all';
+        }
+
+        function setView(view, pushHash) {
+            state.view = ['all', 'recv', 'fen'].includes(view) ? view : 'all';
+            document.body.dataset.view = state.view;
+            document.querySelectorAll('.seg-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === state.view);
+            });
+            const titles = { all: '厂区分布（全站）', recv: '接收站分布', fen: '分输站分布' };
+            const titleEl = document.getElementById('mapTitle');
+            if (titleEl) titleEl.textContent = titles[state.view];
+            if (pushHash) {
+                const target = '#' + state.view;
+                if (location.hash !== target) {
+                    try {
+                        history.replaceState(null, '', target);
+                    } catch (e) {
+                        location.hash = state.view;
+                    }
+                }
+            }
+            renderAll();
+        }
+
+        function startClock() {
+            const timeEl = document.getElementById('clockTime');
+            const dateEl = document.getElementById('clockDate');
+            const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            function tick() {
+                const now = new Date();
+                timeEl.textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
+                dateEl.textContent = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日 ${weekdays[now.getDay()]}`;
+            }
+            tick();
+            setInterval(tick, 1000);
+        }
+
+        function setSyncText(timestamp) {
+            const el = document.getElementById('syncText');
+            if (!el) return;
+            const d = timestamp ? new Date(Number(timestamp)) : new Date();
+            if (isNaN(d.getTime())) return;
+            el.textContent = `（数据同步于 ${d.toLocaleTimeString('zh-CN', { hour12: false })}）`;
+        }
+
+        function startAutoSync() {
+            const POLL_INTERVAL_MS = 5000;
+            let lastSnapshot = '';
+            try {
+                state.lastVer = localStorage.getItem(VER_KEY) || '';
+                lastSnapshot = localStorage.getItem(STORAGE_KEY) || '';
+            } catch (e) {
+                state.lastVer = '';
+            }
+            if (state.lastVer) setSyncText(state.lastVer);
+
+            function onDataChanged() {
+                try {
+                    lastSnapshot = localStorage.getItem(STORAGE_KEY) || '';
+                    state.lastVer = localStorage.getItem(VER_KEY) || state.lastVer;
+                } catch (e) { }
+                loadData();
+                renderAll();
+                setSyncText(Date.now());
+            }
+
+            // 双重检测：版本号变化（接收站/分输站同步）+ 原始数据变化（插件直接写入）
+            setInterval(function () {
+                try {
+                    const ver = localStorage.getItem(VER_KEY) || '';
+                    const raw = localStorage.getItem(STORAGE_KEY) || '';
+                    if ((ver && ver !== state.lastVer) || raw !== lastSnapshot) {
+                        onDataChanged();
+                    }
+                } catch (e) { }
+            }, POLL_INTERVAL_MS);
+
+            window.addEventListener('storage', function (e) {
+                if (e.key === VER_KEY && e.newValue && e.newValue !== state.lastVer) {
+                    state.lastVer = e.newValue;
+                    onDataChanged();
+                }
+                if (e.key === STORAGE_KEY && e.newValue) {
+                    onDataChanged();
+                }
+            });
+        }
+
+        function fitStage() {
+            const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+            document.getElementById('stage').style.transform = `translate(-50%, -50%) scale(${s})`;
+        }
+
+        /* ================= 统计口径（与 index_1 一致） ================= */
+        function calculateMonthlyStats(rows) {
+            const now = new Date();
+            const filteredMonths = getFilteredMonths();
+            const stats = {
+                remainingFire: 0,
+                remainingI: 0,
+                remainingII: 0,
+                remainingCivil: 0,
+                yesterdayNew: 0,
+                weekNew: 0,
+                monthNew: 0,
+                yearCompleted: 0,
+                yesterdayDone: 0,
+                weekDone: 0,
+                monthDone: 0,
+                yearNew: 0
+            };
+
+            const monthlyStats = {};
+            filteredMonths.forEach(m => {
+                monthlyStats[m] = { new: 0, completed: 0, pending: 0 };
+            });
+
+            const weekDay = now.getDay() || 7;
+            const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - weekDay + 1);
+            const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+
+            rows.forEach(row => {
+                const defectId = getId(row);
+                const profession = getProfession(row);
+                const isPending = row.status === '待消缺项目';
+                const isCompleted = row.status === '已消缺项';
+                const defectDate = getDateFromDefectId(defectId);
+                const completeDate = isCompleted ? getCompleteDate(row) : null;
+
+                if (isClassIScopeRow(row)) {
+                    const newMonthKey = getMonthFromDefectId(defectId);
+                    if (newMonthKey && filteredMonths.includes(newMonthKey)) {
+                        monthlyStats[newMonthKey].new++;
+                    }
+                    if (isCompleted) {
+                        const completeMonthKey = getCompleteMonth(row);
+                        if (completeMonthKey && filteredMonths.includes(completeMonthKey)) {
+                            monthlyStats[completeMonthKey].completed++;
+                        }
+                    }
+                }
+
+                if (defectDate) {
+                    const dd = new Date(defectDate.getFullYear(), defectDate.getMonth(), defectDate.getDate());
+                    if (dd.getTime() === yesterday.getTime()) stats.yesterdayNew++;
+                    if (dd >= weekStart) stats.weekNew++;
+                    if (dd.getFullYear() === now.getFullYear() && dd.getMonth() === now.getMonth()) stats.monthNew++;
+                    if (dd.getFullYear() === now.getFullYear()) stats.yearNew++;
+                }
+
+                if (isCompleted && completeDate) {
+                    const cd = new Date(completeDate.getFullYear(), completeDate.getMonth(), completeDate.getDate());
+                    if (cd.getTime() === yesterday.getTime()) stats.yesterdayDone++;
+                    if (cd >= weekStart) stats.weekDone++;
+                    if (cd.getFullYear() === now.getFullYear() && cd.getMonth() === now.getMonth()) stats.monthDone++;
+                    if (cd.getFullYear() === now.getFullYear()) stats.yearCompleted++;
+                }
+
+                if (isPending) {
+                    const isFire = profession.includes('消防');
+                    const isCivil = profession.includes('土建');
+                    const levelRaw = getLevelRaw(row);
+                    if (isFire) {
+                        stats.remainingFire++;
+                    } else if (isCivil) {
+                        stats.remainingCivil++;
+                    } else if (!isEmpty(levelRaw) && isClassILevel(levelRaw)) {
+                        stats.remainingI++;
+                    } else {
+                        stats.remainingII++;
+                    }
+                }
+            });
+
+            filteredMonths.forEach(month => {
+                let pending = 0;
+                rows.forEach(row => {
+                    if (!isClassIScopeRow(row)) return;
+                    const mk = getMonthFromDefectId(getId(row));
+                    if (!mk || mk > month) return;
+                    if (row.status === '已消缺项') {
+                        const ck = getCompleteMonth(row);
+                        if (!ck || ck <= month) return;
+                    }
+                    pending++;
+                });
+                monthlyStats[month].pending = pending;
+            });
+
+            return { stats, monthlyStats, filteredMonths };
+        }
+
+        function getClassIProfessionStats(rows) {
+            const remainingStats = {};
+            const newStats = {};
+            const completedStats = {};
+            MAJOR_PROFESSIONS.forEach(p => {
+                remainingStats[p] = 0;
+                newStats[p] = 0;
+                completedStats[p] = 0;
+            });
+            const extraProfessions = new Set();
+
+            const now = new Date();
+            const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+            rows.forEach(row => {
+                const profession = getProfession(row);
+                if (profession === '未分类' || profession.includes('土建') || profession.includes('消防')) return;
+                const levelRaw = getLevelRaw(row);
+                if (isEmpty(levelRaw) || !isClassILevel(levelRaw)) return;
+
+                if (!(profession in remainingStats)) {
+                    extraProfessions.add(profession);
+                    remainingStats[profession] = 0;
+                    newStats[profession] = 0;
+                    completedStats[profession] = 0;
+                }
+
+                const newMonthKey = getMonthFromDefectId(getId(row));
+                if (row.status === '待消缺项目' && newMonthKey && newMonthKey <= currentMonthKey) {
+                    remainingStats[profession]++;
+                }
+                if (newMonthKey && newMonthKey === currentMonthKey) {
+                    newStats[profession]++;
+                }
+                if (row.status === '已消缺项') {
+                    const completeMonthKey = getCompleteMonth(row);
+                    if (completeMonthKey && completeMonthKey === currentMonthKey) {
+                        completedStats[profession]++;
+                    }
+                }
+            });
+
+            return {
+                professions: [...MAJOR_PROFESSIONS, ...extraProfessions],
+                remainingStats,
+                newStats,
+                completedStats
+            };
+        }
+
+        function getLeaderboard(rows, period) {
+            const now = new Date();
+            const day = now.getDay() || 7;
+            const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            const yearStart = new Date(now.getFullYear(), 0, 1);
+            const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+            const yesterdayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            const map = {};
+            rows.forEach(row => {
+                if (row.status !== '已消缺项') return;
+                const d = getCompleteDate(row);
+                if (!d) return;
+                const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                let matched = false;
+                if (period === 'yesterday') matched = dayDate >= yesterdayStart && dayDate < yesterdayEnd;
+                else if (period === 'week') matched = dayDate >= weekStart;
+                else if (period === 'month') matched = dayDate >= monthStart;
+                else matched = dayDate >= yearStart;
+                if (!matched) return;
+                const prof = getProfession(row);
+                if (prof === '未分类') return;
+                map[prof] = (map[prof] || 0) + 1;
+            });
+            return Object.entries(map)
+                .map(([prof, count]) => ({ prof, count }))
+                .sort((a, b) => b.count - a.count);
+        }
+
+        /* ================= 渲染 ================= */
+        const CHART_TOOLTIP = {
+            backgroundColor: 'rgba(4, 20, 34, 0.94)',
+            borderColor: 'rgba(34, 211, 238, 0.35)',
+            borderWidth: 1,
+            textStyle: { color: '#d8f2ff', fontSize: 12 },
+            extraCssText: 'box-shadow:0 4px 16px rgba(0,0,0,.45);border-radius:3px;'
+        };
+
+        function getChart(id) {
+            if (typeof echarts === 'undefined') return null;
+            const el = document.getElementById(id);
+            if (!el) return null;
+            if (!state.charts[id]) state.charts[id] = echarts.init(el);
+            return state.charts[id];
+        }
+
+        function showChartFallback(id, text) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#5f8aa5;font-size:12px;letter-spacing:2px;">${text}</div>`;
+        }
+
+        function renderAll() {
+            applyView();
+            renderKPI();
+            renderTrend();
+            renderClassChart();
+            renderProfChart();
+            renderBoardChart();
+            renderList();
+            renderAlerts();
+            renderSuperviseList();
+            renderMaps();
+            document.getElementById('emptyState').classList.toggle('show', state.allRows.length === 0);
+        }
+
+        function renderKPI() {
+            const rows = state.rows;
+            const { stats } = calculateMonthlyStats(rows);
+            const total = rows.length;
+            const pending = rows.filter(r => r.status === '待消缺项目').length;
+            const completed = total - pending;
+            const rate = total ? (completed / total * 100) : 0;
+            const flagged = rows.filter(r => r.status === '待消缺项目' && (isFlag(r, '是否督办') || isFlag(r, '是否逾期'))).length;
+
+            const cards = [
+                { cls: 'cyan', value: total, label: '缺陷总数' },
+                { cls: 'amber', value: pending, label: '待消缺' },
+                { cls: 'green', value: completed, label: '已消缺' },
+                { cls: 'purple', value: rate.toFixed(1) + '%', label: '消缺率', small: true },
+                { cls: 'red', value: stats.remainingI, label: 'Ⅰ类剩余' },
+                { cls: 'cyan', value: stats.monthNew, label: '本月新增' },
+                { cls: 'green', value: stats.monthDone, label: '本月消缺' },
+                { cls: 'amber', value: flagged, label: '督办 / 逾期' }
+            ];
+
+            document.getElementById('kpiGrid').innerHTML = cards.map(c => `
+                <div class="kpi ${c.cls}">
+                    <div class="val${c.small ? ' small' : ''}">${c.value}</div>
+                    <div class="lbl">${c.label}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderTrend() {
+            const chart = getChart('chartTrend');
+            if (!chart) {
+                showChartFallback('chartTrend', '图表组件加载失败');
+                return;
+            }
+            const { monthlyStats, filteredMonths } = calculateMonthlyStats(state.rows);
+            const labels = filteredMonths.map(m => m.slice(5) + '月');
+            const newData = filteredMonths.map(m => monthlyStats[m].new);
+            const doneData = filteredMonths.map(m => monthlyStats[m].completed);
+            const pendingData = filteredMonths.map(m => monthlyStats[m].pending);
+
+            chart.setOption({
+                tooltip: { ...CHART_TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' } },
+                legend: {
+                    top: 0,
+                    right: 0,
+                    itemWidth: 9,
+                    itemHeight: 9,
+                    itemGap: 12,
+                    textStyle: { color: '#8fb6cf', fontSize: 11 }
+                },
+                grid: { left: 34, right: 8, top: 28, bottom: 24 },
+                xAxis: {
+                    type: 'category',
+                    data: labels,
+                    axisLine: { lineStyle: { color: 'rgba(34,211,238,.18)' } },
+                    axisTick: { show: false },
+                    axisLabel: { color: '#7fa6bf', fontSize: 10, interval: 0 }
+                },
+                yAxis: {
+                    type: 'value',
+                    axisLabel: { color: '#7fa6bf', fontSize: 10 },
+                    splitLine: { lineStyle: { color: 'rgba(34,211,238,.08)' } }
+                },
+                series: [
+                    {
+                        name: '新增',
+                        type: 'bar',
+                        data: newData,
+                        barWidth: 7,
+                        itemStyle: { color: 'rgba(245,185,66,.9)', borderRadius: [2, 2, 0, 0] }
+                    },
+                    {
+                        name: '消缺',
+                        type: 'bar',
+                        data: doneData,
+                        barWidth: 7,
+                        itemStyle: { color: 'rgba(34,211,238,.9)', borderRadius: [2, 2, 0, 0] }
+                    },
+                    {
+                        name: '剩余',
+                        type: 'line',
+                        smooth: true,
+                        symbol: 'circle',
+                        symbolSize: 4,
+                        data: pendingData,
+                        lineStyle: { color: '#ff5d5d', width: 1.6 },
+                        itemStyle: { color: '#ff5d5d' },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(255,93,93,.22)' },
+                                { offset: 1, color: 'rgba(255,93,93,0)' }
+                            ])
+                        }
+                    }
+                ]
+            }, true);
+        }
+
+        function renderClassChart() {
+            const chart = getChart('chartClass');
+            if (!chart) {
+                showChartFallback('chartClass', '图表组件加载失败');
+                return;
+            }
+            const { stats } = calculateMonthlyStats(state.rows);
+            const items = [
+                { name: 'Ⅰ类', value: stats.remainingI, color: '#22d3ee' },
+                { name: 'Ⅱ类', value: stats.remainingII, color: '#f5b942' },
+                { name: '土建', value: stats.remainingCivil, color: '#34d399' },
+                { name: '消防', value: stats.remainingFire, color: '#ff5d5d' }
+            ];
+            const total = items.reduce((sum, item) => sum + item.value, 0);
+
+            chart.setOption({
+                tooltip: { ...CHART_TOOLTIP, trigger: 'item', formatter: '{b}<br/>剩余 {c} 条（{d}%）' },
+                title: {
+                    text: String(total),
+                    subtext: '待消缺',
+                    left: 'center',
+                    top: '37%',
+                    textStyle: { color: '#eafcff', fontSize: 28, fontWeight: 700, fontFamily: 'Bahnschrift, Microsoft YaHei' },
+                    subtextStyle: { color: '#7fa6bf', fontSize: 11, letterSpacing: 2 }
+                },
+                legend: {
+                    bottom: 0,
+                    left: 'center',
+                    itemWidth: 8,
+                    itemHeight: 8,
+                    itemGap: 14,
+                    textStyle: { color: '#8fb6cf', fontSize: 11 }
+                },
+                series: [{
+                    type: 'pie',
+                    radius: ['48%', '68%'],
+                    center: ['50%', '45%'],
+                    avoidLabelOverlap: true,
+                    label: { show: false },
+                    labelLine: { show: false },
+                    itemStyle: { borderColor: '#071726', borderWidth: 2 },
+                    data: items.map(item => ({
+                        name: item.name,
+                        value: item.value,
+                        itemStyle: { color: item.color }
+                    }))
+                }]
+            }, true);
+        }
+
+        function renderProfChart() {
+            const chart = getChart('chartProf');
+            if (!chart) {
+                showChartFallback('chartProf', '图表组件加载失败');
+                return;
+            }
+            const { remainingStats } = getClassIProfessionStats(state.rows);
+            const items = Object.entries(remainingStats)
+                .map(([prof, count]) => ({ prof: displayProfession(prof), count }))
+                .filter(item => item.count > 0)
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 8);
+
+            if (items.length === 0) {
+                chart.clear();
+                chart.setOption({
+                    title: {
+                        text: '暂无Ⅰ类剩余缺陷',
+                        left: 'center',
+                        top: 'middle',
+                        textStyle: { color: '#5f8aa5', fontSize: 12, fontWeight: 400 }
+                    }
+                }, true);
+                return;
+            }
+
+            chart.setOption({
+                tooltip: { ...CHART_TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: '{b}<br/>剩余 {c} 条' },
+                grid: { left: 76, right: 34, top: 8, bottom: 6 },
+                xAxis: {
+                    type: 'value',
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    axisLabel: { show: false },
+                    splitLine: { show: false }
+                },
+                yAxis: {
+                    type: 'category',
+                    inverse: true,
+                    data: items.map(item => item.prof),
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    axisLabel: { color: '#a9d4e6', fontSize: 12 }
+                },
+                series: [{
+                    type: 'bar',
+                    data: items.map(item => item.count),
+                    barWidth: 11,
+                    showBackground: true,
+                    backgroundStyle: { color: 'rgba(34,211,238,.05)', borderRadius: 2 },
+                    itemStyle: {
+                        borderRadius: 2,
+                        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                            { offset: 0, color: 'rgba(14,116,144,.95)' },
+                            { offset: 1, color: '#22d3ee' }
+                        ])
+                    },
+                    label: {
+                        show: true,
+                        position: 'right',
+                        color: '#eafcff',
+                        fontSize: 12,
+                        fontFamily: 'Bahnschrift, Microsoft YaHei'
+                    }
+                }]
+            }, true);
+        }
+
+        function renderBoardChart() {
+            const chart = getChart('chartBoard');
+            if (!chart) {
+                showChartFallback('chartBoard', '图表组件加载失败');
+                return;
+            }
+            const period = state.period || 'month';
+            const periodLabel = PERIOD_LABELS[period] || '本月';
+            const items = getLeaderboard(state.rows, period).slice(0, 6);
+
+            if (items.length === 0) {
+                chart.clear();
+                chart.setOption({
+                    title: {
+                        text: `${periodLabel}暂无消缺记录`,
+                        left: 'center',
+                        top: 'middle',
+                        textStyle: { color: '#5f8aa5', fontSize: 12, fontWeight: 400 }
+                    }
+                }, true);
+                return;
+            }
+
+            chart.setOption({
+                tooltip: { ...CHART_TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: `{b}<br/>${periodLabel}消缺 {c} 条` },
+                grid: { left: 76, right: 34, top: 8, bottom: 6 },
+                xAxis: {
+                    type: 'value',
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    axisLabel: { show: false },
+                    splitLine: { show: false }
+                },
+                yAxis: {
+                    type: 'category',
+                    inverse: true,
+                    data: items.map(item => displayProfession(item.prof)),
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    axisLabel: { color: '#a9d4e6', fontSize: 12 }
+                },
+                series: [{
+                    type: 'bar',
+                    data: items.map((item, idx) => ({
+                        value: item.count,
+                        itemStyle: {
+                            borderRadius: 2,
+                            color: idx === 0
+                                ? new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                                    { offset: 0, color: 'rgba(245,185,66,.55)' },
+                                    { offset: 1, color: '#f5b942' }
+                                ])
+                                : new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                                    { offset: 0, color: 'rgba(14,116,144,.9)' },
+                                    { offset: 1, color: '#22d3ee' }
+                                ])
+                        }
+                    })),
+                    barWidth: 11,
+                    showBackground: true,
+                    backgroundStyle: { color: 'rgba(34,211,238,.05)', borderRadius: 2 },
+                    label: {
+                        show: true,
+                        position: 'right',
+                        color: '#eafcff',
+                        fontSize: 12,
+                        fontFamily: 'Bahnschrift, Microsoft YaHei'
+                    }
+                }]
+            }, true);
+        }
+
+        /* ================= 滚动清单 / 预警 / 督办 ================= */
+        function listRowHTML(row) {
+            const id = getId(row);
+            const date = getDateFromDefectId(id);
+            const dateText = date
+                ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                : '—';
+            const supervised = isFlag(row, '是否督办');
+            const overdue = isFlag(row, '是否逾期');
+            const flagText = supervised ? '督办' : (overdue ? '逾期' : '—');
+
+            return `<div class="list-row">
+                <span class="c-id">${id || '—'}</span>
+                <span class="c-prof">${displayProfession(getProfession(row))}</span>
+                <span class="c-desc">${String(getFieldValue(row, '缺陷描述') || '—')}</span>
+                <span class="c-zone">${getZone(row)}</span>
+                <span><span class="badge pending">待消缺</span></span>
+                <span>${flagText === '—' ? '<span style="color:#4f748c">—</span>' : `<span class="badge supervised">${flagText}</span>`}</span>
+                <span class="c-date">${dateText}</span>
+            </div>`;
+        }
+
+        function renderList() {
+            const viewport = document.getElementById('listViewport');
+            const hint = document.getElementById('listHint');
+            const pending = state.rows.filter(row => row.status === '待消缺项目');
+            if (hint) hint.textContent = `待消缺 ${pending.length} 条 · 按登记日期倒序`;
+
+            if (pending.length === 0) {
+                viewport.innerHTML = '<div class="empty-row">当前视图暂无待消缺缺陷</div>';
+                return;
+            }
+
+            const sorted = pending.slice().sort((a, b) => {
+                const da = getDateFromDefectId(getId(a));
+                const db = getDateFromDefectId(getId(b));
+                const ta = da ? da.getTime() : 0;
+                const tb = db ? db.getTime() : 0;
+                if (tb !== ta) return tb - ta;
+                return getId(b).localeCompare(getId(a));
+            }).slice(0, 40);
+
+            const rowsHTML = sorted.map(listRowHTML).join('');
+            const needScroll = sorted.length > 10;
+            viewport.innerHTML = `<div class="scroll-track" id="scrollTrack" style="animation-name:${needScroll ? 'scrollUp' : 'none'};animation-duration:${Math.max(18, sorted.length * 2.4)}s;">${rowsHTML}${needScroll ? rowsHTML : ''}</div>`;
+        }
+
+        function getAlertCandidates() {
+            const pending = state.rows.filter(row => row.status === '待消缺项目');
+            const flagged = pending.filter(row => isFlag(row, '是否督办') || isFlag(row, '是否逾期'));
+            return flagged.length ? flagged : pending.filter(isClassIScopeRow);
+        }
+
+        function renderAlerts() {
+            const candidates = getAlertCandidates();
+            const textEl = document.getElementById('alertText');
+            const countEl = document.getElementById('alertCount');
+
+            state.alertItems = candidates.slice(0, 12).map(row => {
+                const tags = [];
+                if (isFlag(row, '是否督办')) tags.push('督办');
+                if (isFlag(row, '是否逾期')) tags.push('逾期');
+                const prefix = tags.length ? `【${tags.join('/')}】` : '【待消缺】';
+                const desc = String(getFieldValue(row, '缺陷描述') || '未填写缺陷描述');
+                return `${prefix}${getId(row) || '无编号'} · ${getZone(row)} · ${desc}`;
+            });
+
+            const total = candidates.length;
+            if (countEl) countEl.textContent = total ? `${total} 条` : '';
+
+            if (!state.alertItems.length) {
+                if (textEl) textEl.textContent = '当前视图暂无督办或逾期缺陷';
+                return;
+            }
+            state.alertIndex = 0;
+            if (textEl) textEl.textContent = state.alertItems[0];
+        }
+
+        function rotateAlert() {
+            if (state.alertItems.length <= 1) return;
+            const textEl = document.getElementById('alertText');
+            if (!textEl) return;
+            textEl.classList.add('swap');
+            setTimeout(function () {
+                state.alertIndex = (state.alertIndex + 1) % state.alertItems.length;
+                textEl.textContent = state.alertItems[state.alertIndex];
+                textEl.classList.remove('swap');
+            }, 300);
+        }
+
+        function renderSuperviseList() {
+            const viewport = document.getElementById('superviseViewport');
+            const hint = document.getElementById('superviseHint');
+            const pending = state.rows.filter(row => row.status === '待消缺项目');
+            const supervised = pending.filter(row => isFlag(row, '是否督办'));
+            const overdue = pending.filter(row => isFlag(row, '是否逾期'));
+            if (hint) hint.textContent = `督办 ${supervised.length} · 逾期 ${overdue.length}`;
+
+            const items = (supervised.length || overdue.length)
+                ? pending.filter(row => isFlag(row, '是否督办') || isFlag(row, '是否逾期'))
+                : pending;
+
+            if (items.length === 0) {
+                viewport.innerHTML = '<div class="sp-empty">当前视图暂无督办记录</div>';
+                return;
+            }
+
+            viewport.innerHTML = `<div class="sp-list">${items.slice(0, 5).map(row => {
+                const supervised = isFlag(row, '是否督办');
+                const isOverdue = isFlag(row, '是否逾期') && !supervised;
+                const tag = supervised ? '督办' : (isOverdue ? '逾期' : '待消缺');
+                const cls = isOverdue ? ' red' : (supervised ? '' : ' normal');
+                return `<div class="sp-item${cls}">
+                    <div class="sp-main">
+                        <div class="sp-id">${getId(row) || '无编号'}</div>
+                        <div class="sp-desc">${String(getFieldValue(row, '缺陷描述') || '未填写缺陷描述')}</div>
+                    </div>
+                    <div class="sp-side"><b>${tag}</b>${getZone(row)}</div>
+                </div>`;
+            }).join('')}</div>`;
+        }
+
+        /* ================= 厂区占位图 ================= */
+        let mapBuilt = false;
+
+        function buildMapGrid() {
+            const svg = `<svg viewBox="0 0 680 400" preserveAspectRatio="none">
+                <path d="M62 300 L54 196 L128 122 L262 94 L412 106 L524 152 L616 232 L596 312 L470 358 L300 366 L150 342 Z"
+                    fill="rgba(34,211,238,.045)" stroke="rgba(34,211,238,.32)" stroke-width="1.2"
+                    stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>
+                <path d="M140 250 L250 232 L360 248 L470 226" fill="none"
+                    stroke="rgba(34,211,238,.16)" stroke-width="1" vector-effect="non-scaling-stroke"/>
+                <path d="M210 150 L330 168 L456 148" fill="none"
+                    stroke="rgba(34,211,238,.16)" stroke-width="1" vector-effect="non-scaling-stroke"/>
+                <circle cx="340" cy="250" r="46" fill="none" stroke="rgba(34,211,238,.10)"
+                    stroke-dasharray="3 6" vector-effect="non-scaling-stroke"/>
+            </svg>`;
+
+            function boxHTML(station, label) {
+                return `<div class="map-box" data-station="${station}">
+                    <div class="map-canvas">
+                        ${svg}
+                        <div class="map-empty"><b>${label}</b>俯视图待接入</div>
+                        <div id="markers${station === 'recv' ? 'Recv' : 'Fen'}"></div>
+                    </div>
+                    <div class="map-top">
+                        <span class="map-name"><i></i>${label}</span>
+                        <span class="map-stats">待消缺<b id="${station}Pending">0</b>Ⅰ类<b id="${station}ClassI">0</b></span>
+                    </div>
+                    <div class="map-foot">点位配置：HOTSPOTS_${station.toUpperCase()}</div>
+                </div>`;
+            }
+
+            document.getElementById('mapGrid').innerHTML =
+                boxHTML('recv', '接收站') + boxHTML('fen', '分输站');
+            mapBuilt = true;
+        }
+
+        function renderMarkers(containerId, hotspots, rows) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            if (!hotspots.length) {
+                const ghosts = [[0.24, 0.36], [0.38, 0.26], [0.55, 0.34], [0.68, 0.5], [0.46, 0.58], [0.3, 0.66]];
+                container.innerHTML = ghosts.map((p, i) => `
+                    <span class="ghost-dot" style="left:${p[0] * 100}%;top:${p[1] * 100}%;animation-delay:${i * 0.4}s"></span>
+                `).join('');
+                return;
+            }
+
+            const zonePending = {};
+            rows.forEach(row => {
+                if (row.status !== '待消缺项目') return;
+                const zone = getZone(row);
+                zonePending[zone] = (zonePending[zone] || 0) + 1;
+            });
+
+            container.innerHTML = hotspots.map(spot => {
+                const count = zonePending[spot.name] || 0;
+                return `<div class="marker${count ? ' alert' : ''}" style="left:${spot.x * 100}%;top:${spot.y * 100}%">
+                    <i></i><span>${spot.name}${count ? ' · ' + count : ''}</span>
+                </div>`;
+            }).join('');
+        }
+
+        function renderMaps() {
+            if (!mapBuilt) buildMapGrid();
+
+            const recvRows = state.allRows.filter(row => getStationType(getId(row)) === 'recv');
+            const fenRows = state.allRows.filter(row => getStationType(getId(row)) === 'fen');
+
+            function stationStats(rows) {
+                let pending = 0;
+                let classI = 0;
+                rows.forEach(row => {
+                    if (row.status !== '待消缺项目') return;
+                    pending++;
+                    if (isClassIScopeRow(row)) classI++;
+                });
+                return { pending, classI };
+            }
+
+            const recvStats = stationStats(recvRows);
+            const fenStats = stationStats(fenRows);
+            document.getElementById('recvPending').textContent = recvStats.pending;
+            document.getElementById('recvClassI').textContent = recvStats.classI;
+            document.getElementById('fenPending').textContent = fenStats.pending;
+            document.getElementById('fenClassI').textContent = fenStats.classI;
+
+            renderMarkers('markersRecv', HOTSPOTS_RECV, recvRows);
+            renderMarkers('markersFen', HOTSPOTS_FEN, fenRows);
+        }
+
+        /* ================= 事件 / 初始化 ================= */
+        function bindEvents() {
+            document.getElementById('seg').addEventListener('click', function (e) {
+                const btn = e.target.closest('.seg-btn');
+                if (btn) setView(btn.dataset.view, true);
+            });
+
+            document.getElementById('periodTabs').addEventListener('click', function (e) {
+                const btn = e.target.closest('.pbtn');
+                if (!btn) return;
+                state.period = btn.dataset.period;
+                document.querySelectorAll('#periodTabs .pbtn').forEach(b => {
+                    b.classList.toggle('active', b === btn);
+                });
+                renderBoardChart();
+            });
+
+            window.addEventListener('hashchange', function () {
+                setView(parseHashView(), false);
+            });
+
+            window.addEventListener('resize', fitStage);
+        }
+
+        function init() {
+            fitStage();
+            bindEvents();
+            startClock();
+            loadData();
+            startAutoSync();
+            setView(parseHashView(), false);
+            setInterval(rotateAlert, 4000);
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
