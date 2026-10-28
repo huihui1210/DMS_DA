@@ -871,7 +871,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v5.3</span></h1>
+            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v5.3</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <label for="fileInput" class="btn btn-upload">
                     <span id="uploadText">选择文件</span>
@@ -883,7 +883,6 @@
                 <button class="btn btn-reset" onclick="resetData()">重置</button>
                 <button class="btn btn-chart" onclick="generateReport()">生成报告</button>
                 <button class="btn btn-export" onclick="exportBeautifiedExcel()">导出美化Excel</button>
-                <span id="lastSyncTime" style="display:none; margin-left:auto; font-size:12px; color:#8f959e; align-self:center;"></span>
             </div>
         </div>
 
@@ -2648,7 +2647,19 @@
                     }
                     const el = document.getElementById('lastSyncTime');
                     if (el) {
-                        el.textContent = '数据同步于 ' + new Date().toLocaleTimeString('zh-CN');
+                        const count = (typeof processedData !== 'undefined' && processedData) ? processedData.length : 0;
+                        el.textContent = '数据同步于 ' + new Date().toLocaleTimeString('zh-CN') + '（' + count + ' 条）';
+                        el.style.display = '';
+                    }
+                } catch (e) { console.error('[自动同步刷新失败]', e); }
+            }
+
+            // 页面加载时若已有同步记录，先显示上次同步时间
+            if (lastVer) {
+                try {
+                    const el = document.getElementById('lastSyncTime');
+                    if (el) {
+                        el.textContent = '数据同步于 ' + new Date(Number(lastVer)).toLocaleTimeString('zh-CN');
                         el.style.display = '';
                     }
                 } catch (e) { }

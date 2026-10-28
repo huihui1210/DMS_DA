@@ -873,7 +873,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v5.3</span></h1>
+            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v5.3</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <label for="fileInput" class="btn btn-upload">
                     <span id="uploadText">选择文件</span>
@@ -2645,6 +2645,17 @@
         }
         window.addEventListener('DOMContentLoaded', function () {
             importRowsFromHash();
+            // 显示最近同步时间（自动同步插件每次发送都会更新该时间戳）
+            try {
+                const ver = localStorage.getItem('defectData_all_ver');
+                if (ver) {
+                    const el = document.getElementById('lastSyncTime');
+                    if (el) {
+                        el.textContent = '数据同步于 ' + new Date(Number(ver)).toLocaleTimeString('zh-CN');
+                        el.style.display = '';
+                    }
+                }
+            } catch (e) { }
         });
         window.addEventListener('hashchange', function () {
             importRowsFromHash();
