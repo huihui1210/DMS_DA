@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG接收站设备缺陷管理系统 v5.3</title>
+    <title>福建LNG接收站设备缺陷管理系统 v5.4</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -873,7 +873,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v5.3</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
+            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v5.4</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <label for="fileInput" class="btn btn-upload">
                     <span id="uploadText">选择文件</span>
@@ -2221,7 +2221,7 @@
             mergeToAllStorage(processedData);
         }
 
-        // 将本站数据合并到 defectData_all（福建LNG），按缺陷编号去重
+        // 将本站数据合并到 defectData_all（福建LNG），按编号长度整体替换本站记录
         function mergeToAllStorage(stationData) {
             const ALL_KEY = 'defectData_all';
             let allData = [];
@@ -2229,10 +2229,20 @@
                 allData = JSON.parse(localStorage.getItem(ALL_KEY) || '[]');
             } catch (e) { allData = []; }
             const getKey = row => String(row['缺陷编号'] || row['编号'] || row['ID'] || '');
-            // 用新数据覆盖同编号的旧数据
-            const stationKeys = new Set(stationData.map(getKey).filter(k => k));
-            const otherData = allData.filter(row => !stationKeys.has(getKey(row)));
-            allData = otherData.concat(stationData);
+            // 按编号长度识别本站数据：11位=接收站，14位=分输站
+            const idLengths = new Set(
+                stationData.map(r => getKey(r).trim().length).filter(l => l === 11 || l === 14)
+            );
+            if (idLengths.size > 0) {
+                // 整体替换：先移除旧的本站记录，再写入本次新数据（本次未包含的记录视为已删除）
+                allData = allData.filter(row => !idLengths.has(getKey(row).trim().length));
+                allData = allData.concat(stationData);
+            } else {
+                // 无法识别编号长度时退化为按编号覆盖
+                const stationKeys = new Set(stationData.map(getKey).filter(k => k));
+                const otherData = allData.filter(row => !stationKeys.has(getKey(row)));
+                allData = otherData.concat(stationData);
+            }
             localStorage.setItem(ALL_KEY, JSON.stringify(allData));
             // 版本号时间戳：供总界面(index_1)可靠感知每次同步
             localStorage.setItem('defectData_all_ver', String(Date.now()));
