@@ -102,17 +102,30 @@
 
         .brand {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 10px;
+            justify-content: center;
+            gap: 1px;
             min-width: 0;
         }
 
-        .brand-bar {
-            width: 4px;
-            height: 26px;
+        .title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .title-row::before,
+        .title-row::after {
+            content: '';
+            width: 56px;
+            height: 1px;
             flex-shrink: 0;
-            background: linear-gradient(180deg, #5ee7fb, #0e7490);
-            box-shadow: 0 0 12px rgba(34, 211, 238, 0.8);
+            background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.75));
+        }
+
+        .title-row::after {
+            background: linear-gradient(90deg, rgba(34, 211, 238, 0.75), transparent);
         }
 
         .brand h1 {
@@ -138,6 +151,7 @@
 
         .brand .sync {
             font-size: 11px;
+            letter-spacing: 1px;
             color: var(--muted);
             white-space: nowrap;
             overflow: hidden;
@@ -145,6 +159,7 @@
         }
 
         .seg {
+            justify-self: start;
             display: flex;
             gap: 4px;
             padding: 4px;
@@ -938,8 +953,9 @@
             .brand h1 {
                 font-size: 21px;
             }
-            .brand .sync {
-                max-width: 150px;
+            .title-row::before,
+            .title-row::after {
+                width: 34px;
             }
         }
 
@@ -951,6 +967,10 @@
             .brand h1 {
                 font-size: 19px;
                 letter-spacing: 1px;
+            }
+            .title-row::before,
+            .title-row::after {
+                display: none;
             }
             .clock b {
                 font-size: 20px;
@@ -967,17 +987,18 @@
     <div id="stage">
         <!-- ===== Header ===== -->
         <div class="top">
-            <div class="brand">
-                <span class="brand-bar"></span>
-                <h1>福建LNG设备缺陷管理系统</h1>
-                <span class="ver">v5.6</span>
-                <span class="sync" id="syncText"></span>
-            </div>
-
             <div class="seg" id="seg">
                 <button class="seg-btn active" data-view="all">看板总览</button>
                 <button class="seg-btn" data-view="recv">接收站</button>
                 <button class="seg-btn" data-view="fen">分输站</button>
+            </div>
+
+            <div class="brand">
+                <div class="title-row">
+                    <h1>福建LNG设备缺陷管理系统</h1>
+                    <span class="ver">v5.6</span>
+                </div>
+                <span class="sync" id="syncText"></span>
             </div>
 
             <div class="top-right">
