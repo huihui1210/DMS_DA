@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 v5.1</title>
+    <title>福建LNG设备缺陷管理系统 v5.2</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -871,7 +871,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v5.1</span></h1>
+            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v5.2</span></h1>
             <div class="btn-group">
                 <label for="fileInput" class="btn btn-upload">
                     <span id="uploadText">选择文件</span>
@@ -2631,6 +2631,45 @@
         window.addEventListener('hashchange', function () {
             importRowsFromHash();
         });
+
+        // ======= 自动同步：轮询 defectData_all 变化 =======
+        // 接收站/分输站自动同步插件会实时写入 defectData_all，总界面无需手动刷新即可感知
+        (function () {
+            const POLL_INTERVAL_MS = 8000;
+            const KEY = 'defectData_all';
+            let lastHash = '';
+
+            // 页面首次加载时记录当前 hash，避免启动时立即误触发
+            try {
+                const initial = localStorage.getItem(KEY);
+                if (initial) lastHash = String(initial.length) + '_' + initial.slice(0, 80);
+            } catch (e) { }
+
+            setInterval(function () {
+                try {
+                    const raw = localStorage.getItem(KEY);
+                    if (!raw) return;
+                    const currentHash = String(raw.length) + '_' + raw.slice(0, 80);
+                    if (currentHash !== lastHash && typeof processData === 'function') {
+                        lastHash = currentHash;
+                        // 重新从 localStorage 加载并刷新
+                        if (typeof loadFromLocalStorage === 'function') {
+                            loadFromLocalStorage();
+                        }
+                    }
+                } catch (e) { }
+            }, POLL_INTERVAL_MS);
+
+            // 跨标签页 storage 事件（同浏览器其他 tab 修改 localStorage 时触发）
+            window.addEventListener('storage', function (e) {
+                if (e.key === KEY && typeof processData === 'function') {
+                    try {
+                        lastHash = (e.newValue || '').length + '_' + (e.newValue || '').slice(0, 80);
+                    } catch (err) { }
+                    if (typeof loadFromLocalStorage === 'function') loadFromLocalStorage();
+                }
+            });
+        })();
     </script>
 </body>
 
