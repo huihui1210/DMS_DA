@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 v5.4</title>
+    <title>福建LNG设备缺陷管理系统 v5.5</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -871,7 +871,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v5.4</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
+            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">v5.5</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <label for="fileInput" class="btn btn-upload">
                     <span id="uploadText">选择文件</span>
@@ -2647,8 +2647,7 @@
                     }
                     const el = document.getElementById('lastSyncTime');
                     if (el) {
-                        const count = (typeof processedData !== 'undefined' && processedData) ? processedData.length : 0;
-                        el.textContent = '数据同步于 ' + new Date().toLocaleTimeString('zh-CN') + '（' + count + ' 条）';
+                        el.textContent = '（数据同步于 ' + new Date().toLocaleTimeString('zh-CN') + '）';
                         el.style.display = '';
                     }
                 } catch (e) { console.error('[自动同步刷新失败]', e); }
@@ -2659,7 +2658,7 @@
                 try {
                     const el = document.getElementById('lastSyncTime');
                     if (el) {
-                        el.textContent = '数据同步于 ' + new Date(Number(lastVer)).toLocaleTimeString('zh-CN');
+                        el.textContent = '（数据同步于 ' + new Date(Number(lastVer)).toLocaleTimeString('zh-CN') + '）';
                         el.style.display = '';
                     }
                 } catch (e) { }
