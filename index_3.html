@@ -134,7 +134,7 @@
         .title-row::before,
         .title-row::after {
             content: '';
-            width: 84px;
+            width: 110px;
             height: 1px;
             flex-shrink: 0;
             background: linear-gradient(90deg, transparent, rgba(59, 210, 255, 0.95));
@@ -145,15 +145,14 @@
         }
 
         .brand h1 {
-            font-size: 34px;
-            font-weight: 700;
-            letter-spacing: 3px;
+            font-size: 40px;
+            font-weight: 800;
+            letter-spacing: 6px;
             white-space: nowrap;
-            background: linear-gradient(180deg, #f4fdff, #8fe6ff 62%, #3bd2ff);
+            background: linear-gradient(180deg, #ffffff, #aeeaff 70%, #6fd8ff);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            filter: drop-shadow(0 0 10px rgba(59, 210, 255, 0.28));
         }
 
         .brand .ver {
@@ -210,7 +209,7 @@
             color: #03121e;
             font-weight: 700;
             background: linear-gradient(180deg, #8feaff, #3bd2ff);
-            box-shadow: 0 0 14px rgba(59, 210, 255, 0.45);
+            box-shadow: 0 0 10px rgba(59, 210, 255, 0.35);
         }
 
         .top-right {
@@ -232,7 +231,6 @@
             font-size: 23px;
             letter-spacing: 2px;
             color: #f2fbff;
-            text-shadow: 0 0 10px rgba(59, 210, 255, 0.35);
             font-variant-numeric: tabular-nums;
         }
 
@@ -299,10 +297,10 @@
             flex-direction: column;
             min-height: 0;
             padding: 0 12px 10px;
-            border: 1px solid rgba(59, 210, 255, 0.3);
+            border: 1px solid rgba(64, 196, 255, 0.5);
             border-radius: 3px;
             background: linear-gradient(180deg, rgba(10, 35, 64, 0.6), rgba(4, 15, 30, 0.68));
-            box-shadow: 0 0 16px rgba(30, 120, 220, 0.1), inset 0 0 40px rgba(59, 210, 255, 0.05);
+            box-shadow: inset 0 0 36px rgba(59, 210, 255, 0.04);
         }
 
         .panel::before,
@@ -311,10 +309,9 @@
             position: absolute;
             left: -1px;
             right: -1px;
-            height: 15px;
+            height: 20px;
             pointer-events: none;
             background-repeat: no-repeat;
-            filter: drop-shadow(0 0 4px rgba(59, 210, 255, 0.5));
         }
 
         .panel::before {
@@ -324,7 +321,7 @@
                 linear-gradient(#4fdcff, #3bd2ff),
                 linear-gradient(#4fdcff, #3bd2ff),
                 linear-gradient(#4fdcff, #3bd2ff);
-            background-size: 2px 15px, 15px 2px, 2px 15px, 15px 2px;
+            background-size: 3px 20px, 20px 3px, 3px 20px, 20px 3px;
             background-position: left top, left top, right top, right top;
         }
 
@@ -335,7 +332,7 @@
                 linear-gradient(#4fdcff, #3bd2ff),
                 linear-gradient(#4fdcff, #3bd2ff),
                 linear-gradient(#4fdcff, #3bd2ff);
-            background-size: 2px 15px, 15px 2px, 2px 15px, 15px 2px;
+            background-size: 3px 20px, 20px 3px, 3px 20px, 20px 3px;
             background-position: left bottom, left bottom, right bottom, right bottom;
         }
 
@@ -345,6 +342,7 @@
             align-items: center;
             gap: 8px;
             min-width: 0;
+            overflow: hidden;
             border-bottom: 1px solid rgba(59, 210, 255, 0.14);
         }
 
@@ -353,7 +351,7 @@
             height: 14px;
             flex-shrink: 0;
             background: linear-gradient(180deg, #8feaff, #3bd2ff);
-            box-shadow: 0 0 10px rgba(59, 210, 255, 0.9), 0 0 3px rgba(59, 210, 255, 0.9);
+            box-shadow: 0 0 6px rgba(59, 210, 255, 0.7);
         }
 
         .panel-head h2 {
@@ -361,7 +359,6 @@
             font-weight: 600;
             letter-spacing: 2px;
             color: #eafcff;
-            text-shadow: 0 0 8px rgba(59, 210, 255, 0.3);
             white-space: nowrap;
         }
 
@@ -427,7 +424,6 @@
             font-weight: 700;
             line-height: 1;
             color: currentColor;
-            text-shadow: 0 0 9px currentColor;
             font-variant-numeric: tabular-nums;
         }
 
@@ -899,11 +895,13 @@
 
         /* ================= Animations & responsive ================= */
         @keyframes pulse {
+
             0%,
             100% {
                 opacity: 1;
                 transform: scale(1);
             }
+
             50% {
                 opacity: 0.45;
                 transform: scale(0.82);
@@ -915,12 +913,15 @@
                 transform: translateY(0);
                 opacity: 0;
             }
+
             12% {
                 opacity: 1;
             }
+
             62% {
                 opacity: 1;
             }
+
             100% {
                 transform: translateY(1260px);
                 opacity: 0;
@@ -931,6 +932,7 @@
             0% {
                 transform: translateY(0);
             }
+
             100% {
                 transform: translateY(-50%);
             }
@@ -1006,12 +1008,20 @@
             #stage {
                 padding: 8px 10px 12px;
             }
+
             .brand h1 {
-                font-size: 28px;
+                font-size: 32px;
+                letter-spacing: 4px;
             }
+
             .title-row::before,
             .title-row::after {
-                width: 56px;
+                width: 70px;
+            }
+
+            .pbtn {
+                padding: 3px 7px;
+                font-size: 10.5px;
             }
         }
 
@@ -1020,17 +1030,28 @@
                 grid-template-columns: 380px minmax(0, 1fr) 380px;
                 gap: 8px;
             }
+
             .brand h1 {
-                font-size: 24px;
+                font-size: 26px;
                 letter-spacing: 2px;
             }
+
+            .board-panel .panel-head {
+                flex-wrap: wrap;
+                row-gap: 4px;
+                flex: 0 0 auto;
+                padding: 8px 0;
+            }
+
             .title-row::before,
             .title-row::after {
                 display: none;
             }
+
             .clock b {
                 font-size: 20px;
             }
+
             .list-head,
             .list-row {
                 grid-template-columns: 132px 84px minmax(0, 1fr) 128px 58px 68px 78px;
@@ -1157,7 +1178,7 @@
                     </div>
                 </div>
 
-                <div class="panel">
+                <div class="panel board-panel">
                     <div class="panel-head">
                         <span class="bar"></span>
                         <h2>消缺龙虎榜</h2>
@@ -1224,7 +1245,7 @@
                     { offset: 1, color: pair[1] }
                 ]),
                 shadowColor: pair[1],
-                shadowBlur: 7
+                shadowBlur: 4
             };
         }
 
@@ -1831,7 +1852,7 @@
                 { cls: 'red', value: stats.remainingI, label: 'Ⅰ类剩余' },
                 { cls: 'cyan', value: stats.monthNew, label: '本月新增' },
                 { cls: 'green', value: stats.monthDone, label: '本月消缺' },
-                { cls: 'amber', value: flagged, label: '督办 / 逾期' }
+                { cls: 'amber', value: flagged, label: '督办' }
             ];
 
             document.getElementById('kpiGrid').innerHTML = cards.map(c => `
@@ -1890,7 +1911,7 @@
                                 { offset: 1, color: 'rgba(255,158,44,.72)' }
                             ]),
                             shadowColor: 'rgba(255,198,88,.55)',
-                            shadowBlur: 7
+                            shadowBlur: 4
                         }
                     },
                     {
@@ -1905,7 +1926,7 @@
                                 { offset: 1, color: 'rgba(22,120,200,.75)' }
                             ]),
                             shadowColor: 'rgba(59,210,255,.55)',
-                            shadowBlur: 7
+                            shadowBlur: 4
                         }
                     },
                     {
@@ -1915,7 +1936,7 @@
                         symbol: 'circle',
                         symbolSize: 4,
                         data: pendingData,
-                        lineStyle: { color: '#ff7b6d', width: 2, shadowColor: 'rgba(255,123,109,.6)', shadowBlur: 6 },
+                        lineStyle: { color: '#ff7b6d', width: 2, shadowColor: 'rgba(255,123,109,.6)', shadowBlur: 4 },
                         itemStyle: { color: '#ff7b6d' },
                         areaStyle: {
                             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -1972,7 +1993,7 @@
                     data: items.map(item => ({
                         name: item.name,
                         value: item.value,
-                        itemStyle: { color: item.color, shadowColor: item.color, shadowBlur: 10 }
+                        itemStyle: { color: item.color, shadowColor: item.color, shadowBlur: 6 }
                     }))
                 }]
             }, true);
@@ -2092,7 +2113,7 @@
                                     { offset: 1, color: '#ffd97a' }
                                 ]),
                                 shadowColor: 'rgba(255,198,88,.5)',
-                                shadowBlur: 8
+                                shadowBlur: 5
                             }
                             : barStyle(idx)
                     })),
