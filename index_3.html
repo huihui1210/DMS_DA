@@ -667,7 +667,8 @@
             inset: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
+            object-position: center;
             user-select: none;
             -webkit-user-drag: none;
         }
@@ -1499,7 +1500,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.6.4</span>
+                    <span class="ver">V5.6.5</span>
                 </div>
             </div>
 
@@ -1710,6 +1711,19 @@
 
         function saveMapSpots(spots) {
             localStorage.setItem('defectMapSpots_v1', JSON.stringify(spots));
+        }
+
+        const MAP_IMG_SIZE = { recv: [8192, 5080], fen: [9620, 3605] };
+
+        // 计算默认放大倍率（cover/contain 比值）：在 contain 完整显示基础上再放大到 cover 填满容器
+        function getMapDefaultScale(vp, type) {
+            if (!vp) return 1;
+            const [iw, ih] = MAP_IMG_SIZE[type];
+            const cw = vp.clientWidth || 1;
+            const ch = vp.clientHeight || 1;
+            const contain = Math.min(cw / iw, ch / ih);
+            const cover = Math.max(cw / iw, ch / ih);
+            return Math.max(1, +(cover / contain).toFixed(3));
         }
 
         const mapState = { recv: { s: 1, x: 0, y: 0 }, fen: { s: 1, x: 0, y: 0 } };
@@ -2800,6 +2814,22 @@
             }
             applySlide(false);
 
+            // DOM 渲染完成后，给每种地图计算默认放大倍率（cover/contain 比值）并初始化
+            requestAnimationFrame(() => {
+                ['recv', 'fen'].forEach(type => {
+                    const box = track.querySelector(`.map-box[data-station="${type}"]`);
+                    if (!box) return;
+                    const vp = box.querySelector('.map-viewport');
+                    const defaultS = getMapDefaultScale(vp, type);
+                    mapState[type].defaultS = defaultS;
+                    // 只有当用户没有手动缩放/平移过时才自动复位（保持用户操作）
+                    if (mapState[type].s === 1 && mapState[type].x === 0 && mapState[type].y === 0) {
+                        mapState[type].s = defaultS;
+                        applyMapTransform(vp, type);
+                    }
+                });
+            });
+
             ['recv', 'fen'].forEach(type => {
                 let pending = 0;
                 let classI = 0;
@@ -2868,7 +2898,7 @@
             const st = mapState[type];
             const w = vp.clientWidth;
             const h = vp.clientHeight;
-            st.s = Math.min(5, Math.max(0.4, st.s));
+            st.s = Math.min(5, Math.max(1, st.s));
             if (st.s <= 1) {
                 st.x = 0;
                 st.y = 0;
@@ -2980,7 +3010,8 @@
             });
 
             vp.addEventListener('dblclick', function () {
-                mapState[type] = { s: 1, x: 0, y: 0 };
+                const defaultS = mapState[type].defaultS || getMapDefaultScale(vp, type);
+                mapState[type] = { s: defaultS, x: 0, y: 0, defaultS };
                 applyMapTransform(vp, type);
             });
         }
@@ -3213,6 +3244,7 @@
                 const type = box ? box.dataset.station : null;
                 const label = type === 'recv' ? '接收站' : (type === 'fen' ? '分输站' : '');
                 const rows = state.allRows.filter(r =>
+                    r.status === '待消缺项目' &&
                     getZone(r) === marker.dataset.zone &&
                     (!type || getStationType(getId(r)) === type)
                 );
