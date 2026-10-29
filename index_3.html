@@ -1416,6 +1416,78 @@
             color: var(--muted);
         }
 
+        /* ---- 底图上传抽屉 ---- */
+        .mi-preview {
+            width: 100%;
+            height: 90px;
+            margin: 6px 0 8px;
+            border-radius: 3px;
+            overflow: hidden;
+            background: #061428;
+            border: 1px solid rgba(59, 210, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mi-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .mi-fallback {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .mi-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mi-btn {
+            flex: 0 0 auto;
+            padding: 4px 10px;
+            font-size: 12px;
+            color: #eafcff;
+            background: rgba(59, 210, 255, 0.12);
+            border: 1px solid rgba(59, 210, 255, 0.45);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .mi-btn:hover {
+            background: rgba(59, 210, 255, 0.25);
+        }
+
+        .mi-del {
+            flex: 0 0 auto;
+            padding: 4px 10px;
+            font-size: 12px;
+            color: #ffb4b4;
+            background: rgba(255, 95, 109, 0.1);
+            border: 1px solid rgba(255, 95, 109, 0.35);
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .mi-del:hover {
+            background: rgba(255, 95, 109, 0.2);
+        }
+
+        .mi-state {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .mi-state.mi-custom {
+            color: #8feaff;
+            margin-top: 4px;
+        }
+
         .sys-link.as-btn {
             font-family: inherit;
             background: none;
@@ -1500,11 +1572,12 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.6.5</span>
+                    <span class="ver">V5.6.6</span>
                 </div>
             </div>
 
             <div class="top-right">
+                <button class="sys-link as-btn" id="mapImgBtn" type="button">底图</button>
                 <button class="sys-link as-btn" id="mapEditBtn" type="button">点位</button>
                 <a class="sys-link" href="index_1.html">福建LNG</a>
                 <div class="clock">
@@ -1633,6 +1706,7 @@
         </div>
 
         <div class="edit-drawer" id="editDrawer"></div>
+        <div class="edit-drawer" id="mapImgDrawer"></div>
 
         <div class="modal-mask" id="modalMask">
             <div class="modal">
@@ -1711,6 +1785,61 @@
 
         function saveMapSpots(spots) {
             localStorage.setItem('defectMapSpots_v1', JSON.stringify(spots));
+        }
+
+        /* ================= 底图上传（localStorage 持久化，无需提交 git） ================= */
+        const IMG_KEYS = { recv: 'defectMapImg_recv', fen: 'defectMapImg_fen' };
+
+        function getMapImgSrc(type) {
+            try {
+                const src = localStorage.getItem(IMG_KEYS[type]);
+                if (src) return src;
+            } catch (e) { }
+            return `assets/map_${type}.jpg`;
+        }
+
+        function removeMapImg(type) {
+            try { localStorage.removeItem(IMG_KEYS[type]); } catch (e) { }
+        }
+
+        // 压缩图片：最长边缩到 maxSide，输出 JPEG dataURL
+        function compressImage(file, maxSide) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let { width, height } = img;
+                        if (width > maxSide || height > maxSide) {
+                            const ratio = Math.min(maxSide / width, maxSide / height);
+                            width = Math.round(width * ratio);
+                            height = Math.round(height * ratio);
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.85));
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function uploadMapImg(type, file) {
+            try {
+                const dataUrl = await compressImage(file, 4096);
+                localStorage.setItem(IMG_KEYS[type], dataUrl);
+                return { ok: true };
+            } catch (e) {
+                if (e && e.name === 'QuotaExceededError') {
+                    return { ok: false, msg: '存储空间不足，请压缩图片后重试' };
+                }
+                return { ok: false, msg: e.message || '上传失败' };
+            }
         }
 
         const MAP_IMG_SIZE = { recv: [8192, 5080], fen: [9620, 3605] };
@@ -2775,7 +2904,7 @@
             box.innerHTML = `
                 <div class="map-viewport" data-map="${type}">
                     <div class="map-canvas">
-                        <img src="assets/map_${type}.jpg" alt="${label}卫星图" draggable="false">
+                        <img src="${getMapImgSrc(type)}" alt="${label}卫星图" draggable="false">
                         <div class="marker-layer" id="markers${type === 'recv' ? 'Recv' : 'Fen'}"></div>
                     </div>
                 </div>
@@ -3057,6 +3186,40 @@
             renderEditDrawer();
         }
 
+        /* ---- 底图上传抽屉 ---- */
+        let mapImgDrawerOpen = false;
+        function renderMapImgDrawer() {
+            const drawer = document.getElementById('mapImgDrawer');
+            if (!mapImgDrawerOpen) {
+                drawer.classList.remove('show');
+                drawer.innerHTML = '';
+                return;
+            }
+            const cards = ['recv', 'fen'].map(type => {
+                const label = type === 'recv' ? '接收站' : '分输站';
+                const hasCustom = !!localStorage.getItem(IMG_KEYS[type]);
+                const src = getMapImgSrc(type);
+                return `<div class="ez-group">
+                    <div class="ez-title">${label}</div>
+                    <div class="mi-preview"><img src="${src}" alt="${label}底图" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="mi-fallback" style="display:none">默认底图</span></div>
+                    <div class="mi-row">
+                        <label class="mi-btn">上传PNG/JPG<input type="file" accept="image/*" data-type="${type}" hidden></label>
+                        ${hasCustom ? `<button class="mi-del" data-type="${type}">恢复默认</button>` : '<span class="mi-state">当前: 默认底图</span>'}
+                    </div>
+                    ${hasCustom ? '<div class="mi-state mi-custom">当前: 自定义底图（本地存储）</div>' : ''}
+                </div>`;
+            }).join('');
+            drawer.innerHTML = `<div class="ez-head"><b>底图管理</b><span>上传后存浏览器本地,无需提交 git;最长边自动缩到4096px</span><button id="imgDone">完成</button></div>${cards}`;
+            drawer.classList.add('show');
+        }
+
+        function toggleMapImgDrawer() {
+            mapImgDrawerOpen = !mapImgDrawerOpen;
+            if (mapImgDrawerOpen && mapEdit.active) toggleMapEdit();
+            document.getElementById('mapImgBtn').classList.toggle('on', mapImgDrawerOpen);
+            renderMapImgDrawer();
+        }
+
         /* ================= 弹窗与交互 ================= */
         function openModal(title, rows) {
             document.getElementById('modalTitle').textContent = title;
@@ -3252,6 +3415,36 @@
             });
 
             document.getElementById('mapEditBtn').addEventListener('click', toggleMapEdit);
+            document.getElementById('mapImgBtn').addEventListener('click', toggleMapImgDrawer);
+
+            document.getElementById('mapImgDrawer').addEventListener('click', function (e) {
+                if (e.target.id === 'imgDone') {
+                    toggleMapImgDrawer();
+                    return;
+                }
+                const del = e.target.closest('.mi-del');
+                if (del) {
+                    removeMapImg(del.dataset.type);
+                    renderMaps();
+                    renderMapImgDrawer();
+                    return;
+                }
+            });
+
+            document.getElementById('mapImgDrawer').addEventListener('change', async function (e) {
+                const input = e.target.closest('input[type="file"]');
+                if (!input || !input.files.length) return;
+                const type = input.dataset.type;
+                const file = input.files[0];
+                input.value = '';
+                const res = await uploadMapImg(type, file);
+                if (!res.ok) {
+                    alert(res.msg);
+                    return;
+                }
+                renderMaps();
+                renderMapImgDrawer();
+            });
 
             document.getElementById('editDrawer').addEventListener('click', function (e) {
                 if (e.target.id === 'editDone') {
