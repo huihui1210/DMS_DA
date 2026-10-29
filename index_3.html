@@ -37,6 +37,9 @@
         }
 
         body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
             color: var(--text);
             -webkit-font-smoothing: antialiased;
@@ -48,12 +51,10 @@
         }
 
         #stage {
-            position: absolute;
-            left: 50%;
-            top: 50%;
+            position: relative;
+            flex: 0 0 auto;
             width: 1920px;
             height: 1080px;
-            transform: translate(-50%, -50%);
             transform-origin: center center;
             display: flex;
             flex-direction: column;
@@ -134,14 +135,20 @@
         .title-row::before,
         .title-row::after {
             content: '';
-            width: 110px;
-            height: 1px;
+            width: 150px;
+            height: 16px;
             flex-shrink: 0;
-            background: linear-gradient(90deg, transparent, rgba(59, 210, 255, 0.95));
+            background:
+                linear-gradient(90deg, transparent, rgba(59, 210, 255, 0.95)),
+                linear-gradient(90deg, transparent, rgba(59, 210, 255, 0.45));
+            background-size: 100% 2px, 74% 2px;
+            background-repeat: no-repeat;
+            background-position: right 42%, right 80%;
+            clip-path: polygon(0 100%, 9% 0, 100% 0, 100% 100%);
         }
 
         .title-row::after {
-            background: linear-gradient(90deg, rgba(59, 210, 255, 0.95), transparent);
+            transform: scaleX(-1);
         }
 
         .brand h1 {
@@ -707,7 +714,7 @@
         .list-head,
         .list-row {
             display: grid;
-            grid-template-columns: 148px 92px minmax(0, 1fr) 148px 66px 76px 86px;
+            grid-template-columns: 170px 120px 90px minmax(0, 1fr);
             gap: 8px;
             align-items: center;
         }
@@ -1004,6 +1011,159 @@
             display: flex;
         }
 
+        /* ================= 弹窗 / 交互 ================= */
+        .kpi,
+        .alert-bar,
+        .marker,
+        .sp-item,
+        .list-row {
+            cursor: pointer;
+        }
+
+        .list-row:hover {
+            background: rgba(59, 210, 255, 0.07);
+        }
+
+        .modal-mask {
+            position: absolute;
+            inset: 0;
+            z-index: 60;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(2, 6, 16, 0.72);
+        }
+
+        .modal-mask.show {
+            display: flex;
+        }
+
+        .modal {
+            width: 1240px;
+            max-height: 880px;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, rgba(10, 35, 64, 0.97), rgba(4, 15, 30, 0.98));
+            border: 1px solid rgba(64, 196, 255, 0.55);
+            box-shadow: 0 0 40px rgba(30, 120, 220, 0.22);
+        }
+
+        .modal-head {
+            flex: 0 0 46px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 16px;
+            border-bottom: 1px solid rgba(59, 210, 255, 0.18);
+        }
+
+        .modal-head .bar {
+            width: 3px;
+            height: 16px;
+            background: linear-gradient(180deg, #8feaff, #3bd2ff);
+        }
+
+        .modal-head h3 {
+            font-size: 17px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: #eafcff;
+        }
+
+        .modal-count {
+            font-size: 12px;
+            color: #86b3cc;
+            letter-spacing: 1px;
+        }
+
+        .modal-close {
+            margin-left: auto;
+            width: 28px;
+            height: 28px;
+            font-size: 16px;
+            line-height: 1;
+            color: #9cc8e2;
+            background: rgba(59, 210, 255, 0.08);
+            border: 1px solid rgba(59, 210, 255, 0.3);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: #eafcff;
+            border-color: rgba(59, 210, 255, 0.6);
+        }
+
+        .modal-body {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 6px 16px 14px;
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: rgba(59, 210, 255, 0.3);
+        }
+
+        .m-row {
+            display: grid;
+            grid-template-columns: 160px 116px 76px 62px minmax(0, 1fr) 70px 72px 100px;
+            gap: 10px;
+            align-items: center;
+            padding: 7px 0;
+            border-bottom: 1px dashed rgba(59, 210, 255, 0.08);
+            font-size: 12.5px;
+            color: #cfe6f2;
+        }
+
+        .m-row.m-head {
+            position: sticky;
+            top: -6px;
+            z-index: 1;
+            font-size: 12px;
+            letter-spacing: 1px;
+            color: #7fc9e8;
+            background: #071526;
+            border-bottom: 1px solid rgba(59, 210, 255, 0.22);
+        }
+
+        .m-row span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .m-row .m-desc {
+            white-space: normal;
+            line-height: 1.5;
+        }
+
+        .m-id {
+            font-family: var(--num-font);
+            color: #9fd8ee;
+        }
+
+        .m-done {
+            color: #3ddc97;
+        }
+
+        .m-pending {
+            color: #ffc658;
+        }
+
+        .m-empty {
+            padding: 40px 0;
+            text-align: center;
+            color: #6d97b4;
+            font-size: 13px;
+            letter-spacing: 2px;
+        }
+
         @media (max-width: 1440px) {
             #stage {
                 padding: 8px 10px 12px;
@@ -1054,7 +1214,7 @@
 
             .list-head,
             .list-row {
-                grid-template-columns: 132px 84px minmax(0, 1fr) 128px 58px 68px 78px;
+                grid-template-columns: 150px 100px 80px minmax(0, 1fr);
             }
         }
     </style>
@@ -1153,12 +1313,9 @@
                     <div class="panel-body">
                         <div class="list-head">
                             <span>缺陷编号</span>
+                            <span>所属岗位/站场</span>
                             <span>专业</span>
                             <span>缺陷描述</span>
-                            <span>所属岗位/站点</span>
-                            <span>状态</span>
-                            <span>督办</span>
-                            <span>登记日期</span>
                         </div>
                         <div class="list-viewport" id="listViewport"></div>
                     </div>
@@ -1203,6 +1360,30 @@
                     <div class="panel-body">
                         <div class="list-viewport" id="superviseViewport"></div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-mask" id="modalMask">
+            <div class="modal">
+                <div class="modal-head">
+                    <span class="bar"></span>
+                    <h3 id="modalTitle">缺陷清单</h3>
+                    <span class="modal-count" id="modalCount"></span>
+                    <button class="modal-close" id="modalClose" title="关闭">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="m-row m-head">
+                        <span>缺陷编号</span>
+                        <span>岗位/站场</span>
+                        <span>专业</span>
+                        <span>定级</span>
+                        <span>缺陷描述</span>
+                        <span>状态</span>
+                        <span>消缺人</span>
+                        <span>完成日期</span>
+                    </div>
+                    <div id="modalRows"></div>
                 </div>
             </div>
         </div>
@@ -1616,7 +1797,7 @@
 
         function fitStage() {
             const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-            document.getElementById('stage').style.transform = `translate(-50%, -50%) scale(${s})`;
+            document.getElementById('stage').style.transform = `scale(${s})`;
         }
 
         /* ================= 统计口径（与 index_1 一致） ================= */
@@ -1845,18 +2026,18 @@
             const flagged = rows.filter(r => r.status === '待消缺项目' && (isFlag(r, '是否督办') || isFlag(r, '是否逾期'))).length;
 
             const cards = [
-                { cls: 'cyan', value: total, label: '缺陷总数' },
-                { cls: 'amber', value: pending, label: '待消缺' },
-                { cls: 'green', value: completed, label: '已消缺' },
-                { cls: 'purple', value: rate.toFixed(1) + '%', label: '消缺率', small: true },
-                { cls: 'red', value: stats.remainingI, label: 'Ⅰ类剩余' },
-                { cls: 'cyan', value: stats.monthNew, label: '本月新增' },
-                { cls: 'green', value: stats.monthDone, label: '本月消缺' },
-                { cls: 'amber', value: flagged, label: '督办' }
+                { key: 'total', cls: 'cyan', value: total, label: '缺陷总数' },
+                { key: 'pending', cls: 'amber', value: pending, label: '待消缺' },
+                { key: 'completed', cls: 'green', value: completed, label: '已消缺' },
+                { key: 'rate', cls: 'purple', value: rate.toFixed(1) + '%', label: '消缺率', small: true },
+                { key: 'classI', cls: 'red', value: stats.remainingI, label: 'Ⅰ类剩余' },
+                { key: 'monthNew', cls: 'cyan', value: stats.monthNew, label: '本月新增' },
+                { key: 'monthDone', cls: 'green', value: stats.monthDone, label: '本月消缺' },
+                { key: 'flagged', cls: 'amber', value: flagged, label: '督办' }
             ];
 
             document.getElementById('kpiGrid').innerHTML = cards.map(c => `
-                <div class="kpi ${c.cls}">
+                <div class="kpi ${c.cls}" data-key="${c.key}">
                     <div class="val${c.small ? ' small' : ''}">${c.value}</div>
                     <div class="lbl">${c.label}</div>
                 </div>
@@ -1870,6 +2051,7 @@
                 return;
             }
             const { monthlyStats, filteredMonths } = calculateMonthlyStats(state.rows);
+            state.trendMonths = filteredMonths;
             const labels = filteredMonths.map(m => m.slice(5) + '月');
             const newData = filteredMonths.map(m => monthlyStats[m].new);
             const doneData = filteredMonths.map(m => monthlyStats[m].completed);
@@ -1947,6 +2129,13 @@
                     }
                 ]
             }, true);
+
+            chart.off('click');
+            chart.on('click', function (params) {
+                const month = (state.trendMonths || [])[params.dataIndex];
+                if (!month) return;
+                openModal(`${month.slice(0, 4)}年${Number(month.slice(5))}月 · ${params.seriesName}缺陷（Ⅰ类）`, trendRows(month, params.seriesName));
+            });
         }
 
         function renderClassChart() {
@@ -1997,6 +2186,12 @@
                     }))
                 }]
             }, true);
+
+            chart.off('click');
+            chart.on('click', function (params) {
+                if (!params.name) return;
+                openModal(`${params.name} · 剩余缺陷清单`, state.rows.filter(classFilter(params.name)));
+            });
         }
 
         function renderProfChart() {
@@ -2007,10 +2202,11 @@
             }
             const { remainingStats } = getClassIProfessionStats(state.rows);
             const items = Object.entries(remainingStats)
-                .map(([prof, count]) => ({ prof: displayProfession(prof), count }))
+                .map(([prof, count]) => ({ prof, disp: displayProfession(prof), count }))
                 .filter(item => item.count > 0)
                 .sort((a, b) => b.count - a.count)
                 .slice(0, 8);
+            state.profItems = items;
 
             if (items.length === 0) {
                 chart.clear();
@@ -2038,7 +2234,7 @@
                 yAxis: {
                     type: 'category',
                     inverse: true,
-                    data: items.map(item => item.prof),
+                    data: items.map(item => item.disp),
                     axisLine: { show: false },
                     axisTick: { show: false },
                     axisLabel: { color: '#bfe3f5', fontSize: 12 }
@@ -2058,6 +2254,13 @@
                     }
                 }]
             }, true);
+
+            chart.off('click');
+            chart.on('click', function (params) {
+                const item = (state.profItems || [])[params.dataIndex];
+                if (!item) return;
+                openModal(`${item.prof} · Ⅰ类剩余缺陷`, state.rows.filter(r => classIRemaining(r) && getProfession(r) === item.prof));
+            });
         }
 
         function renderBoardChart() {
@@ -2069,6 +2272,7 @@
             const period = state.period || 'month';
             const periodLabel = PERIOD_LABELS[period] || '本月';
             const items = getLeaderboard(state.rows, period).slice(0, 6);
+            state.boardItems = items;
 
             if (items.length === 0) {
                 chart.clear();
@@ -2129,27 +2333,26 @@
                     }
                 }]
             }, true);
+
+            chart.off('click');
+            chart.on('click', function (params) {
+                const item = (state.boardItems || [])[params.dataIndex];
+                if (!item) return;
+                const p = state.period || 'month';
+                openModal(`${item.prof} · ${PERIOD_LABELS[p]}消缺清单`, state.rows.filter(r =>
+                    r.status === '已消缺项' && getProfession(r) === item.prof && inSelectedPeriod(getCompleteDate(r), p)
+                ));
+            });
         }
 
         /* ================= 滚动清单 / 预警 / 督办 ================= */
         function listRowHTML(row) {
             const id = getId(row);
-            const date = getDateFromDefectId(id);
-            const dateText = date
-                ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-                : '—';
-            const supervised = isFlag(row, '是否督办');
-            const overdue = isFlag(row, '是否逾期');
-            const flagText = supervised ? '督办' : (overdue ? '逾期' : '—');
-
-            return `<div class="list-row">
+            return `<div class="list-row" data-id="${id || ''}">
                 <span class="c-id">${id || '—'}</span>
+                <span class="c-zone">${getZone(row)}</span>
                 <span class="c-prof">${displayProfession(getProfession(row))}</span>
                 <span class="c-desc">${getDesc(row)}</span>
-                <span class="c-zone">${getZone(row)}</span>
-                <span><span class="badge pending">待消缺</span></span>
-                <span>${flagText === '—' ? '<span style="color:#5c86a3">—</span>' : `<span class="badge supervised">${flagText}</span>`}</span>
-                <span class="c-date">${dateText}</span>
             </div>`;
         }
 
@@ -2243,7 +2446,7 @@
                 const isOverdue = isFlag(row, '是否逾期') && !supervised;
                 const tag = supervised ? '督办' : (isOverdue ? '逾期' : '待消缺');
                 const cls = isOverdue ? ' red' : (supervised ? '' : ' normal');
-                return `<div class="sp-item${cls}">
+                return `<div class="sp-item${cls}" data-id="${getId(row) || ''}">
                     <div class="sp-main">
                         <div class="sp-id">${getId(row) || '无编号'}</div>
                         <div class="sp-desc">${getDesc(row, '未填写缺陷描述')}</div>
@@ -2310,7 +2513,7 @@
 
             container.innerHTML = hotspots.map(spot => {
                 const count = zonePending[spot.name] || 0;
-                return `<div class="marker${count ? ' alert' : ''}" style="left:${spot.x * 100}%;top:${spot.y * 100}%">
+                return `<div class="marker${count ? ' alert' : ''}" data-zone="${spot.name}" style="left:${spot.x * 100}%;top:${spot.y * 100}%">
                     <i></i><span>${spot.name}${count ? ' · ' + count : ''}</span>
                 </div>`;
             }).join('');
@@ -2344,6 +2547,131 @@
             renderMarkers('markersFen', HOTSPOTS_FEN, fenRows);
         }
 
+        /* ================= 弹窗与交互 ================= */
+        function openModal(title, rows) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalCount').textContent = `共 ${rows.length} 条`;
+            const box = document.getElementById('modalRows');
+            if (!rows.length) {
+                box.innerHTML = '<div class="m-empty">暂无匹配记录</div>';
+            } else {
+                box.innerHTML = rows.map(row => {
+                    const done = row.status === '已消缺项';
+                    const cd = done ? getCompleteDate(row) : null;
+                    const cdText = cd
+                        ? `${cd.getFullYear()}-${String(cd.getMonth() + 1).padStart(2, '0')}-${String(cd.getDate()).padStart(2, '0')}`
+                        : '—';
+                    return `<div class="m-row">
+                        <span class="m-id">${getId(row) || '—'}</span>
+                        <span>${getZone(row)}</span>
+                        <span>${displayProfession(getProfession(row))}</span>
+                        <span>${getLevelRaw(row) || '—'}</span>
+                        <span class="m-desc">${getDesc(row)}</span>
+                        <span class="${done ? 'm-done' : 'm-pending'}">${done ? '已消缺' : '待消缺'}</span>
+                        <span>${getFieldValue(row, '消缺人') || '—'}</span>
+                        <span>${cdText}</span>
+                    </div>`;
+                }).join('');
+            }
+            document.getElementById('modalMask').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('modalMask').classList.remove('show');
+        }
+
+        function openRowDetail(id) {
+            const row = state.rows.find(r => getId(r) === id);
+            if (row) openModal(`缺陷详情 · ${id}`, [row]);
+        }
+
+        // 分类构成口径：与 calculateMonthlyStats 的剩余统计一致
+        function classFilter(name) {
+            return function (row) {
+                if (row.status !== '待消缺项目') return false;
+                const prof = getProfession(row);
+                const fire = prof.includes('消防');
+                const civil = prof.includes('土建');
+                const levelRaw = getLevelRaw(row);
+                if (name === '消防') return fire;
+                if (name === '土建') return !fire && civil;
+                if (name === 'Ⅰ类') return !fire && !civil && !isEmpty(levelRaw) && isClassILevel(levelRaw);
+                return !fire && !civil && (isEmpty(levelRaw) || !isClassILevel(levelRaw));
+            };
+        }
+
+        // 专业分布口径：与 getClassIProfessionStats 的剩余统计一致
+        function classIRemaining(row) {
+            if (row.status !== '待消缺项目') return false;
+            const prof = getProfession(row);
+            if (prof === '未分类' || prof.includes('土建') || prof.includes('消防')) return false;
+            const levelRaw = getLevelRaw(row);
+            if (isEmpty(levelRaw) || !isClassILevel(levelRaw)) return false;
+            const mk = getMonthFromDefectId(getId(row));
+            if (!mk) return false;
+            const now = new Date();
+            const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            return mk <= cur;
+        }
+
+        // 趋势图口径：与 calculateMonthlyStats 的月度统计一致
+        function trendRows(month, seriesName) {
+            return state.rows.filter(row => {
+                if (!isClassIScopeRow(row)) return false;
+                if (seriesName === '新增') return getMonthFromDefectId(getId(row)) === month;
+                if (seriesName === '消缺') return row.status === '已消缺项' && getCompleteMonth(row) === month;
+                const mk = getMonthFromDefectId(getId(row));
+                if (!mk || mk > month) return false;
+                if (row.status === '已消缺项') {
+                    const ck = getCompleteMonth(row);
+                    if (!ck || ck <= month) return false;
+                }
+                return true;
+            });
+        }
+
+        // 龙虎榜周期口径：与 getLeaderboard 一致
+        function inSelectedPeriod(d, period) {
+            if (!d) return false;
+            const now = new Date();
+            const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            if (period === 'yesterday') {
+                const ys = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+                const ye = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                return dayDate >= ys && dayDate < ye;
+            }
+            if (period === 'week') {
+                const day = now.getDay() || 7;
+                return dayDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+            }
+            if (period === 'month') return dayDate >= new Date(now.getFullYear(), now.getMonth(), 1);
+            return dayDate >= new Date(now.getFullYear(), 0, 1);
+        }
+
+        const KPI_ACTIONS = {
+            total: ['缺陷总数 · 全部', rows => rows],
+            pending: ['待消缺清单', rows => rows.filter(r => r.status === '待消缺项目')],
+            completed: ['已消缺清单', rows => rows.filter(r => r.status === '已消缺项')],
+            rate: ['已消缺清单', rows => rows.filter(r => r.status === '已消缺项')],
+            classI: ['Ⅰ类剩余缺陷', rows => rows.filter(r => r.status === '待消缺项目' && isClassIScopeRow(r))],
+            monthNew: ['本月新增缺陷', rows => {
+                const n = new Date();
+                return rows.filter(r => {
+                    const d = getDateFromDefectId(getId(r));
+                    return d && d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth();
+                });
+            }],
+            monthDone: ['本月消缺清单', rows => {
+                const n = new Date();
+                return rows.filter(r => {
+                    if (r.status !== '已消缺项') return false;
+                    const d = getCompleteDate(r);
+                    return d && d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth();
+                });
+            }],
+            flagged: ['督办 / 逾期缺陷', rows => rows.filter(r => r.status === '待消缺项目' && (isFlag(r, '是否督办') || isFlag(r, '是否逾期')))]
+        };
+
         /* ================= 事件 / 初始化 ================= */
         function bindEvents() {
             document.getElementById('seg').addEventListener('click', function (e) {
@@ -2359,6 +2687,44 @@
                     b.classList.toggle('active', b === btn);
                 });
                 renderBoardChart();
+            });
+
+            // ===== 弹窗交互 =====
+            document.getElementById('modalClose').addEventListener('click', closeModal);
+            document.getElementById('modalMask').addEventListener('click', function (e) {
+                if (e.target === this) closeModal();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeModal();
+            });
+
+            document.getElementById('kpiGrid').addEventListener('click', function (e) {
+                const card = e.target.closest('.kpi');
+                if (!card || !card.dataset.key) return;
+                const action = KPI_ACTIONS[card.dataset.key];
+                if (action) openModal(action[0], action[1](state.rows));
+            });
+
+            document.getElementById('listViewport').addEventListener('click', function (e) {
+                const row = e.target.closest('.list-row');
+                if (row && row.dataset.id) openRowDetail(row.dataset.id);
+            });
+
+            document.getElementById('superviseViewport').addEventListener('click', function (e) {
+                const item = e.target.closest('.sp-item');
+                if (item && item.dataset.id) openRowDetail(item.dataset.id);
+            });
+
+            document.getElementById('alertBar').addEventListener('click', function () {
+                openModal('督办 / 逾期预警清单', getAlertCandidates());
+            });
+
+            document.getElementById('mapGrid').addEventListener('click', function (e) {
+                const marker = e.target.closest('.marker');
+                if (!marker || !marker.dataset.zone) return;
+                openModal(`${marker.dataset.zone} · 待消缺缺陷`, state.rows.filter(r =>
+                    r.status === '待消缺项目' && getZone(r) === marker.dataset.zone
+                ));
             });
 
             window.addEventListener('hashchange', function () {
