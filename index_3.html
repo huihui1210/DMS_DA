@@ -645,6 +645,8 @@
             overflow: hidden;
             cursor: grab;
             touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .map-viewport.dragging {
@@ -656,6 +658,8 @@
             inset: 0;
             transform-origin: center center;
             will-change: transform;
+            user-select: none;
+            -webkit-user-select: none;
             background-image:
                 linear-gradient(rgba(59, 210, 255, 0.075) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(59, 210, 255, 0.075) 1px, transparent 1px);
@@ -1597,7 +1601,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.7.4</span>
+                    <span class="ver">V5.7.5</span>
                 </div>
             </div>
 
@@ -3163,6 +3167,7 @@
             }, { passive: false });
 
             vp.addEventListener('pointerdown', function (e) {
+                e.preventDefault(); // 阻止浏览器原生图片拖拽/文本选择
                 if (e.button !== 0) return;
                 // 非编辑模式下点击 marker 不启动拖拽，让 click 事件正常冒泡
                 if (!mapEdit.active && e.target.closest('.marker')) return;
@@ -3172,9 +3177,9 @@
                     drag.spots = getMapSpots();
                     drag.spot = drag.spots[type][marker.dataset.zone] || null;
                 }
-                vp.setPointerCapture(e.pointerId);
+                try { vp.setPointerCapture(e.pointerId); } catch (err) { }
                 vp.classList.add('dragging');
-            });
+            }, { passive: false });
 
             vp.addEventListener('pointermove', function (e) {
                 if (!drag) return;
