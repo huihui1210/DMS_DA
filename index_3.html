@@ -14,17 +14,17 @@
         }
 
         :root {
-            --bg: #050c18;
-            --panel: rgba(6, 26, 44, 0.72);
-            --line: rgba(34, 211, 238, 0.16);
-            --cyan: #22d3ee;
+            --bg: #040b18;
+            --panel: rgba(7, 25, 47, 0.62);
+            --line: rgba(59, 210, 255, 0.26);
+            --cyan: #3bd2ff;
             --cyan-dim: #0e7490;
-            --amber: #f5b942;
-            --red: #ff5d5d;
-            --green: #34d399;
+            --amber: #ffc658;
+            --red: #ff5f6d;
+            --green: #3ddc97;
             --purple: #a78bfa;
             --text: #d8f2ff;
-            --muted: #7fa6bf;
+            --muted: #86b3cc;
             --num-font: 'Bahnschrift', 'DIN Alternate', 'Microsoft YaHei', sans-serif;
         }
 
@@ -33,7 +33,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: #03080f;
+            background: #020610;
         }
 
         body {
@@ -60,10 +60,11 @@
             padding: 12px 18px 18px;
             overflow: hidden;
             background:
-                radial-gradient(1300px 620px at 50% -8%, rgba(34, 211, 238, 0.12), transparent 62%),
-                radial-gradient(900px 520px at 4% 104%, rgba(34, 211, 238, 0.06), transparent 70%),
-                radial-gradient(900px 520px at 96% 104%, rgba(245, 185, 66, 0.04), transparent 70%),
-                #050c18;
+                radial-gradient(1500px 700px at 50% -12%, rgba(37, 99, 235, 0.26), transparent 62%),
+                radial-gradient(1100px 560px at 2% 108%, rgba(59, 210, 255, 0.10), transparent 70%),
+                radial-gradient(1100px 560px at 98% 108%, rgba(59, 130, 246, 0.12), transparent 70%),
+                radial-gradient(720px 340px at 50% 52%, rgba(29, 78, 160, 0.10), transparent 72%),
+                linear-gradient(180deg, #061428 0%, #040d1c 52%, #020610 100%);
         }
 
         #stage::before {
@@ -71,11 +72,25 @@
             position: absolute;
             inset: 0;
             background-image:
-                linear-gradient(rgba(34, 211, 238, 0.035) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(34, 211, 238, 0.035) 1px, transparent 1px);
+                linear-gradient(rgba(59, 210, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 210, 255, 0.05) 1px, transparent 1px);
             background-size: 56px 56px;
             -webkit-mask-image: radial-gradient(circle at 50% 45%, #000 30%, transparent 86%);
             mask-image: radial-gradient(circle at 50% 45%, #000 30%, transparent 86%);
+            pointer-events: none;
+        }
+
+        /* 数据流扫描光（纯装饰，不遮挡交互） */
+        #stage::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: -180px;
+            height: 180px;
+            z-index: 60;
+            background: linear-gradient(180deg, transparent, rgba(59, 210, 255, 0.05) 55%, rgba(59, 210, 255, 0.09) 82%, transparent);
+            animation: stageSweep 10s linear infinite;
             pointer-events: none;
         }
 
@@ -97,7 +112,8 @@
             right: 0;
             bottom: 0;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.55), transparent);
+            background: linear-gradient(90deg, transparent, rgba(59, 210, 255, 0.9), transparent);
+            box-shadow: 0 0 14px rgba(59, 210, 255, 0.55);
         }
 
         .brand {
@@ -121,11 +137,11 @@
             width: 56px;
             height: 1px;
             flex-shrink: 0;
-            background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.75));
+            background: linear-gradient(90deg, transparent, rgba(59, 210, 255, 0.95));
         }
 
         .title-row::after {
-            background: linear-gradient(90deg, rgba(34, 211, 238, 0.75), transparent);
+            background: linear-gradient(90deg, rgba(59, 210, 255, 0.95), transparent);
         }
 
         .brand h1 {
@@ -133,16 +149,18 @@
             font-weight: 700;
             letter-spacing: 2px;
             white-space: nowrap;
-            background: linear-gradient(180deg, #eafcff, #6fdcf6 68%, #22d3ee);
+            background: linear-gradient(180deg, #f4fdff, #8fe6ff 62%, #3bd2ff);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            filter: drop-shadow(0 0 14px rgba(59, 210, 255, 0.4));
         }
 
         .brand .ver {
             font-size: 12px;
-            color: #5ee7fb;
-            border: 1px solid rgba(34, 211, 238, 0.35);
+            color: #8feaff;
+            border: 1px solid rgba(59, 210, 255, 0.5);
+            box-shadow: 0 0 8px rgba(59, 210, 255, 0.25), inset 0 0 6px rgba(59, 210, 255, 0.12);
             border-radius: 3px;
             padding: 1px 6px;
             letter-spacing: 1px;
@@ -163,9 +181,10 @@
             display: flex;
             gap: 4px;
             padding: 4px;
-            background: rgba(10, 32, 54, 0.72);
-            border: 1px solid var(--line);
+            background: rgba(8, 30, 58, 0.78);
+            border: 1px solid rgba(59, 210, 255, 0.3);
             border-radius: 5px;
+            box-shadow: 0 0 18px rgba(59, 210, 255, 0.12), inset 0 0 14px rgba(59, 210, 255, 0.05);
         }
 
         .seg-btn {
@@ -174,7 +193,7 @@
             font-family: inherit;
             font-size: 14px;
             letter-spacing: 1px;
-            color: #8fb6cf;
+            color: #9cc8e2;
             background: transparent;
             border: 0;
             border-radius: 3px;
@@ -184,14 +203,14 @@
 
         .seg-btn:hover {
             color: #eafcff;
-            background: rgba(34, 211, 238, 0.08);
+            background: rgba(59, 210, 255, 0.08);
         }
 
         .seg-btn.active {
-            color: #04121c;
+            color: #03121e;
             font-weight: 700;
-            background: linear-gradient(180deg, #5ee7fb, #22d3ee);
-            box-shadow: 0 0 16px rgba(34, 211, 238, 0.45);
+            background: linear-gradient(180deg, #8feaff, #3bd2ff);
+            box-shadow: 0 0 22px rgba(59, 210, 255, 0.65), 0 0 4px rgba(59, 210, 255, 0.9);
         }
 
         .top-right {
@@ -212,7 +231,8 @@
             font-family: var(--num-font);
             font-size: 23px;
             letter-spacing: 2px;
-            color: #eafcff;
+            color: #f2fbff;
+            text-shadow: 0 0 12px rgba(59, 210, 255, 0.5);
             font-variant-numeric: tabular-nums;
         }
 
@@ -224,9 +244,10 @@
 
         .sys-link {
             font-size: 12px;
-            color: #9fd6ea;
+            color: #aee3f8;
             text-decoration: none;
-            border: 1px solid rgba(34, 211, 238, 0.28);
+            border: 1px solid rgba(59, 210, 255, 0.42);
+            box-shadow: inset 0 0 10px rgba(59, 210, 255, 0.06);
             border-radius: 3px;
             padding: 6px 10px;
             letter-spacing: 1px;
@@ -235,9 +256,10 @@
         }
 
         .sys-link:hover {
-            color: #04121c;
-            background: #22d3ee;
-            border-color: #22d3ee;
+            color: #03121e;
+            background: #3bd2ff;
+            border-color: #3bd2ff;
+            box-shadow: 0 0 16px rgba(59, 210, 255, 0.55);
         }
 
         /* ================= Layout ================= */
@@ -277,35 +299,44 @@
             flex-direction: column;
             min-height: 0;
             padding: 0 12px 10px;
-            border: 1px solid var(--line);
+            border: 1px solid rgba(59, 210, 255, 0.3);
             border-radius: 3px;
-            background: linear-gradient(180deg, rgba(8, 30, 50, 0.78), rgba(5, 18, 32, 0.72));
-            box-shadow: inset 0 0 44px rgba(34, 211, 238, 0.04);
+            background: linear-gradient(180deg, rgba(10, 35, 64, 0.6), rgba(4, 15, 30, 0.68));
+            box-shadow: 0 0 22px rgba(30, 120, 220, 0.14), inset 0 0 46px rgba(59, 210, 255, 0.07);
         }
 
         .panel::before,
         .panel::after {
             content: '';
             position: absolute;
-            width: 13px;
-            height: 13px;
-            border-color: var(--cyan);
-            opacity: 0.8;
+            left: -1px;
+            right: -1px;
+            height: 15px;
             pointer-events: none;
+            background-repeat: no-repeat;
+            filter: drop-shadow(0 0 4px rgba(59, 210, 255, 0.85));
         }
 
         .panel::before {
-            left: -1px;
             top: -1px;
-            border-left: 2px solid;
-            border-top: 2px solid;
+            background-image:
+                linear-gradient(#4fdcff, #3bd2ff),
+                linear-gradient(#4fdcff, #3bd2ff),
+                linear-gradient(#4fdcff, #3bd2ff),
+                linear-gradient(#4fdcff, #3bd2ff);
+            background-size: 2px 15px, 15px 2px, 2px 15px, 15px 2px;
+            background-position: left top, left top, right top, right top;
         }
 
         .panel::after {
-            right: -1px;
             bottom: -1px;
-            border-right: 2px solid;
-            border-bottom: 2px solid;
+            background-image:
+                linear-gradient(#4fdcff, #3bd2ff),
+                linear-gradient(#4fdcff, #3bd2ff),
+                linear-gradient(#4fdcff, #3bd2ff),
+                linear-gradient(#4fdcff, #3bd2ff);
+            background-size: 2px 15px, 15px 2px, 2px 15px, 15px 2px;
+            background-position: left bottom, left bottom, right bottom, right bottom;
         }
 
         .panel-head {
@@ -314,21 +345,23 @@
             align-items: center;
             gap: 8px;
             min-width: 0;
+            border-bottom: 1px solid rgba(59, 210, 255, 0.14);
         }
 
         .panel-head .bar {
             width: 3px;
             height: 14px;
             flex-shrink: 0;
-            background: var(--cyan);
-            box-shadow: 0 0 8px var(--cyan);
+            background: linear-gradient(180deg, #8feaff, #3bd2ff);
+            box-shadow: 0 0 10px rgba(59, 210, 255, 0.9), 0 0 3px rgba(59, 210, 255, 0.9);
         }
 
         .panel-head h2 {
             font-size: 15px;
             font-weight: 600;
             letter-spacing: 2px;
-            color: #dff6ff;
+            color: #eafcff;
+            text-shadow: 0 0 10px rgba(59, 210, 255, 0.45);
             white-space: nowrap;
         }
 
@@ -371,9 +404,10 @@
             justify-content: center;
             gap: 3px;
             overflow: hidden;
-            border: 1px solid rgba(34, 211, 238, 0.1);
+            border: 1px solid rgba(59, 210, 255, 0.2);
             border-radius: 3px;
-            background: rgba(34, 211, 238, 0.045);
+            background: linear-gradient(180deg, rgba(59, 210, 255, 0.08), rgba(59, 210, 255, 0.03));
+            box-shadow: inset 0 0 18px rgba(59, 210, 255, 0.06);
         }
 
         .kpi::after {
@@ -393,6 +427,7 @@
             font-weight: 700;
             line-height: 1;
             color: currentColor;
+            text-shadow: 0 0 14px currentColor;
             font-variant-numeric: tabular-nums;
         }
 
@@ -402,7 +437,7 @@
 
         .kpi .lbl {
             font-size: 12px;
-            color: #8fb6cf;
+            color: #9cc8e2;
             letter-spacing: 0.5px;
             text-align: center;
         }
@@ -435,9 +470,10 @@
             gap: 12px;
             padding: 0 14px 0 16px;
             overflow: hidden;
-            border: 1px solid rgba(245, 185, 66, 0.22);
+            border: 1px solid rgba(255, 198, 88, 0.38);
             border-radius: 3px;
-            background: linear-gradient(90deg, rgba(245, 185, 66, 0.12), rgba(245, 185, 66, 0.02));
+            background: linear-gradient(90deg, rgba(255, 198, 88, 0.14), rgba(255, 198, 88, 0.03));
+            box-shadow: 0 0 18px rgba(255, 198, 88, 0.12), inset 0 0 20px rgba(255, 198, 88, 0.05);
         }
 
         .alert-bar::before {
@@ -518,17 +554,18 @@
         .map-box {
             position: relative;
             overflow: hidden;
-            border: 1px solid rgba(34, 211, 238, 0.12);
+            border: 1px solid rgba(59, 210, 255, 0.24);
             border-radius: 3px;
-            background: #03101c;
+            background: #04101e;
+            box-shadow: inset 0 0 42px rgba(59, 210, 255, 0.07);
         }
 
         .map-canvas {
             position: absolute;
             inset: 0;
             background-image:
-                linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+                linear-gradient(rgba(59, 210, 255, 0.075) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 210, 255, 0.075) 1px, transparent 1px);
             background-size: 38px 38px;
         }
 
@@ -536,7 +573,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: radial-gradient(circle at 50% 54%, rgba(34, 211, 238, 0.13), transparent 58%);
+            background: radial-gradient(circle at 50% 54%, rgba(59, 210, 255, 0.13), transparent 58%);
         }
 
         .map-canvas svg {
@@ -582,7 +619,7 @@
             display: flex;
             gap: 10px;
             font-size: 11px;
-            color: #7fa6bf;
+            color: #86b3cc;
             white-space: nowrap;
         }
 
@@ -601,7 +638,7 @@
             z-index: 4;
             font-size: 10px;
             letter-spacing: 1px;
-            color: #4f748c;
+            color: #5c86a3;
         }
 
         .map-empty {
@@ -613,7 +650,7 @@
             text-align: center;
             line-height: 1.7;
             letter-spacing: 1px;
-            color: #5f8aa5;
+            color: #6d97b4;
             font-size: 12px;
         }
 
@@ -632,8 +669,8 @@
             height: 6px;
             margin: -3px 0 0 -3px;
             border-radius: 50%;
-            background: rgba(34, 211, 238, 0.65);
-            box-shadow: 0 0 10px rgba(34, 211, 238, 0.85);
+            background: rgba(59, 210, 255, 0.65);
+            box-shadow: 0 0 10px rgba(59, 210, 255, 0.85);
             animation: pulse 3s ease-in-out infinite;
         }
 
@@ -662,7 +699,7 @@
             white-space: nowrap;
             color: #cfeeff;
             background: rgba(4, 20, 34, 0.82);
-            border: 1px solid rgba(34, 211, 238, 0.28);
+            border: 1px solid rgba(59, 210, 255, 0.28);
             border-radius: 2px;
         }
 
@@ -684,8 +721,8 @@
             padding: 0 4px;
             font-size: 11px;
             letter-spacing: 1px;
-            color: #6f96ae;
-            border-bottom: 1px solid rgba(34, 211, 238, 0.12);
+            color: #7fb3d1;
+            border-bottom: 1px solid rgba(59, 210, 255, 0.2);
         }
 
         .list-viewport {
@@ -708,12 +745,12 @@
             height: 34px;
             padding: 0 4px;
             font-size: 12px;
-            color: #b9dcec;
-            border-bottom: 1px solid rgba(34, 211, 238, 0.06);
+            color: #c9e8f8;
+            border-bottom: 1px solid rgba(59, 210, 255, 0.08);
         }
 
         .list-row:nth-child(even) {
-            background: rgba(34, 211, 238, 0.025);
+            background: rgba(59, 210, 255, 0.04);
         }
 
         .c-id {
@@ -729,7 +766,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            color: #8fb6cf;
+            color: #9cc8e2;
         }
 
         .c-zone {
@@ -740,7 +777,7 @@
 
         .c-date {
             font-family: var(--num-font);
-            color: #7fa6bf;
+            color: #86b3cc;
             font-variant-numeric: tabular-nums;
         }
 
@@ -753,14 +790,14 @@
 
         .badge.pending {
             color: #ffb4b4;
-            background: rgba(255, 93, 93, 0.12);
-            border: 1px solid rgba(255, 93, 93, 0.3);
+            background: rgba(255, 95, 109, 0.12);
+            border: 1px solid rgba(255, 95, 109, 0.3);
         }
 
         .badge.supervised {
             color: var(--amber);
-            background: rgba(245, 185, 66, 0.12);
-            border: 1px solid rgba(245, 185, 66, 0.32);
+            background: rgba(255, 198, 88, 0.12);
+            border: 1px solid rgba(255, 198, 88, 0.32);
         }
 
         .sp-list {
@@ -782,17 +819,17 @@
             overflow: hidden;
             border-left: 2px solid var(--amber);
             border-radius: 2px;
-            background: rgba(245, 185, 66, 0.05);
+            background: rgba(255, 198, 88, 0.05);
         }
 
         .sp-item.red {
             border-left-color: var(--red);
-            background: rgba(255, 93, 93, 0.05);
+            background: rgba(255, 95, 109, 0.05);
         }
 
         .sp-item.normal {
-            border-left-color: rgba(34, 211, 238, 0.55);
-            background: rgba(34, 211, 238, 0.04);
+            border-left-color: rgba(59, 210, 255, 0.55);
+            background: rgba(59, 210, 255, 0.04);
         }
 
         .sp-item.normal .sp-side b {
@@ -826,7 +863,7 @@
             flex-shrink: 0;
             text-align: right;
             font-size: 10px;
-            color: #7fa6bf;
+            color: #86b3cc;
             white-space: nowrap;
         }
 
@@ -847,7 +884,7 @@
             justify-content: center;
             font-size: 12px;
             letter-spacing: 2px;
-            color: #5f8aa5;
+            color: #6d97b4;
         }
 
         .empty-row {
@@ -857,7 +894,7 @@
             justify-content: center;
             font-size: 12px;
             letter-spacing: 2px;
-            color: #5f8aa5;
+            color: #6d97b4;
         }
 
         /* ================= Animations & responsive ================= */
@@ -870,6 +907,23 @@
             50% {
                 opacity: 0.45;
                 transform: scale(0.82);
+            }
+        }
+
+        @keyframes stageSweep {
+            0% {
+                transform: translateY(0);
+                opacity: 0;
+            }
+            12% {
+                opacity: 1;
+            }
+            62% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(1260px);
+                opacity: 0;
             }
         }
 
@@ -894,9 +948,9 @@
             font-family: inherit;
             font-size: 11px;
             letter-spacing: 0.5px;
-            color: #7fa6bf;
-            background: rgba(34, 211, 238, 0.05);
-            border: 1px solid rgba(34, 211, 238, 0.18);
+            color: #9cc8e2;
+            background: rgba(59, 210, 255, 0.06);
+            border: 1px solid rgba(59, 210, 255, 0.28);
             border-radius: 2px;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -904,14 +958,15 @@
 
         .pbtn:hover {
             color: #eafcff;
-            border-color: rgba(34, 211, 238, 0.4);
+            border-color: rgba(59, 210, 255, 0.4);
         }
 
         .pbtn.active {
-            color: #04121c;
+            color: #03121e;
             font-weight: 700;
             background: var(--cyan);
             border-color: var(--cyan);
+            box-shadow: 0 0 12px rgba(59, 210, 255, 0.5);
         }
 
         /* ================= Empty state ================= */
@@ -932,7 +987,8 @@
             font-size: 24px;
             font-weight: 600;
             letter-spacing: 4px;
-            color: #bfeaff;
+            color: #dff4ff;
+            text-shadow: 0 0 14px rgba(59, 210, 255, 0.5);
         }
 
         #emptyState p {
@@ -1690,7 +1746,7 @@
         /* ================= 渲染 ================= */
         const CHART_TOOLTIP = {
             backgroundColor: 'rgba(4, 20, 34, 0.94)',
-            borderColor: 'rgba(34, 211, 238, 0.35)',
+            borderColor: 'rgba(59, 210, 255, 0.55)',
             borderWidth: 1,
             textStyle: { color: '#d8f2ff', fontSize: 12 },
             extraCssText: 'box-shadow:0 4px 16px rgba(0,0,0,.45);border-radius:3px;'
@@ -1707,7 +1763,7 @@
         function showChartFallback(id, text) {
             const el = document.getElementById(id);
             if (!el) return;
-            el.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#5f8aa5;font-size:12px;letter-spacing:2px;">${text}</div>`;
+            el.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#6d97b4;font-size:12px;letter-spacing:2px;">${text}</div>`;
         }
 
         function renderAll() {
@@ -1772,20 +1828,20 @@
                     itemWidth: 9,
                     itemHeight: 9,
                     itemGap: 12,
-                    textStyle: { color: '#8fb6cf', fontSize: 11 }
+                    textStyle: { color: '#9cc8e2', fontSize: 11 }
                 },
                 grid: { left: 34, right: 8, top: 28, bottom: 24 },
                 xAxis: {
                     type: 'category',
                     data: labels,
-                    axisLine: { lineStyle: { color: 'rgba(34,211,238,.18)' } },
+                    axisLine: { lineStyle: { color: 'rgba(59,210,255,.3)' } },
                     axisTick: { show: false },
-                    axisLabel: { color: '#7fa6bf', fontSize: 10, interval: 0 }
+                    axisLabel: { color: '#86b3cc', fontSize: 10, interval: 0 }
                 },
                 yAxis: {
                     type: 'value',
-                    axisLabel: { color: '#7fa6bf', fontSize: 10 },
-                    splitLine: { lineStyle: { color: 'rgba(34,211,238,.08)' } }
+                    axisLabel: { color: '#86b3cc', fontSize: 10 },
+                    splitLine: { lineStyle: { color: 'rgba(59,210,255,.12)' } }
                 },
                 series: [
                     {
@@ -1793,14 +1849,30 @@
                         type: 'bar',
                         data: newData,
                         barWidth: 7,
-                        itemStyle: { color: 'rgba(245,185,66,.9)', borderRadius: [2, 2, 0, 0] }
+                        itemStyle: {
+                            borderRadius: [2, 2, 0, 0],
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#ffd97a' },
+                                { offset: 1, color: 'rgba(255,158,44,.72)' }
+                            ]),
+                            shadowColor: 'rgba(255,198,88,.55)',
+                            shadowBlur: 10
+                        }
                     },
                     {
                         name: '消缺',
                         type: 'bar',
                         data: doneData,
                         barWidth: 7,
-                        itemStyle: { color: 'rgba(34,211,238,.9)', borderRadius: [2, 2, 0, 0] }
+                        itemStyle: {
+                            borderRadius: [2, 2, 0, 0],
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#8feaff' },
+                                { offset: 1, color: 'rgba(22,120,200,.75)' }
+                            ]),
+                            shadowColor: 'rgba(59,210,255,.55)',
+                            shadowBlur: 10
+                        }
                     },
                     {
                         name: '剩余',
@@ -1809,12 +1881,12 @@
                         symbol: 'circle',
                         symbolSize: 4,
                         data: pendingData,
-                        lineStyle: { color: '#ff5d5d', width: 1.6 },
-                        itemStyle: { color: '#ff5d5d' },
+                        lineStyle: { color: '#ff7b6d', width: 2, shadowColor: 'rgba(255,123,109,.6)', shadowBlur: 8 },
+                        itemStyle: { color: '#ff7b6d' },
                         areaStyle: {
                             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                { offset: 0, color: 'rgba(255,93,93,.22)' },
-                                { offset: 1, color: 'rgba(255,93,93,0)' }
+                                { offset: 0, color: 'rgba(255,123,109,.22)' },
+                                { offset: 1, color: 'rgba(255,123,109,0)' }
                             ])
                         }
                     }
@@ -1830,10 +1902,10 @@
             }
             const { stats } = calculateMonthlyStats(state.rows);
             const items = [
-                { name: 'Ⅰ类', value: stats.remainingI, color: '#22d3ee' },
-                { name: 'Ⅱ类', value: stats.remainingII, color: '#f5b942' },
-                { name: '土建', value: stats.remainingCivil, color: '#34d399' },
-                { name: '消防', value: stats.remainingFire, color: '#ff5d5d' }
+                { name: 'Ⅰ类', value: stats.remainingI, color: '#3bd2ff' },
+                { name: 'Ⅱ类', value: stats.remainingII, color: '#ffc658' },
+                { name: '土建', value: stats.remainingCivil, color: '#3ddc97' },
+                { name: '消防', value: stats.remainingFire, color: '#ff5f6d' }
             ];
             const total = items.reduce((sum, item) => sum + item.value, 0);
 
@@ -1844,8 +1916,8 @@
                     subtext: '待消缺',
                     left: 'center',
                     top: '37%',
-                    textStyle: { color: '#eafcff', fontSize: 28, fontWeight: 700, fontFamily: 'Bahnschrift, Microsoft YaHei' },
-                    subtextStyle: { color: '#7fa6bf', fontSize: 11, letterSpacing: 2 }
+                    textStyle: { color: '#eafcff', fontSize: 28, fontWeight: 700, fontFamily: 'Bahnschrift, Microsoft YaHei', textShadowColor: 'rgba(59,210,255,.55)', textShadowBlur: 14 },
+                    subtextStyle: { color: '#86b3cc', fontSize: 11, letterSpacing: 2 }
                 },
                 legend: {
                     bottom: 0,
@@ -1853,7 +1925,7 @@
                     itemWidth: 8,
                     itemHeight: 8,
                     itemGap: 14,
-                    textStyle: { color: '#8fb6cf', fontSize: 11 }
+                    textStyle: { color: '#9cc8e2', fontSize: 11 }
                 },
                 series: [{
                     type: 'pie',
@@ -1862,11 +1934,11 @@
                     avoidLabelOverlap: true,
                     label: { show: false },
                     labelLine: { show: false },
-                    itemStyle: { borderColor: '#071726', borderWidth: 2 },
+                    itemStyle: { borderColor: '#05101f', borderWidth: 2 },
                     data: items.map(item => ({
                         name: item.name,
                         value: item.value,
-                        itemStyle: { color: item.color }
+                        itemStyle: { color: item.color, shadowColor: item.color, shadowBlur: 16 }
                     }))
                 }]
             }, true);
@@ -1892,7 +1964,7 @@
                         text: '暂无Ⅰ类剩余缺陷',
                         left: 'center',
                         top: 'middle',
-                        textStyle: { color: '#5f8aa5', fontSize: 12, fontWeight: 400 }
+                        textStyle: { color: '#6d97b4', fontSize: 12, fontWeight: 400 }
                     }
                 }, true);
                 return;
@@ -1914,20 +1986,22 @@
                     data: items.map(item => item.prof),
                     axisLine: { show: false },
                     axisTick: { show: false },
-                    axisLabel: { color: '#a9d4e6', fontSize: 12 }
+                    axisLabel: { color: '#bfe3f5', fontSize: 12 }
                 },
                 series: [{
                     type: 'bar',
                     data: items.map(item => item.count),
                     barWidth: 11,
                     showBackground: true,
-                    backgroundStyle: { color: 'rgba(34,211,238,.05)', borderRadius: 2 },
+                    backgroundStyle: { color: 'rgba(59,210,255,.05)', borderRadius: 2 },
                     itemStyle: {
                         borderRadius: 2,
                         color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-                            { offset: 0, color: 'rgba(14,116,144,.95)' },
-                            { offset: 1, color: '#22d3ee' }
-                        ])
+                            { offset: 0, color: 'rgba(16,110,170,.95)' },
+                            { offset: 1, color: '#54e0ff' }
+                        ]),
+                        shadowColor: 'rgba(59,210,255,.5)',
+                        shadowBlur: 12
                     },
                     label: {
                         show: true,
@@ -1957,7 +2031,7 @@
                         text: `${periodLabel}暂无消缺记录`,
                         left: 'center',
                         top: 'middle',
-                        textStyle: { color: '#5f8aa5', fontSize: 12, fontWeight: 400 }
+                        textStyle: { color: '#6d97b4', fontSize: 12, fontWeight: 400 }
                     }
                 }, true);
                 return;
@@ -1979,7 +2053,7 @@
                     data: items.map(item => displayProfession(item.prof)),
                     axisLine: { show: false },
                     axisTick: { show: false },
-                    axisLabel: { color: '#a9d4e6', fontSize: 12 }
+                    axisLabel: { color: '#bfe3f5', fontSize: 12 }
                 },
                 series: [{
                     type: 'bar',
@@ -1989,18 +2063,20 @@
                             borderRadius: 2,
                             color: idx === 0
                                 ? new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-                                    { offset: 0, color: 'rgba(245,185,66,.55)' },
-                                    { offset: 1, color: '#f5b942' }
+                                    { offset: 0, color: 'rgba(255,198,88,.6)' },
+                                    { offset: 1, color: '#ffd97a' }
                                 ])
                                 : new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-                                    { offset: 0, color: 'rgba(14,116,144,.9)' },
-                                    { offset: 1, color: '#22d3ee' }
-                                ])
+                                    { offset: 0, color: 'rgba(16,110,170,.95)' },
+                                    { offset: 1, color: '#54e0ff' }
+                                ]),
+                            shadowColor: idx === 0 ? 'rgba(255,198,88,.55)' : 'rgba(59,210,255,.5)',
+                            shadowBlur: 12
                         }
                     })),
                     barWidth: 11,
                     showBackground: true,
-                    backgroundStyle: { color: 'rgba(34,211,238,.05)', borderRadius: 2 },
+                    backgroundStyle: { color: 'rgba(59,210,255,.05)', borderRadius: 2 },
                     label: {
                         show: true,
                         position: 'right',
@@ -2029,7 +2105,7 @@
                 <span class="c-desc">${String(getFieldValue(row, '缺陷描述') || '—')}</span>
                 <span class="c-zone">${getZone(row)}</span>
                 <span><span class="badge pending">待消缺</span></span>
-                <span>${flagText === '—' ? '<span style="color:#4f748c">—</span>' : `<span class="badge supervised">${flagText}</span>`}</span>
+                <span>${flagText === '—' ? '<span style="color:#5c86a3">—</span>' : `<span class="badge supervised">${flagText}</span>`}</span>
                 <span class="c-date">${dateText}</span>
             </div>`;
         }
@@ -2140,13 +2216,13 @@
         function buildMapGrid() {
             const svg = `<svg viewBox="0 0 680 400" preserveAspectRatio="none">
                 <path d="M62 300 L54 196 L128 122 L262 94 L412 106 L524 152 L616 232 L596 312 L470 358 L300 366 L150 342 Z"
-                    fill="rgba(34,211,238,.045)" stroke="rgba(34,211,238,.32)" stroke-width="1.2"
+                    fill="rgba(59,210,255,.06)" stroke="rgba(59,210,255,.5)" stroke-width="1.2"
                     stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>
                 <path d="M140 250 L250 232 L360 248 L470 226" fill="none"
-                    stroke="rgba(34,211,238,.16)" stroke-width="1" vector-effect="non-scaling-stroke"/>
+                    stroke="rgba(59,210,255,.3)" stroke-width="1" vector-effect="non-scaling-stroke"/>
                 <path d="M210 150 L330 168 L456 148" fill="none"
-                    stroke="rgba(34,211,238,.16)" stroke-width="1" vector-effect="non-scaling-stroke"/>
-                <circle cx="340" cy="250" r="46" fill="none" stroke="rgba(34,211,238,.10)"
+                    stroke="rgba(59,210,255,.3)" stroke-width="1" vector-effect="non-scaling-stroke"/>
+                <circle cx="340" cy="250" r="46" fill="none" stroke="rgba(59,210,255,.18)"
                     stroke-dasharray="3 6" vector-effect="non-scaling-stroke"/>
             </svg>`;
 
