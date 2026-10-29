@@ -1572,7 +1572,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.6.6</span>
+                    <span class="ver">V5.6.7</span>
                 </div>
             </div>
 
@@ -2943,15 +2943,16 @@
             }
             applySlide(false);
 
-            // DOM 渲染完成后，给每种地图计算默认放大倍率（cover/contain 比值）并初始化
+            // DOM 渲染完成后，给每种地图计算默认放大倍率
+            // 总览视图: defaultS=1 (cover 行为,拖拽可切换底图)
+            // single 视图: defaultS = cover/contain 比值 (contain 基础上放大到 cover 填满)
             requestAnimationFrame(() => {
                 ['recv', 'fen'].forEach(type => {
                     const box = track.querySelector(`.map-box[data-station="${type}"]`);
                     if (!box) return;
                     const vp = box.querySelector('.map-viewport');
-                    const defaultS = getMapDefaultScale(vp, type);
+                    const defaultS = state.view === 'all' ? 1 : getMapDefaultScale(vp, type);
                     mapState[type].defaultS = defaultS;
-                    // 只有当用户没有手动缩放/平移过时才自动复位（保持用户操作）
                     if (mapState[type].s === 1 && mapState[type].x === 0 && mapState[type].y === 0) {
                         mapState[type].s = defaultS;
                         applyMapTransform(vp, type);
@@ -3032,8 +3033,10 @@
                 st.x = 0;
                 st.y = 0;
             } else {
-                st.x = Math.min(0, Math.max(w - w * st.s, st.x));
-                st.y = Math.min(0, Math.max(h - h * st.s, st.y));
+                // transform-origin: center center 下的正确边界
+                // x ∈ [w*(1-s)/2, w*(s-1)/2]  画布中心平移范围
+                st.x = Math.min(w * (st.s - 1) / 2, Math.max(w * (1 - st.s) / 2, st.x));
+                st.y = Math.min(h * (st.s - 1) / 2, Math.max(h * (1 - st.s) / 2, st.y));
             }
         }
 
