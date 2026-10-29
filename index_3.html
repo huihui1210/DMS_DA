@@ -1597,7 +1597,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.7.2</span>
+                    <span class="ver">V5.7.3</span>
                 </div>
             </div>
 
@@ -3129,10 +3129,16 @@
                 st.x = 0;
                 st.y = 0;
             } else {
-                // transform-origin: center center 下的正确边界
-                // x ∈ [w*(1-s)/2, w*(s-1)/2]  画布中心平移范围
-                st.x = Math.min(w * (st.s - 1) / 2, Math.max(w * (1 - st.s) / 2, st.x));
-                st.y = Math.min(h * (st.s - 1) / 2, Math.max(h * (1 - st.s) / 2, st.y));
+                // transform-origin: center center 边界推导:
+                // 左边缘 = w*(1-s)/2 + x ≥ 0 → x ≥ w*(s-1)/2  下界(正数)
+                // 右边缘 = w*(1+s)/2 + x ≤ w → x ≤ w*(1-s)/2  上界(负数)
+                // 约束 x ∈ [w*(s-1)/2, w*(1-s)/2]
+                const minX = w * (st.s - 1) / 2;
+                const maxX = w * (1 - st.s) / 2;
+                const minY = h * (st.s - 1) / 2;
+                const maxY = h * (1 - st.s) / 2;
+                st.x = Math.min(maxX, Math.max(minX, st.x));
+                st.y = Math.min(maxY, Math.max(minY, st.y));
             }
         }
 
