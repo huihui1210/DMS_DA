@@ -1471,7 +1471,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">v5.6 · b1029.5</span>
+                    <span class="ver">v5.6 · b1029.6</span>
                 </div>
                 <span class="sync" id="syncText"></span>
             </div>
@@ -1777,11 +1777,17 @@
             return '';
         }
 
-        const ZONE_FIELDS = ['所属岗位', '所属站场', '站点', '所属岗位/站场', '区域', '岗位', '区域名称'];
+        const ZONE_FIELDS = ['所属岗位', '所属站场', '站点', '所属岗位/站场', '所属站点', '站点名称', '站场', '站场名称', '所属场站', '场站', '区域', '岗位', '区域名称'];
+        let zoneDiagDone = false;
         function getZone(row) {
             for (const field of ZONE_FIELDS) {
                 const value = getFieldValue(row, field);
                 if (!isEmpty(value)) return String(value).trim();
+            }
+            // 诊断：未识别到区域字段时，在控制台打印该行实际字段名，便于扩充 ZONE_FIELDS
+            if (!zoneDiagDone && typeof console !== 'undefined') {
+                zoneDiagDone = true;
+                console.warn('[看板] 存在未识别区域字段的记录，实际字段名为：', Object.keys(row));
             }
             return '未归属';
         }
