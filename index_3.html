@@ -673,6 +673,31 @@
             -webkit-user-drag: none;
         }
 
+        .map-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: #3a8db5;
+            text-align: center;
+            background: repeating-linear-gradient(45deg, rgba(59, 210, 255, 0.03) 0, rgba(59, 210, 255, 0.03) 10px, transparent 10px, transparent 20px);
+        }
+
+        .map-placeholder b {
+            font-size: 16px;
+            font-weight: 600;
+            color: #5fc8e8;
+            letter-spacing: 2px;
+        }
+
+        .map-placeholder span {
+            font-size: 11px;
+            color: #4a7a92;
+        }
+
         .marker-layer {
             position: absolute;
             inset: 0;
@@ -1572,7 +1597,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.6.7</span>
+                    <span class="ver">V5.7.0</span>
                 </div>
             </div>
 
@@ -1787,22 +1812,86 @@
             localStorage.setItem('defectMapSpots_v1', JSON.stringify(spots));
         }
 
-        /* ================= 底图上传（localStorage 持久化，无需提交 git） ================= */
-        const IMG_KEYS = { recv: 'defectMapImg_recv', fen: 'defectMapImg_fen' };
+        /* ================= 底图上传（IndexedDB 持久化，支持原图，无需 git） ================= */
+        const DB_NAME = 'defectDB';
+        const DB_STORE = 'mapImgs';
+        const DB_VER = 1;
+        let _dbPromise = null;
 
-        function getMapImgSrc(type) {
+        function openDB() {
+            if (_dbPromise) return _dbPromise;
+            _dbPromise = new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VER);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains(DB_STORE)) {
+                        db.createObjectStore(DB_STORE);
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+            return _dbPromise;
+        }
+
+        async function dbGet(type) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(DB_STORE, 'readonly');
+                const req = tx.objectStore(DB_STORE).get(type);
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function dbPut(type, record) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(DB_STORE, 'readwrite');
+                tx.objectStore(DB_STORE).put(record, type);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(req.error);
+            });
+        }
+
+        async function dbDelete(type) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(DB_STORE, 'readwrite');
+                tx.objectStore(DB_STORE).delete(type);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(req.error);
+            });
+        }
+
+        // 缓存 blob URL，避免重复 createObjectURL
+        const _imgUrlCache = { recv: null, fen: null };
+
+        async function getMapImgSrc(type) {
             try {
-                const src = localStorage.getItem(IMG_KEYS[type]);
-                if (src) return src;
+                const rec = await dbGet(type);
+                if (rec && rec.blob) {
+                    if (!_imgUrlCache[type]) _imgUrlCache[type] = URL.createObjectURL(rec.blob);
+                    return _imgUrlCache[type];
+                }
             } catch (e) { }
-            return `assets/map_${type}.jpg`;
+            // 兜底：git 移除底图后会显示占位
+            return '';
         }
 
-        function removeMapImg(type) {
-            try { localStorage.removeItem(IMG_KEYS[type]); } catch (e) { }
+        async function hasMapImg(type) {
+            try { return !!(await dbGet(type)); } catch (e) { return false; }
         }
 
-        // 压缩图片：最长边缩到 maxSide，输出 JPEG dataURL
+        async function removeMapImg(type) {
+            await dbDelete(type);
+            if (_imgUrlCache[type]) {
+                URL.revokeObjectURL(_imgUrlCache[type]);
+                _imgUrlCache[type] = null;
+            }
+        }
+
+        // 压缩：canvas 缩到 maxSide 输出 JPEG Blob
         function compressImage(file, maxSide) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -1819,7 +1908,9 @@
                         canvas.width = width;
                         canvas.height = height;
                         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.85));
+                        canvas.toBlob(blob => {
+                            if (blob) resolve(blob); else reject(new Error('压缩失败'));
+                        }, 'image/jpeg', 0.85);
                     };
                     img.onerror = reject;
                     img.src = e.target.result;
@@ -1829,15 +1920,40 @@
             });
         }
 
-        async function uploadMapImg(type, file) {
+        async function uploadMapImg(type, file, opts) {
             try {
-                const dataUrl = await compressImage(file, 4096);
-                localStorage.setItem(IMG_KEYS[type], dataUrl);
-                return { ok: true };
-            } catch (e) {
-                if (e && e.name === 'QuotaExceededError') {
-                    return { ok: false, msg: '存储空间不足，请压缩图片后重试' };
+                let blob;
+                let note = '';
+                if (opts && opts.raw) {
+                    // 原图直存（IndexedDB 支持大文件，30MB 没问题）
+                    blob = file;
+                    note = '原图';
+                } else {
+                    const maxSide = (opts && opts.maxSide) || 4096;
+                    if (file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg')) {
+                        // JPEG 原图也缩一下（压缩体积）
+                        blob = await compressImage(file, maxSide);
+                        note = `缩到${maxSide}px`;
+                    } else {
+                        // PNG/WebP 等无损格式直接存
+                        blob = file;
+                        note = '原图';
+                    }
                 }
+                await dbPut(type, {
+                    blob,
+                    name: file.name,
+                    size: blob.size,
+                    uploadedAt: Date.now(),
+                    note
+                });
+                // 清除缓存，下次 getMapImgSrc 重新生成 URL
+                if (_imgUrlCache[type]) {
+                    URL.revokeObjectURL(_imgUrlCache[type]);
+                    _imgUrlCache[type] = null;
+                }
+                return { ok: true, size: blob.size, note };
+            } catch (e) {
                 return { ok: false, msg: e.message || '上传失败' };
             }
         }
@@ -2904,7 +3020,7 @@
             box.innerHTML = `
                 <div class="map-viewport" data-map="${type}">
                     <div class="map-canvas">
-                        <img src="${getMapImgSrc(type)}" alt="${label}卫星图" draggable="false">
+                        <img data-map-img="${type}" alt="${label}卫星图" draggable="false">
                         <div class="marker-layer" id="markers${type === 'recv' ? 'Recv' : 'Fen'}"></div>
                     </div>
                 </div>
@@ -2943,13 +3059,29 @@
             }
             applySlide(false);
 
-            // DOM 渲染完成后，给每种地图计算默认放大倍率
-            // 总览视图: defaultS=1 (cover 行为,拖拽可切换底图)
-            // single 视图: defaultS = cover/contain 比值 (contain 基础上放大到 cover 填满)
-            requestAnimationFrame(() => {
-                ['recv', 'fen'].forEach(type => {
+            // DOM 渲染完成后，给每种地图计算默认放大倍率 + 异步填充底图 src
+            requestAnimationFrame(async () => {
+                for (const type of ['recv', 'fen']) {
                     const box = track.querySelector(`.map-box[data-station="${type}"]`);
-                    if (!box) return;
+                    if (!box) continue;
+                    // 异步填充底图
+                    const img = box.querySelector('[data-map-img]');
+                    if (img) {
+                        const src = await getMapImgSrc(type);
+                        if (src) {
+                            img.src = src;
+                            img.style.display = '';
+                        } else {
+                            // 没有底图时显示占位提示
+                            img.style.display = 'none';
+                            if (!img.nextElementSibling?.classList.contains('map-placeholder')) {
+                                const ph = document.createElement('div');
+                                ph.className = 'map-placeholder';
+                                ph.innerHTML = `<b>未上传底图</b><span>点击右上角「底图」按钮上传卫星图</span>`;
+                                img.after(ph);
+                            }
+                        }
+                    }
                     const vp = box.querySelector('.map-viewport');
                     const defaultS = state.view === 'all' ? 1 : getMapDefaultScale(vp, type);
                     mapState[type].defaultS = defaultS;
@@ -2957,7 +3089,7 @@
                         mapState[type].s = defaultS;
                         applyMapTransform(vp, type);
                     }
-                });
+                }
             });
 
             ['recv', 'fen'].forEach(type => {
@@ -3191,28 +3323,31 @@
 
         /* ---- 底图上传抽屉 ---- */
         let mapImgDrawerOpen = false;
-        function renderMapImgDrawer() {
+        async function renderMapImgDrawer() {
             const drawer = document.getElementById('mapImgDrawer');
             if (!mapImgDrawerOpen) {
                 drawer.classList.remove('show');
                 drawer.innerHTML = '';
                 return;
             }
-            const cards = ['recv', 'fen'].map(type => {
+            const cards = await Promise.all(['recv', 'fen'].map(async (type) => {
                 const label = type === 'recv' ? '接收站' : '分输站';
-                const hasCustom = !!localStorage.getItem(IMG_KEYS[type]);
-                const src = getMapImgSrc(type);
+                const record = await dbGet(type);
+                const src = record ? await getMapImgSrc(type) : '';
+                const size = record ? (record.size / 1024 / 1024).toFixed(1) : 0;
                 return `<div class="ez-group">
                     <div class="ez-title">${label}</div>
-                    <div class="mi-preview"><img src="${src}" alt="${label}底图" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="mi-fallback" style="display:none">默认底图</span></div>
+                    <div class="mi-preview">
+                        ${src ? `<img src="${src}" alt="${label}底图">` : '<span class="mi-fallback">未上传</span>'}
+                    </div>
                     <div class="mi-row">
                         <label class="mi-btn">上传PNG/JPG<input type="file" accept="image/*" data-type="${type}" hidden></label>
-                        ${hasCustom ? `<button class="mi-del" data-type="${type}">恢复默认</button>` : '<span class="mi-state">当前: 默认底图</span>'}
+                        ${record ? `<button class="mi-del" data-type="${type}">删除</button>` : '<span class="mi-state">—</span>'}
                     </div>
-                    ${hasCustom ? '<div class="mi-state mi-custom">当前: 自定义底图（本地存储）</div>' : ''}
+                    ${record ? `<div class="mi-state mi-custom">已上传 ${size}MB · ${record.note || '原图'}</div>` : '<div class="mi-state mi-empty">未上传底图</div>'}
                 </div>`;
-            }).join('');
-            drawer.innerHTML = `<div class="ez-head"><b>底图管理</b><span>上传后存浏览器本地,无需提交 git;最长边自动缩到4096px</span><button id="imgDone">完成</button></div>${cards}`;
+            }));
+            drawer.innerHTML = `<div class="ez-head"><b>底图管理</b><span>存浏览器IndexedDB,无需git提交;支持原图30MB+,JPEG默认缩到4096px</span><button id="imgDone">完成</button></div>${cards.join('')}`;
             drawer.classList.add('show');
         }
 
