@@ -1597,7 +1597,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.7.3</span>
+                    <span class="ver">V5.7.4</span>
                 </div>
             </div>
 
@@ -3129,16 +3129,18 @@
                 st.x = 0;
                 st.y = 0;
             } else {
-                // transform-origin: center center 边界推导:
-                // 左边缘 = w*(1-s)/2 + x ≥ 0 → x ≥ w*(s-1)/2  下界(正数)
-                // 右边缘 = w*(1+s)/2 + x ≤ w → x ≤ w*(1-s)/2  上界(负数)
-                // 约束 x ∈ [w*(s-1)/2, w*(1-s)/2]
-                const minX = w * (st.s - 1) / 2;
-                const maxX = w * (1 - st.s) / 2;
-                const minY = h * (st.s - 1) / 2;
-                const maxY = h * (1 - st.s) / 2;
-                st.x = Math.min(maxX, Math.max(minX, st.x));
-                st.y = Math.min(maxY, Math.max(minY, st.y));
+                // transform-origin: center center, s>1 放大态:
+                // 画布比视口大, 边缘必须在视口外(保证视口始终被覆盖, 不留空白)
+                // 画布中心 = (w/2 + x, h/2 + y), 画布半宽 = w*s/2
+                // 左边缘 ≤ 0 → w/2+x-w*s/2 ≤ 0 → x ≤ w*(s-1)/2  (上界,正数)
+                // 右边缘 ≥ w → w/2+x+w*s/2 ≥ w → x ≥ w*(1-s)/2  (下界,负数)
+                // 范围 x ∈ [w*(1-s)/2, w*(s-1)/2]
+                const lowerX = w * (1 - st.s) / 2;
+                const upperX = w * (st.s - 1) / 2;
+                const lowerY = h * (1 - st.s) / 2;
+                const upperY = h * (st.s - 1) / 2;
+                st.x = Math.min(upperX, Math.max(lowerX, st.x));
+                st.y = Math.min(upperY, Math.max(lowerY, st.y));
             }
         }
 
