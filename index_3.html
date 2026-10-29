@@ -55,6 +55,7 @@
             flex: 0 0 auto;
             width: 1920px;
             height: 1080px;
+            transform: scale(min(calc(100vw / 1920px), calc(100vh / 1080px)));
             transform-origin: center center;
             display: flex;
             flex-direction: column;
@@ -563,20 +564,42 @@
             box-shadow: inset 0 0 42px rgba(59, 210, 255, 0.07);
         }
 
+        .map-viewport {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            cursor: grab;
+            touch-action: none;
+        }
+
+        .map-viewport.dragging {
+            cursor: grabbing;
+        }
+
         .map-canvas {
             position: absolute;
             inset: 0;
+            transform-origin: 0 0;
+            will-change: transform;
             background-image:
                 linear-gradient(rgba(59, 210, 255, 0.075) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(59, 210, 255, 0.075) 1px, transparent 1px);
             background-size: 38px 38px;
         }
 
-        .map-canvas::before {
-            content: '';
+        .map-canvas img {
             position: absolute;
             inset: 0;
-            background: radial-gradient(circle at 50% 54%, rgba(59, 210, 255, 0.13), transparent 58%);
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .marker-layer {
+            position: absolute;
+            inset: 0;
         }
 
         .map-canvas svg {
@@ -584,6 +607,10 @@
             inset: 0;
             width: 100%;
             height: 100%;
+        }
+
+        .marker-layer {
+            z-index: 2;
         }
 
         .map-top {
@@ -680,7 +707,8 @@
         .marker {
             position: absolute;
             z-index: 3;
-            transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%) scale(calc(1 / var(--mz, 1)));
+            transform-origin: center 60%;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -1164,6 +1192,157 @@
             letter-spacing: 2px;
         }
 
+        /* ================= 点位编辑 ================= */
+        .map-box.map-edit .map-viewport {
+            cursor: crosshair;
+        }
+
+        .map-unplaced {
+            color: var(--amber);
+        }
+
+        .edit-drawer {
+            position: absolute;
+            top: 82px;
+            right: 12px;
+            bottom: 12px;
+            z-index: 55;
+            width: 264px;
+            display: none;
+            flex-direction: column;
+            background: linear-gradient(180deg, rgba(10, 35, 64, 0.96), rgba(4, 15, 30, 0.97));
+            border: 1px solid rgba(64, 196, 255, 0.5);
+            overflow-y: auto;
+        }
+
+        .edit-drawer.show {
+            display: flex;
+        }
+
+        .edit-drawer::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .edit-drawer::-webkit-scrollbar-thumb {
+            background: rgba(59, 210, 255, 0.3);
+        }
+
+        .ez-head {
+            flex: 0 0 auto;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(59, 210, 255, 0.18);
+        }
+
+        .ez-head b {
+            display: block;
+            font-size: 14px;
+            letter-spacing: 2px;
+            color: #eafcff;
+        }
+
+        .ez-head span {
+            display: block;
+            margin: 4px 0 8px;
+            font-size: 10.5px;
+            color: var(--muted);
+        }
+
+        .ez-head button {
+            width: 100%;
+            padding: 5px;
+            font-family: inherit;
+            font-weight: 700;
+            color: #03121e;
+            background: linear-gradient(180deg, #8feaff, #3bd2ff);
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .ez-group {
+            padding: 8px 12px;
+        }
+
+        .ez-title {
+            margin-bottom: 6px;
+            font-size: 12px;
+            letter-spacing: 2px;
+            color: #7fc9e8;
+        }
+
+        .ez-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 3px;
+            padding: 5px 8px;
+            font-size: 12px;
+            color: #cfe6f2;
+            border: 1px solid rgba(59, 210, 255, 0.14);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .ez-row:hover {
+            border-color: rgba(59, 210, 255, 0.45);
+        }
+
+        .ez-row.placed .ez-state {
+            color: var(--green);
+        }
+
+        .ez-row.placing {
+            border-color: var(--amber);
+            background: rgba(255, 198, 88, 0.08);
+        }
+
+        .ez-row.placing .ez-state {
+            color: var(--amber);
+        }
+
+        .ez-name {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .ez-state {
+            font-size: 10.5px;
+            color: var(--muted);
+        }
+
+        .ez-clear {
+            width: 18px;
+            height: 18px;
+            font-size: 12px;
+            line-height: 1;
+            color: #ff8a94;
+            background: none;
+            border: 1px solid rgba(255, 95, 109, 0.4);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .ez-none {
+            padding: 4px 0;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .sys-link.as-btn {
+            font-family: inherit;
+            background: none;
+            cursor: pointer;
+        }
+
+        .sys-link.as-btn.on {
+            font-weight: 700;
+            color: #03121e;
+            background: linear-gradient(180deg, #8feaff, #3bd2ff);
+        }
+
         @media (max-width: 1440px) {
             #stage {
                 padding: 8px 10px 12px;
@@ -1233,12 +1412,13 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">v5.6</span>
+                    <span class="ver">v5.6 · b1029</span>
                 </div>
                 <span class="sync" id="syncText"></span>
             </div>
 
             <div class="top-right">
+                <button class="sys-link as-btn" id="mapEditBtn" type="button">点位</button>
                 <a class="sys-link" href="index_1.html">福建LNG</a>
                 <div class="clock">
                     <b id="clockTime">00:00:00</b>
@@ -1297,7 +1477,7 @@
                     <div class="panel-head">
                         <span class="bar"></span>
                         <h2 id="mapTitle">厂区分布</h2>
-                        <span class="hint" id="mapHint">俯视图待补充 · 占位示意</span>
+                        <span class="hint" id="mapHint">卫星图 · 滚轮缩放 / 拖拽平移 / 双击复位</span>
                     </div>
                     <div class="panel-body">
                         <div class="map-grid" id="mapGrid"></div>
@@ -1363,6 +1543,8 @@
                 </div>
             </div>
         </div>
+
+        <div class="edit-drawer" id="editDrawer"></div>
 
         <div class="modal-mask" id="modalMask">
             <div class="modal">
@@ -1430,10 +1612,22 @@
             };
         }
 
-        // 俯视图点位配置：x / y 为 0~1 的相对坐标；后续拿到俯视图后在此补充
-        // 例：{ name: '工艺区', x: 0.42, y: 0.55 }
-        const HOTSPOTS_RECV = [];
-        const HOTSPOTS_FEN = [];
+        /* ================= 点位存储（localStorage 持久化，由点位编辑模式写入） ================= */
+        function getMapSpots() {
+            try {
+                const data = JSON.parse(localStorage.getItem('defectMapSpots_v1'));
+                if (data && typeof data === 'object') return { recv: data.recv || {}, fen: data.fen || {} };
+            } catch (e) { }
+            return { recv: {}, fen: {} };
+        }
+
+        function saveMapSpots(spots) {
+            localStorage.setItem('defectMapSpots_v1', JSON.stringify(spots));
+        }
+
+        const mapState = { recv: { s: 1, x: 0, y: 0 }, fen: { s: 1, x: 0, y: 0 } };
+        const mapEdit = { active: false, pending: null };
+        let mapSuppressClick = false;
 
         const state = {
             view: 'all',
@@ -2456,95 +2650,226 @@
             }).join('')}</div>`;
         }
 
-        /* ================= 厂区占位图 ================= */
-        let mapBuilt = false;
-
-        function buildMapGrid() {
-            const svg = `<svg viewBox="0 0 680 400" preserveAspectRatio="none">
-                <path d="M62 300 L54 196 L128 122 L262 94 L412 106 L524 152 L616 232 L596 312 L470 358 L300 366 L150 342 Z"
-                    fill="rgba(59,210,255,.06)" stroke="rgba(59,210,255,.5)" stroke-width="1.2"
-                    stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>
-                <path d="M140 250 L250 232 L360 248 L470 226" fill="none"
-                    stroke="rgba(59,210,255,.3)" stroke-width="1" vector-effect="non-scaling-stroke"/>
-                <path d="M210 150 L330 168 L456 148" fill="none"
-                    stroke="rgba(59,210,255,.3)" stroke-width="1" vector-effect="non-scaling-stroke"/>
-                <circle cx="340" cy="250" r="46" fill="none" stroke="rgba(59,210,255,.18)"
-                    stroke-dasharray="3 6" vector-effect="non-scaling-stroke"/>
-            </svg>`;
-
-            function boxHTML(station, label) {
-                return `<div class="map-box" data-station="${station}">
+        /* ================= 卫星底图 + 点位 ================= */
+        function buildMapBox(type) {
+            const label = type === 'recv' ? '接收站' : '分输站';
+            const box = document.createElement('div');
+            box.className = 'map-box' + (mapEdit.active ? ' map-edit' : '');
+            box.dataset.station = type;
+            box.innerHTML = `
+                <div class="map-viewport" data-map="${type}">
                     <div class="map-canvas">
-                        ${svg}
-                        <div class="map-empty"><b>${label}</b>俯视图待接入</div>
-                        <div id="markers${station === 'recv' ? 'Recv' : 'Fen'}"></div>
+                        <img src="assets/map_${type}.jpg" alt="${label}卫星图" draggable="false">
+                        <div class="marker-layer" id="markers${type === 'recv' ? 'Recv' : 'Fen'}"></div>
                     </div>
-                    <div class="map-top">
-                        <span class="map-name"><i></i>${label}</span>
-                        <span class="map-stats">待消缺<b id="${station}Pending">0</b>Ⅰ类<b id="${station}ClassI">0</b></span>
-                    </div>
-                    <div class="map-foot">点位配置：HOTSPOTS_${station.toUpperCase()}</div>
-                </div>`;
-            }
-
-            document.getElementById('mapGrid').innerHTML =
-                boxHTML('recv', '接收站') + boxHTML('fen', '分输站');
-            mapBuilt = true;
-        }
-
-        function renderMarkers(containerId, hotspots, rows) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-
-            if (!hotspots.length) {
-                const ghosts = [[0.24, 0.36], [0.38, 0.26], [0.55, 0.34], [0.68, 0.5], [0.46, 0.58], [0.3, 0.66]];
-                container.innerHTML = ghosts.map((p, i) => `
-                    <span class="ghost-dot" style="left:${p[0] * 100}%;top:${p[1] * 100}%;animation-delay:${i * 0.4}s"></span>
-                `).join('');
-                return;
-            }
-
-            const zonePending = {};
-            rows.forEach(row => {
-                if (row.status !== '待消缺项目') return;
-                const zone = getZone(row);
-                zonePending[zone] = (zonePending[zone] || 0) + 1;
-            });
-
-            container.innerHTML = hotspots.map(spot => {
-                const count = zonePending[spot.name] || 0;
-                return `<div class="marker${count ? ' alert' : ''}" data-zone="${spot.name}" style="left:${spot.x * 100}%;top:${spot.y * 100}%">
-                    <i></i><span>${spot.name}${count ? ' · ' + count : ''}</span>
-                </div>`;
-            }).join('');
+                </div>
+                <div class="map-top">
+                    <span class="map-name"><i></i>${label}</span>
+                    <span class="map-stats">待消缺<b id="${type}Pending">0</b>Ⅰ类<b id="${type}ClassI">0</b></span>
+                </div>
+                <div class="map-foot">滚轮缩放 / 拖拽平移 / 双击复位<span class="map-unplaced" id="${type}Unplaced"></span></div>`;
+            const vp = box.querySelector('.map-viewport');
+            bindMapInteractions(vp, type);
+            applyMapTransform(vp, type);
+            return box;
         }
 
         function renderMaps() {
-            if (!mapBuilt) buildMapGrid();
+            const grid = document.getElementById('mapGrid');
+            grid.classList.toggle('single', state.view !== 'all');
+            grid.innerHTML = '';
+            if (state.view === 'all' || state.view === 'recv') {
+                grid.appendChild(buildMapBox('recv'));
+                renderMarkers('recv');
+            }
+            if (state.view === 'all' || state.view === 'fen') {
+                grid.appendChild(buildMapBox('fen'));
+                renderMarkers('fen');
+            }
 
-            const recvRows = state.allRows.filter(row => getStationType(getId(row)) === 'recv');
-            const fenRows = state.allRows.filter(row => getStationType(getId(row)) === 'fen');
-
-            function stationStats(rows) {
+            ['recv', 'fen'].forEach(type => {
                 let pending = 0;
                 let classI = 0;
-                rows.forEach(row => {
+                state.allRows.forEach(row => {
+                    if (getStationType(getId(row)) !== type) return;
                     if (row.status !== '待消缺项目') return;
                     pending++;
                     if (isClassIScopeRow(row)) classI++;
                 });
-                return { pending, classI };
+                const pEl = document.getElementById(type + 'Pending');
+                const cEl = document.getElementById(type + 'ClassI');
+                if (pEl) pEl.textContent = pending;
+                if (cEl) cEl.textContent = classI;
+            });
+
+            if (mapEdit.active) renderEditDrawer();
+        }
+
+        function renderMarkers(type) {
+            const container = document.getElementById(type === 'recv' ? 'markersRecv' : 'markersFen');
+            if (!container) return;
+            const zonePending = {};
+            const zoneAll = {};
+            state.allRows.forEach(row => {
+                if (getStationType(getId(row)) !== type) return;
+                const zone = getZone(row);
+                zoneAll[zone] = true;
+                if (row.status === '待消缺项目') zonePending[zone] = (zonePending[zone] || 0) + 1;
+            });
+            const spots = getMapSpots()[type];
+            container.innerHTML = Object.keys(spots).filter(z => zoneAll[z]).map(z => {
+                const count = zonePending[z] || 0;
+                return `<div class="marker${count ? ' alert' : ''}" data-zone="${z}" style="left:${spots[z].x * 100}%;top:${spots[z].y * 100}%">
+                    <i></i><span>${z}${count ? ' · ' + count : ''}</span>
+                </div>`;
+            }).join('');
+            const unplaced = Object.keys(zoneAll).filter(z => !spots[z]).length;
+            const el = document.getElementById(type + 'Unplaced');
+            if (el) el.textContent = unplaced ? ` · ${unplaced}个区域未定位` : '';
+        }
+
+        /* ---- 缩放 / 平移 ---- */
+        function applyMapTransform(vp, type) {
+            const st = mapState[type];
+            const canvas = vp.querySelector('.map-canvas');
+            canvas.style.transform = `translate(${st.x}px, ${st.y}px) scale(${st.s})`;
+            canvas.style.setProperty('--mz', st.s);
+        }
+
+        function clampMap(vp, type) {
+            const st = mapState[type];
+            const w = vp.clientWidth;
+            const h = vp.clientHeight;
+            st.s = Math.min(5, Math.max(1, st.s));
+            st.x = Math.min(0, Math.max(w - w * st.s, st.x));
+            st.y = Math.min(0, Math.max(h - h * st.s, st.y));
+        }
+
+        function bindMapInteractions(vp, type) {
+            let drag = null;
+
+            vp.addEventListener('wheel', function (e) {
+                e.preventDefault();
+                const rect = vp.getBoundingClientRect();
+                const ks = rect.width / vp.offsetWidth || 1;
+                const cx = (e.clientX - rect.left) / ks;
+                const cy = (e.clientY - rect.top) / ks;
+                const st = mapState[type];
+                const ns = Math.min(5, Math.max(1, st.s * (e.deltaY < 0 ? 1.18 : 1 / 1.18)));
+                st.x = cx - (cx - st.x) * (ns / st.s);
+                st.y = cy - (cy - st.y) * (ns / st.s);
+                st.s = ns;
+                clampMap(vp, type);
+                applyMapTransform(vp, type);
+            }, { passive: false });
+
+            vp.addEventListener('pointerdown', function (e) {
+                if (e.button !== 0) return;
+                const marker = mapEdit.active ? e.target.closest('.marker') : null;
+                drag = { x0: e.clientX, y0: e.clientY, lx: e.clientX, ly: e.clientY, moved: false, marker, spots: null, spot: null };
+                if (marker) {
+                    drag.spots = getMapSpots();
+                    drag.spot = drag.spots[type][marker.dataset.zone] || null;
+                }
+                vp.setPointerCapture(e.pointerId);
+                vp.classList.add('dragging');
+            });
+
+            vp.addEventListener('pointermove', function (e) {
+                if (!drag) return;
+                const ks = vp.getBoundingClientRect().width / vp.offsetWidth || 1;
+                const dx = (e.clientX - drag.lx) / ks;
+                const dy = (e.clientY - drag.ly) / ks;
+                drag.lx = e.clientX;
+                drag.ly = e.clientY;
+                if (Math.abs(e.clientX - drag.x0) + Math.abs(e.clientY - drag.y0) > 5) drag.moved = true;
+
+                if (drag.marker && drag.spot) {
+                    drag.spot.x = Math.min(1, Math.max(0, drag.spot.x + dx / vp.offsetWidth));
+                    drag.spot.y = Math.min(1, Math.max(0, drag.spot.y + dy / vp.offsetHeight));
+                    drag.marker.style.left = drag.spot.x * 100 + '%';
+                    drag.marker.style.top = drag.spot.y * 100 + '%';
+                    return;
+                }
+
+                const st = mapState[type];
+                st.x += dx;
+                st.y += dy;
+                clampMap(vp, type);
+                applyMapTransform(vp, type);
+            });
+
+            vp.addEventListener('pointerup', function (e) {
+                vp.classList.remove('dragging');
+                if (!drag) return;
+                if (drag.marker && drag.moved && drag.spots) saveMapSpots(drag.spots);
+                if (drag.moved) {
+                    mapSuppressClick = true;
+                    setTimeout(() => { mapSuppressClick = false; }, 60);
+                }
+                drag = null;
+            });
+
+            vp.closest('.map-box').addEventListener('click', function (e) {
+                if (mapSuppressClick) return;
+                if (!mapEdit.active || !mapEdit.pending || mapEdit.pending.type !== type) return;
+                const rect = vp.querySelector('.map-canvas').getBoundingClientRect();
+                const fx = (e.clientX - rect.left) / rect.width;
+                const fy = (e.clientY - rect.top) / rect.height;
+                if (fx < 0 || fx > 1 || fy < 0 || fy > 1) return;
+                const spots = getMapSpots();
+                spots[type][mapEdit.pending.zone] = { x: +fx.toFixed(4), y: +fy.toFixed(4) };
+                saveMapSpots(spots);
+                mapEdit.pending = null;
+                renderMaps();
+                renderEditDrawer();
+            });
+
+            vp.addEventListener('dblclick', function () {
+                mapState[type] = { s: 1, x: 0, y: 0 };
+                applyMapTransform(vp, type);
+            });
+        }
+
+        /* ---- 点位编辑抽屉 ---- */
+        function renderEditDrawer() {
+            const drawer = document.getElementById('editDrawer');
+            if (!mapEdit.active) {
+                drawer.classList.remove('show');
+                drawer.innerHTML = '';
+                return;
             }
+            const spots = getMapSpots();
+            const groups = [];
+            ['recv', 'fen'].forEach(type => {
+                if (state.view !== 'all' && state.view !== type) return;
+                const label = type === 'recv' ? '接收站 · 所属岗位' : '分输站 · 站点';
+                const zoneSet = {};
+                state.allRows.forEach(row => {
+                    if (getStationType(getId(row)) === type) zoneSet[getZone(row)] = true;
+                });
+                const zones = Object.keys(zoneSet).sort();
+                const rowsHtml = zones.map(z => {
+                    const placed = !!spots[type][z];
+                    const placing = mapEdit.pending && mapEdit.pending.zone === z;
+                    return `<div class="ez-row${placed ? ' placed' : ''}${placing ? ' placing' : ''}" data-type="${type}" data-zone="${z}">
+                        <span class="ez-name">${z}</span>
+                        <span class="ez-state">${placing ? '点击底图落点' : (placed ? '已定位' : '未定位')}</span>
+                        ${placed ? `<button class="ez-clear" data-type="${type}" data-zone="${z}" title="清除位置">×</button>` : ''}
+                    </div>`;
+                }).join('');
+                groups.push(`<div class="ez-group"><div class="ez-title">${label}</div>${rowsHtml || '<div class="ez-none">暂无数据</div>'}</div>`);
+            });
+            drawer.innerHTML = `<div class="ez-head"><b>点位编辑</b><span>点区域名称 → 在对应底图上点击落点；拖动点位可微调</span><button id="editDone">完成</button></div>${groups.join('')}`;
+            drawer.classList.add('show');
+        }
 
-            const recvStats = stationStats(recvRows);
-            const fenStats = stationStats(fenRows);
-            document.getElementById('recvPending').textContent = recvStats.pending;
-            document.getElementById('recvClassI').textContent = recvStats.classI;
-            document.getElementById('fenPending').textContent = fenStats.pending;
-            document.getElementById('fenClassI').textContent = fenStats.classI;
-
-            renderMarkers('markersRecv', HOTSPOTS_RECV, recvRows);
-            renderMarkers('markersFen', HOTSPOTS_FEN, fenRows);
+        function toggleMapEdit() {
+            mapEdit.active = !mapEdit.active;
+            mapEdit.pending = null;
+            document.getElementById('mapEditBtn').classList.toggle('on', mapEdit.active);
+            renderMaps();
+            renderEditDrawer();
         }
 
         /* ================= 弹窗与交互 ================= */
@@ -2695,7 +3020,9 @@
                 if (e.target === this) closeModal();
             });
             document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') closeModal();
+                if (e.key !== 'Escape') return;
+                closeModal();
+                if (mapEdit.active) toggleMapEdit();
             });
 
             document.getElementById('kpiGrid').addEventListener('click', function (e) {
@@ -2720,11 +3047,38 @@
             });
 
             document.getElementById('mapGrid').addEventListener('click', function (e) {
+                if (mapEdit.active || mapSuppressClick) return;
                 const marker = e.target.closest('.marker');
                 if (!marker || !marker.dataset.zone) return;
-                openModal(`${marker.dataset.zone} · 待消缺缺陷`, state.rows.filter(r =>
-                    r.status === '待消缺项目' && getZone(r) === marker.dataset.zone
+                const box = marker.closest('.map-box');
+                const type = box ? box.dataset.station : null;
+                openModal(`${marker.dataset.zone} · 待消缺缺陷`, state.allRows.filter(r =>
+                    r.status === '待消缺项目' && getZone(r) === marker.dataset.zone &&
+                    (!type || getStationType(getId(r)) === type)
                 ));
+            });
+
+            document.getElementById('mapEditBtn').addEventListener('click', toggleMapEdit);
+
+            document.getElementById('editDrawer').addEventListener('click', function (e) {
+                if (e.target.id === 'editDone') {
+                    toggleMapEdit();
+                    return;
+                }
+                const clear = e.target.closest('.ez-clear');
+                if (clear) {
+                    const spots = getMapSpots();
+                    delete spots[clear.dataset.type][clear.dataset.zone];
+                    saveMapSpots(spots);
+                    renderMaps();
+                    renderEditDrawer();
+                    return;
+                }
+                const row = e.target.closest('.ez-row');
+                if (row) {
+                    mapEdit.pending = { type: row.dataset.type, zone: row.dataset.zone };
+                    renderEditDrawer();
+                }
             });
 
             window.addEventListener('hashchange', function () {
