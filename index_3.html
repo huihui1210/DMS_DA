@@ -667,8 +667,7 @@
             inset: 0;
             width: 100%;
             height: 100%;
-            object-fit: contain;
-            object-position: center;
+            object-fit: cover;
             user-select: none;
             -webkit-user-drag: none;
         }
@@ -789,6 +788,8 @@
             flex-direction: column;
             align-items: center;
             gap: 4px;
+            cursor: pointer;
+            pointer-events: auto;
         }
 
         .marker i {
@@ -1498,7 +1499,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.6.2</span>
+                    <span class="ver">V5.6.3</span>
                 </div>
             </div>
 
@@ -2958,17 +2959,6 @@
 
             vp.closest('.map-box').addEventListener('click', function (e) {
                 if (mapSuppressClick) return;
-                // 非编辑模式：点击 marker 显示该区域缺陷记录
-                const markerEl = e.target.closest('.marker');
-                if (markerEl && !mapEdit.active) {
-                    const zone = markerEl.dataset.zone;
-                    const rows = state.allRows.filter(r =>
-                        getZone(r) === zone && getStationType(getId(r)) === type
-                    );
-                    const label = type === 'recv' ? '接收站' : '分输站';
-                    openModal(`${label} · ${zone}`, rows);
-                    return;
-                }
                 if (!mapEdit.active || !mapEdit.pending || mapEdit.pending.type !== type) return;
                 const rect = vp.querySelector('.map-canvas').getBoundingClientRect();
                 const fx = (e.clientX - rect.left) / rect.width;
@@ -3214,10 +3204,12 @@
                 if (!marker || !marker.dataset.zone) return;
                 const box = marker.closest('.map-box');
                 const type = box ? box.dataset.station : null;
-                openModal(`${marker.dataset.zone} · 待消缺缺陷`, state.allRows.filter(r =>
-                    r.status === '待消缺项目' && getZone(r) === marker.dataset.zone &&
+                const label = type === 'recv' ? '接收站' : (type === 'fen' ? '分输站' : '');
+                const rows = state.allRows.filter(r =>
+                    getZone(r) === marker.dataset.zone &&
                     (!type || getStationType(getId(r)) === type)
-                ));
+                );
+                openModal(`${label}${label ? ' · ' : ''}${marker.dataset.zone}`, rows);
             });
 
             document.getElementById('mapEditBtn').addEventListener('click', toggleMapEdit);
