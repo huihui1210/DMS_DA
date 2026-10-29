@@ -1597,7 +1597,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.7.1</span>
+                    <span class="ver">V5.7.2</span>
                 </div>
             </div>
 
@@ -1926,6 +1926,7 @@
         const mapState = { recv: { s: 1, x: 0, y: 0 }, fen: { s: 1, x: 0, y: 0 } };
         const mapEdit = { active: false, pending: null };
         let mapSuppressClick = false;
+        let drag = null; // 模块级，visibilitychange 兜底能访问
 
         const state = {
             view: 'all',
@@ -2303,6 +2304,17 @@
         window.addEventListener('load', fitStage);
         if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitStage);
         setTimeout(fitStage, 500);
+
+        // 全局兜底: 页面隐藏时释放所有指针捕获,防止"一直在滑"的 bug
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) {
+                document.querySelectorAll('.map-viewport.dragging').forEach(vp => {
+                    vp.classList.remove('dragging');
+                    try { vp.releasePointerCapture(); } catch (err) { }
+                });
+                drag = null;
+            }
+        });
 
         /* ================= 统计口径（与 index_1 一致） ================= */
         function calculateMonthlyStats(rows) {
@@ -3125,7 +3137,7 @@
         }
 
         function bindMapInteractions(vp, type) {
-            let drag = null;
+            // drag 使用模块级变量（visibilitychange 兜底需要访问）
 
             vp.addEventListener('wheel', function (e) {
                 e.preventDefault();
@@ -3194,6 +3206,7 @@
 
             vp.addEventListener('pointerup', function (e) {
                 vp.classList.remove('dragging');
+                try { vp.releasePointerCapture(e.pointerId); } catch (err) { }
                 if (!drag) return;
                 if (drag.marker && drag.moved && drag.spots) saveMapSpots(drag.spots);
                 if (!drag.marker && state.view === 'all' && !mapEdit.active && drag.slideDx) {
@@ -3207,6 +3220,13 @@
                     mapSuppressClick = true;
                     setTimeout(() => { mapSuppressClick = false; }, 60);
                 }
+                drag = null;
+            });
+
+            // pointercancel: 切标签页、窗口失焦、触控笔离开、系统手势中断
+            vp.addEventListener('pointercancel', function (e) {
+                vp.classList.remove('dragging');
+                try { vp.releasePointerCapture(e.pointerId); } catch (err) { }
                 drag = null;
             });
 
