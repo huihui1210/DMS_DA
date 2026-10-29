@@ -98,7 +98,7 @@
         .top {
             position: relative;
             z-index: 3;
-            flex: 0 0 58px;
+            flex: 0 0 70px;
             display: grid;
             grid-template-columns: 1fr auto 1fr;
             align-items: center;
@@ -113,7 +113,7 @@
             bottom: 0;
             height: 1px;
             background: linear-gradient(90deg, transparent, rgba(59, 210, 255, 0.9), transparent);
-            box-shadow: 0 0 14px rgba(59, 210, 255, 0.55);
+            box-shadow: 0 0 10px rgba(59, 210, 255, 0.35);
         }
 
         .brand {
@@ -134,7 +134,7 @@
         .title-row::before,
         .title-row::after {
             content: '';
-            width: 56px;
+            width: 84px;
             height: 1px;
             flex-shrink: 0;
             background: linear-gradient(90deg, transparent, rgba(59, 210, 255, 0.95));
@@ -145,19 +145,19 @@
         }
 
         .brand h1 {
-            font-size: 25px;
+            font-size: 34px;
             font-weight: 700;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
             white-space: nowrap;
             background: linear-gradient(180deg, #f4fdff, #8fe6ff 62%, #3bd2ff);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            filter: drop-shadow(0 0 14px rgba(59, 210, 255, 0.4));
+            filter: drop-shadow(0 0 10px rgba(59, 210, 255, 0.28));
         }
 
         .brand .ver {
-            font-size: 12px;
+            font-size: 13px;
             color: #8feaff;
             border: 1px solid rgba(59, 210, 255, 0.5);
             box-shadow: 0 0 8px rgba(59, 210, 255, 0.25), inset 0 0 6px rgba(59, 210, 255, 0.12);
@@ -168,7 +168,7 @@
         }
 
         .brand .sync {
-            font-size: 11px;
+            font-size: 12px;
             letter-spacing: 1px;
             color: var(--muted);
             white-space: nowrap;
@@ -210,7 +210,7 @@
             color: #03121e;
             font-weight: 700;
             background: linear-gradient(180deg, #8feaff, #3bd2ff);
-            box-shadow: 0 0 22px rgba(59, 210, 255, 0.65), 0 0 4px rgba(59, 210, 255, 0.9);
+            box-shadow: 0 0 14px rgba(59, 210, 255, 0.45);
         }
 
         .top-right {
@@ -232,7 +232,7 @@
             font-size: 23px;
             letter-spacing: 2px;
             color: #f2fbff;
-            text-shadow: 0 0 12px rgba(59, 210, 255, 0.5);
+            text-shadow: 0 0 10px rgba(59, 210, 255, 0.35);
             font-variant-numeric: tabular-nums;
         }
 
@@ -285,7 +285,7 @@
         }
 
         .col-center {
-            grid-template-rows: 44px 452px minmax(0, 1fr);
+            grid-template-rows: 44px 556px minmax(0, 1fr);
         }
 
         .col-right {
@@ -302,7 +302,7 @@
             border: 1px solid rgba(59, 210, 255, 0.3);
             border-radius: 3px;
             background: linear-gradient(180deg, rgba(10, 35, 64, 0.6), rgba(4, 15, 30, 0.68));
-            box-shadow: 0 0 22px rgba(30, 120, 220, 0.14), inset 0 0 46px rgba(59, 210, 255, 0.07);
+            box-shadow: 0 0 16px rgba(30, 120, 220, 0.1), inset 0 0 40px rgba(59, 210, 255, 0.05);
         }
 
         .panel::before,
@@ -314,7 +314,7 @@
             height: 15px;
             pointer-events: none;
             background-repeat: no-repeat;
-            filter: drop-shadow(0 0 4px rgba(59, 210, 255, 0.85));
+            filter: drop-shadow(0 0 4px rgba(59, 210, 255, 0.5));
         }
 
         .panel::before {
@@ -361,7 +361,7 @@
             font-weight: 600;
             letter-spacing: 2px;
             color: #eafcff;
-            text-shadow: 0 0 10px rgba(59, 210, 255, 0.45);
+            text-shadow: 0 0 8px rgba(59, 210, 255, 0.3);
             white-space: nowrap;
         }
 
@@ -427,7 +427,7 @@
             font-weight: 700;
             line-height: 1;
             color: currentColor;
-            text-shadow: 0 0 14px currentColor;
+            text-shadow: 0 0 9px currentColor;
             font-variant-numeric: tabular-nums;
         }
 
@@ -1007,11 +1007,11 @@
                 padding: 8px 10px 12px;
             }
             .brand h1 {
-                font-size: 21px;
+                font-size: 28px;
             }
             .title-row::before,
             .title-row::after {
-                width: 34px;
+                width: 56px;
             }
         }
 
@@ -1021,8 +1021,8 @@
                 gap: 8px;
             }
             .brand h1 {
-                font-size: 19px;
-                letter-spacing: 1px;
+                font-size: 24px;
+                letter-spacing: 2px;
             }
             .title-row::before,
             .title-row::after {
@@ -1204,6 +1204,30 @@
         };
         const PERIOD_LABELS = { yesterday: '昨日', week: '本周', month: '本月', year: '今年' };
 
+        // 柱状图多彩渐变配色（深海科技蓝色系为主）
+        const BAR_PALETTE = [
+            ['rgba(16,110,170,.95)', '#54e0ff'],
+            ['rgba(63,78,196,.95)', '#8aa4ff'],
+            ['rgba(12,132,116,.95)', '#41e0a4'],
+            ['rgba(150,102,22,.95)', '#ffc658'],
+            ['rgba(96,66,186,.95)', '#bda2ff'],
+            ['rgba(172,66,86,.95)', '#ff93a0'],
+            ['rgba(16,132,150,.95)', '#4fe6d8'],
+            ['rgba(34,116,66,.95)', '#7ee6a0']
+        ];
+        function barStyle(idx) {
+            const pair = BAR_PALETTE[idx % BAR_PALETTE.length];
+            return {
+                borderRadius: 2,
+                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                    { offset: 0, color: pair[0] },
+                    { offset: 1, color: pair[1] }
+                ]),
+                shadowColor: pair[1],
+                shadowBlur: 7
+            };
+        }
+
         // 俯视图点位配置：x / y 为 0~1 的相对坐标；后续拿到俯视图后在此补充
         // 例：{ name: '工艺区', x: 0.42, y: 0.55 }
         const HOTSPOTS_RECV = [];
@@ -1303,6 +1327,16 @@
                 if (!isEmpty(value)) return String(value).trim();
             }
             return '未归属';
+        }
+
+        // 缺陷描述 = 区域部位/设备名称/位号 + 缺陷描述 合并显示
+        function getDesc(row, fallback) {
+            const part = getFieldValue(row, '区域部位/设备名称/位号');
+            const desc = getFieldValue(row, '缺陷描述');
+            const p = isEmpty(part) ? '' : String(part).trim();
+            const d = isEmpty(desc) ? '' : String(desc).trim();
+            if (p && d) return p + ' ' + d;
+            return p || d || (fallback || '—');
         }
 
         function isFlag(row, field) {
@@ -1856,7 +1890,7 @@
                                 { offset: 1, color: 'rgba(255,158,44,.72)' }
                             ]),
                             shadowColor: 'rgba(255,198,88,.55)',
-                            shadowBlur: 10
+                            shadowBlur: 7
                         }
                     },
                     {
@@ -1871,7 +1905,7 @@
                                 { offset: 1, color: 'rgba(22,120,200,.75)' }
                             ]),
                             shadowColor: 'rgba(59,210,255,.55)',
-                            shadowBlur: 10
+                            shadowBlur: 7
                         }
                     },
                     {
@@ -1881,7 +1915,7 @@
                         symbol: 'circle',
                         symbolSize: 4,
                         data: pendingData,
-                        lineStyle: { color: '#ff7b6d', width: 2, shadowColor: 'rgba(255,123,109,.6)', shadowBlur: 8 },
+                        lineStyle: { color: '#ff7b6d', width: 2, shadowColor: 'rgba(255,123,109,.6)', shadowBlur: 6 },
                         itemStyle: { color: '#ff7b6d' },
                         areaStyle: {
                             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -1938,7 +1972,7 @@
                     data: items.map(item => ({
                         name: item.name,
                         value: item.value,
-                        itemStyle: { color: item.color, shadowColor: item.color, shadowBlur: 16 }
+                        itemStyle: { color: item.color, shadowColor: item.color, shadowBlur: 10 }
                     }))
                 }]
             }, true);
@@ -1990,19 +2024,10 @@
                 },
                 series: [{
                     type: 'bar',
-                    data: items.map(item => item.count),
+                    data: items.map((item, idx) => ({ value: item.count, itemStyle: barStyle(idx) })),
                     barWidth: 11,
                     showBackground: true,
                     backgroundStyle: { color: 'rgba(59,210,255,.05)', borderRadius: 2 },
-                    itemStyle: {
-                        borderRadius: 2,
-                        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-                            { offset: 0, color: 'rgba(16,110,170,.95)' },
-                            { offset: 1, color: '#54e0ff' }
-                        ]),
-                        shadowColor: 'rgba(59,210,255,.5)',
-                        shadowBlur: 12
-                    },
                     label: {
                         show: true,
                         position: 'right',
@@ -2059,20 +2084,17 @@
                     type: 'bar',
                     data: items.map((item, idx) => ({
                         value: item.count,
-                        itemStyle: {
-                            borderRadius: 2,
-                            color: idx === 0
-                                ? new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                        itemStyle: idx === 0
+                            ? {
+                                borderRadius: 2,
+                                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
                                     { offset: 0, color: 'rgba(255,198,88,.6)' },
                                     { offset: 1, color: '#ffd97a' }
-                                ])
-                                : new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-                                    { offset: 0, color: 'rgba(16,110,170,.95)' },
-                                    { offset: 1, color: '#54e0ff' }
                                 ]),
-                            shadowColor: idx === 0 ? 'rgba(255,198,88,.55)' : 'rgba(59,210,255,.5)',
-                            shadowBlur: 12
-                        }
+                                shadowColor: 'rgba(255,198,88,.5)',
+                                shadowBlur: 8
+                            }
+                            : barStyle(idx)
                     })),
                     barWidth: 11,
                     showBackground: true,
@@ -2102,7 +2124,7 @@
             return `<div class="list-row">
                 <span class="c-id">${id || '—'}</span>
                 <span class="c-prof">${displayProfession(getProfession(row))}</span>
-                <span class="c-desc">${String(getFieldValue(row, '缺陷描述') || '—')}</span>
+                <span class="c-desc">${getDesc(row)}</span>
                 <span class="c-zone">${getZone(row)}</span>
                 <span><span class="badge pending">待消缺</span></span>
                 <span>${flagText === '—' ? '<span style="color:#5c86a3">—</span>' : `<span class="badge supervised">${flagText}</span>`}</span>
@@ -2151,7 +2173,7 @@
                 if (isFlag(row, '是否督办')) tags.push('督办');
                 if (isFlag(row, '是否逾期')) tags.push('逾期');
                 const prefix = tags.length ? `【${tags.join('/')}】` : '【待消缺】';
-                const desc = String(getFieldValue(row, '缺陷描述') || '未填写缺陷描述');
+                const desc = getDesc(row, '未填写缺陷描述');
                 return `${prefix}${getId(row) || '无编号'} · ${getZone(row)} · ${desc}`;
             });
 
@@ -2203,7 +2225,7 @@
                 return `<div class="sp-item${cls}">
                     <div class="sp-main">
                         <div class="sp-id">${getId(row) || '无编号'}</div>
-                        <div class="sp-desc">${String(getFieldValue(row, '缺陷描述') || '未填写缺陷描述')}</div>
+                        <div class="sp-desc">${getDesc(row, '未填写缺陷描述')}</div>
                     </div>
                     <div class="sp-side"><b>${tag}</b>${getZone(row)}</div>
                 </div>`;
