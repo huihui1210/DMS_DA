@@ -274,16 +274,19 @@
             z-index: 2;
             flex: 1;
             min-height: 0;
+            min-width: 0;
             display: grid;
-            grid-template-columns: 440px minmax(0, 1fr) 520px;
+            grid-template-columns: minmax(0, 440px) minmax(0, 1fr) minmax(0, 520px);
             gap: 12px;
             padding-top: 12px;
+            overflow: hidden;
         }
 
         .col {
             display: grid;
             gap: 12px;
             min-height: 0;
+            min-width: 0;
         }
 
         .col-left {
@@ -304,6 +307,7 @@
             display: flex;
             flex-direction: column;
             min-height: 0;
+            min-width: 0;
             padding: 0 12px 10px;
             border: 1px solid rgba(64, 196, 255, 0.55);
             border-radius: 3px;
@@ -387,14 +391,17 @@
             position: relative;
             flex: 1;
             min-height: 0;
+            min-width: 0;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
         .chart {
             flex: 1;
             width: 100%;
             min-height: 0;
+            min-width: 0;
         }
 
         /* ================= KPI ================= */
@@ -832,9 +839,10 @@
         }
 
         .list-row {
-            height: 34px;
-            padding: 0 4px;
+            min-height: 34px;
+            padding: 4px 4px;
             font-size: 12px;
+            line-height: 1.5;
             color: #c9e8f8;
             border-bottom: 1px solid rgba(59, 210, 255, 0.08);
         }
@@ -852,11 +860,17 @@
             white-space: nowrap;
         }
 
-        .c-desc {
+        .c-prof {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .c-desc {
             color: #9cc8e2;
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
 
         .c-zone {
@@ -1425,7 +1439,7 @@
 
         @media (max-width: 1200px) {
             .layout {
-                grid-template-columns: 380px minmax(0, 1fr) 380px;
+                grid-template-columns: minmax(0, 380px) minmax(0, 1fr) minmax(0, 380px);
                 gap: 8px;
             }
 
@@ -1471,7 +1485,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">v5.6 · b1029.6</span>
+                    <span class="ver">v5.6 · b1029.7</span>
                 </div>
                 <span class="sync" id="syncText"></span>
             </div>
