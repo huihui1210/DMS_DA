@@ -1597,7 +1597,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.7.0</span>
+                    <span class="ver">V5.7.1</span>
                 </div>
             </div>
 
@@ -1891,68 +1891,20 @@
             }
         }
 
-        // 压缩：canvas 缩到 maxSide 输出 JPEG Blob
-        function compressImage(file, maxSide) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    const img = new Image();
-                    img.onload = () => {
-                        let { width, height } = img;
-                        if (width > maxSide || height > maxSide) {
-                            const ratio = Math.min(maxSide / width, maxSide / height);
-                            width = Math.round(width * ratio);
-                            height = Math.round(height * ratio);
-                        }
-                        const canvas = document.createElement('canvas');
-                        canvas.width = width;
-                        canvas.height = height;
-                        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                        canvas.toBlob(blob => {
-                            if (blob) resolve(blob); else reject(new Error('压缩失败'));
-                        }, 'image/jpeg', 0.85);
-                    };
-                    img.onerror = reject;
-                    img.src = e.target.result;
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
-
-        async function uploadMapImg(type, file, opts) {
+        async function uploadMapImg(type, file) {
             try {
-                let blob;
-                let note = '';
-                if (opts && opts.raw) {
-                    // 原图直存（IndexedDB 支持大文件，30MB 没问题）
-                    blob = file;
-                    note = '原图';
-                } else {
-                    const maxSide = (opts && opts.maxSide) || 4096;
-                    if (file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg')) {
-                        // JPEG 原图也缩一下（压缩体积）
-                        blob = await compressImage(file, maxSide);
-                        note = `缩到${maxSide}px`;
-                    } else {
-                        // PNG/WebP 等无损格式直接存
-                        blob = file;
-                        note = '原图';
-                    }
-                }
                 await dbPut(type, {
-                    blob,
+                    blob: file,
                     name: file.name,
-                    size: blob.size,
+                    size: file.size,
                     uploadedAt: Date.now(),
-                    note
+                    note: '原图'
                 });
-                // 清除缓存，下次 getMapImgSrc 重新生成 URL
                 if (_imgUrlCache[type]) {
                     URL.revokeObjectURL(_imgUrlCache[type]);
                     _imgUrlCache[type] = null;
                 }
-                return { ok: true, size: blob.size, note };
+                return { ok: true, size: file.size };
             } catch (e) {
                 return { ok: false, msg: e.message || '上传失败' };
             }
