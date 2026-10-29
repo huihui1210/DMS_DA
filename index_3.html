@@ -174,7 +174,15 @@
             flex-shrink: 0;
         }
 
-        .brand .sync {
+        .top-left {
+            justify-self: start;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .top-sync {
             font-size: 12px;
             letter-spacing: 1px;
             color: var(--muted);
@@ -184,7 +192,6 @@
         }
 
         .seg {
-            justify-self: start;
             display: flex;
             gap: 4px;
             padding: 4px;
@@ -192,6 +199,7 @@
             border: 1px solid rgba(59, 210, 255, 0.3);
             border-radius: 5px;
             box-shadow: 0 0 18px rgba(59, 210, 255, 0.12), inset 0 0 14px rgba(59, 210, 255, 0.05);
+            flex-shrink: 0;
         }
 
         .seg-btn {
@@ -294,7 +302,7 @@
         }
 
         .col-center {
-            grid-template-rows: 44px 556px minmax(0, 1fr);
+            grid-template-rows: 44px minmax(240px, auto) minmax(180px, 1fr);
         }
 
         .col-right {
@@ -549,6 +557,17 @@
 
         .map-panel {
             padding-bottom: 10px;
+            background: linear-gradient(180deg, rgba(5, 18, 34, 0.96), rgba(2, 8, 18, 0.98));
+            aspect-ratio: var(--map-ar, 16 / 9);
+        }
+
+        body[data-view="all"] .map-panel {
+            aspect-ratio: unset;
+            min-height: 556px;
+        }
+
+        body[data-view="all"] .map-canvas img {
+            object-fit: cover;
         }
 
         .map-grid {
@@ -658,7 +677,8 @@
             inset: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
+            object-position: center;
             user-select: none;
             -webkit-user-drag: none;
         }
@@ -1476,18 +1496,20 @@
     <div id="stage">
         <!-- ===== Header ===== -->
         <div class="top">
-            <div class="seg" id="seg">
-                <button class="seg-btn active" data-view="all">看板总览</button>
-                <button class="seg-btn" data-view="recv">接收站</button>
-                <button class="seg-btn" data-view="fen">分输站</button>
+            <div class="top-left">
+                <div class="seg" id="seg">
+                    <button class="seg-btn active" data-view="all">看板总览</button>
+                    <button class="seg-btn" data-view="recv">接收站</button>
+                    <button class="seg-btn" data-view="fen">分输站</button>
+                </div>
+                <span class="top-sync" id="syncText"></span>
             </div>
 
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">v5.6 · b1029.7</span>
+                    <span class="ver">V5.6.1</span>
                 </div>
-                <span class="sync" id="syncText"></span>
             </div>
 
             <div class="top-right">
@@ -2766,6 +2788,16 @@
             grid.classList.toggle('single', single);
             grid.innerHTML = '';
 
+            // 动态注入地图面板 aspect-ratio（仅 single 视图）
+            const mapPanel = grid.closest('.map-panel');
+            if (mapPanel) {
+                if (single) {
+                    mapPanel.style.setProperty('--map-ar', state.view === 'recv' ? '8192 / 5080' : '9620 / 3605');
+                } else {
+                    mapPanel.style.removeProperty('--map-ar');
+                }
+            }
+
             const track = document.createElement('div');
             track.className = 'map-track';
             track.id = 'mapTrack';
@@ -2943,6 +2975,17 @@
 
             vp.closest('.map-box').addEventListener('click', function (e) {
                 if (mapSuppressClick) return;
+                // 非编辑模式：点击 marker 显示该区域缺陷记录
+                const markerEl = e.target.closest('.marker');
+                if (markerEl && !mapEdit.active) {
+                    const zone = markerEl.dataset.zone;
+                    const rows = state.allRows.filter(r =>
+                        getZone(r) === zone && getStationType(getId(r)) === type
+                    );
+                    const label = type === 'recv' ? '接收站' : '分输站';
+                    openModal(`${label} · ${zone}`, rows);
+                    return;
+                }
                 if (!mapEdit.active || !mapEdit.pending || mapEdit.pending.type !== type) return;
                 const rect = vp.querySelector('.map-canvas').getBoundingClientRect();
                 const fx = (e.clientX - rect.left) / rect.width;
