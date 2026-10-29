@@ -654,7 +654,7 @@
         .map-canvas {
             position: absolute;
             inset: 0;
-            transform-origin: 0 0;
+            transform-origin: center center;
             will-change: transform;
             background-image:
                 linear-gradient(rgba(59, 210, 255, 0.075) 1px, transparent 1px),
@@ -1499,7 +1499,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.6.3</span>
+                    <span class="ver">V5.6.4</span>
                 </div>
             </div>
 
@@ -2868,9 +2868,14 @@
             const st = mapState[type];
             const w = vp.clientWidth;
             const h = vp.clientHeight;
-            st.s = Math.min(5, Math.max(1, st.s));
-            st.x = Math.min(0, Math.max(w - w * st.s, st.x));
-            st.y = Math.min(0, Math.max(h - h * st.s, st.y));
+            st.s = Math.min(5, Math.max(0.4, st.s));
+            if (st.s <= 1) {
+                st.x = 0;
+                st.y = 0;
+            } else {
+                st.x = Math.min(0, Math.max(w - w * st.s, st.x));
+                st.y = Math.min(0, Math.max(h - h * st.s, st.y));
+            }
         }
 
         function bindMapInteractions(vp, type) {
@@ -2893,6 +2898,8 @@
 
             vp.addEventListener('pointerdown', function (e) {
                 if (e.button !== 0) return;
+                // 非编辑模式下点击 marker 不启动拖拽，让 click 事件正常冒泡
+                if (!mapEdit.active && e.target.closest('.marker')) return;
                 const marker = mapEdit.active ? e.target.closest('.marker') : null;
                 drag = { x0: e.clientX, y0: e.clientY, lx: e.clientX, ly: e.clientY, moved: false, marker, spots: null, spot: null };
                 if (marker) {
