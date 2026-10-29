@@ -136,7 +136,7 @@
         .title-row::before,
         .title-row::after {
             content: '';
-            width: 150px;
+            width: 80px;
             height: 16px;
             flex-shrink: 0;
             background:
@@ -302,7 +302,7 @@
         }
 
         .col-center {
-            grid-template-rows: 44px minmax(240px, auto) minmax(180px, 1fr);
+            grid-template-rows: 44px 556px minmax(0, 1fr);
         }
 
         .col-right {
@@ -558,16 +558,6 @@
         .map-panel {
             padding-bottom: 10px;
             background: linear-gradient(180deg, rgba(5, 18, 34, 0.96), rgba(2, 8, 18, 0.98));
-            aspect-ratio: var(--map-ar, 16 / 9);
-        }
-
-        body[data-view="all"] .map-panel {
-            aspect-ratio: unset;
-            min-height: 556px;
-        }
-
-        body[data-view="all"] .map-canvas img {
-            object-fit: cover;
         }
 
         .map-grid {
@@ -1508,7 +1498,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.6.1</span>
+                    <span class="ver">V5.6.2</span>
                 </div>
             </div>
 
@@ -2743,7 +2733,7 @@
                 return;
             }
 
-            viewport.innerHTML = `<div class="sp-list">${items.slice(0, 5).map(row => {
+            const rowsHTML = items.map(row => {
                 const supervised = isFlag(row, '是否督办');
                 const isOverdue = isFlag(row, '是否逾期') && !supervised;
                 const tag = supervised ? '督办' : (isOverdue ? '逾期' : '待消缺');
@@ -2755,7 +2745,10 @@
                     </div>
                     <div class="sp-side"><b>${tag}</b>${getZone(row)}</div>
                 </div>`;
-            }).join('')}</div>`;
+            }).join('');
+            const needScroll = items.length > 6;
+            const dur = Math.max(16, items.length * 2.2);
+            viewport.innerHTML = `<div class="sp-list scroll-track" style="animation-name:${needScroll ? 'scrollUp' : 'none'};animation-duration:${dur}s;">${rowsHTML}${needScroll ? rowsHTML : ''}</div>`;
         }
 
         /* ================= 卫星底图 + 点位 ================= */
@@ -2787,16 +2780,6 @@
             const single = state.view !== 'all';
             grid.classList.toggle('single', single);
             grid.innerHTML = '';
-
-            // 动态注入地图面板 aspect-ratio（仅 single 视图）
-            const mapPanel = grid.closest('.map-panel');
-            if (mapPanel) {
-                if (single) {
-                    mapPanel.style.setProperty('--map-ar', state.view === 'recv' ? '8192 / 5080' : '9620 / 3605');
-                } else {
-                    mapPanel.style.removeProperty('--map-ar');
-                }
-            }
 
             const track = document.createElement('div');
             track.className = 'map-track';
