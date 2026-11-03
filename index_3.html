@@ -486,108 +486,174 @@
             color: var(--purple);
         }
 
-        /* ================= 督办统计卡片 ================= */
+        /* ================= 督办统计卡片（重新设计 · 参考图风格） ================= */
 
         .supervise-grid {
             height: 100%;
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             grid-template-rows: repeat(2, 1fr);
-            gap: 10px;
+            gap: 8px;
         }
 
         .s-card {
             position: relative;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            gap: 4px;
-            padding: 10px 14px;
-            border: 1px solid rgba(59, 210, 255, 0.2);
-            border-radius: 4px;
-            background: linear-gradient(180deg, rgba(59, 210, 255, 0.08), rgba(59, 210, 255, 0.02));
-            box-shadow: inset 0 0 22px rgba(59, 210, 255, 0.05);
+            padding: 12px 16px 10px;
+            border-radius: 6px;
             overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.2s ease;
+            /* 玻璃质感：深色底 + 半透明叠层 */
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01) 60%),
+                rgba(10, 28, 52, 0.55);
+            border: 1px solid rgba(59, 210, 255, 0.15);
         }
 
-        .s-card::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 3px;
-            height: 100%;
-            background: currentColor;
-            opacity: 0.75;
+        .s-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(59, 210, 255, 0.25);
         }
 
-        .s-card::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 1px;
-            background: linear-gradient(90deg, currentColor, transparent);
-            opacity: 0.5;
+        /* 卡片左上的彩色小 icon 圆标（参考图的小图标） */
+        .s-card .s-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .s-card.cyan  .s-icon { background: linear-gradient(135deg, #3bd2ff, #0e7490); }
+        .s-card.amber .s-icon { background: linear-gradient(135deg, #ffc658, #c9881c); }
+        .s-card.green .s-icon { background: linear-gradient(135deg, #3ddc97, #0e7a52); }
+        .s-card.purple.s-icon,
+        .s-card.purple .s-icon { background: linear-gradient(135deg, #a78bfa, #6a4bc4); }
+
+        /* 标签行 */
+        .s-card .s-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
         }
 
         .s-card .s-lbl {
             font-size: 12px;
             color: #9cc8e2;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
+            font-weight: 500;
+        }
+
+        /* 数字行：左边大数字 + 右边 sparkline */
+        .s-card .s-body {
             display: flex;
-            align-items: center;
-            gap: 6px;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .s-card .s-main {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
 
         .s-card .s-val {
             font-family: var(--num-font);
-            font-size: 32px;
+            font-size: 36px;
             font-weight: 700;
             line-height: 1;
-            color: currentColor;
+            color: #eafcff;
             font-variant-numeric: tabular-nums;
-            text-shadow: 0 0 12px currentColor;
+            letter-spacing: -0.5px;
+        }
+
+        .s-card.cyan  .s-val { color: #3bd2ff; }
+        .s-card.amber .s-val { color: #ffc658; }
+        .s-card.green .s-val { color: #3ddc97; }
+        .s-card.purple .s-val { color: #a78bfa; }
+
+        /* sparkline 折线区域 */
+        .s-card .s-spark {
+            flex-shrink: 0;
+            width: 72px;
+            height: 32px;
+            opacity: 0.85;
+        }
+
+        .s-card .s-spark path.line {
+            fill: none;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .s-card .s-spark path.area {
+            fill: url(#sparkGrad);
+            opacity: 0.25;
+        }
+
+        .s-card.cyan  .s-spark path.line { stroke: #3bd2ff; }
+        .s-card.amber .s-spark path.line { stroke: #ffc658; }
+        .s-card.green .s-spark path.line { stroke: #3ddc97; }
+        .s-card.purple .s-spark path.line { stroke: #a78bfa; }
+
+        /* 趋势行：底部 */
+        .s-card .s-foot {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-top: 6px;
+            font-size: 11px;
         }
 
         .s-card .s-trend {
-            font-size: 11px;
             display: inline-flex;
             align-items: center;
-            gap: 2px;
-            color: var(--muted);
-            margin-left: 4px;
+            gap: 3px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-weight: 500;
         }
 
-        /* 趋势颜色语义：s-good=向好（绿），s-bad=向坏（红），s-flat=持平（灰） */
         .s-card .s-trend.s-good {
             color: #3ddc97;
+            background: rgba(61, 220, 151, 0.1);
         }
 
         .s-card .s-trend.s-bad {
             color: #ff5f6d;
+            background: rgba(255, 95, 109, 0.1);
         }
 
         .s-card .s-trend.s-flat {
-            color: var(--muted);
+            color: #86b3cc;
+            background: rgba(134, 179, 204, 0.1);
         }
 
-        .s-card.cyan {
-            color: var(--cyan);
+        /* 顶部一条渐变高光线（Grafana 风格小点缀） */
+        .s-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 2px;
+            opacity: 0.7;
         }
 
-        .s-card.amber {
-            color: var(--amber);
-        }
-
-        .s-card.green {
-            color: var(--green);
-        }
-
-        .s-card.purple {
-            color: var(--purple);
-        }
+        .s-card.cyan::before  { background: linear-gradient(90deg, #3bd2ff, transparent); }
+        .s-card.amber::before { background: linear-gradient(90deg, #ffc658, transparent); }
+        .s-card.green::before { background: linear-gradient(90deg, #3ddc97, transparent); }
+        .s-card.purple::before { background: linear-gradient(90deg, #a78bfa, transparent); }
 
         /* ================= Center ================= */
 
@@ -1719,7 +1785,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.9.1</span>
+                    <span class="ver">V5.10.0</span>
                 </div>
             </div>
 
@@ -2776,13 +2842,7 @@
             });
         }
 
-        /* ================= 督办统计卡片（替代原分类构成饼图） ================= */
-        /* 设计原则：
-           - 每张卡片有 goodDir: +1 表示越多越好（绿），-1 表示越少越好（绿）
-           - 趋势百分比永远是正数（绝对差/基准），方向由箭头表示
-           - 颜色由 (差值方向 × goodDir) 决定是否"向好"
-           - 参考图样式：标签 + 大数字 + 小趋势行（箭头+百分比+对比词）
-        */
+        /* ================= 督办统计卡片（重新设计 · 参考图风格） ================= */
         function renderSuperviseStats() {
             const rows = state.rows;
             const now = new Date();
@@ -2809,7 +2869,7 @@
                 else if (cd.getFullYear() === lastY && cd.getMonth() === lastM) lmDone++;
             });
 
-            // 本月 vs 上月：督办新增数（缺陷登记日期）
+            // 本月 vs 上月：督办新增数
             let mNew = 0, lmNew = 0;
             spRows.forEach(r => {
                 const dd = getDateFromDefectId(getId(r));
@@ -2818,64 +2878,110 @@
                 else if (dd.getFullYear() === lastY && dd.getMonth() === lastM) lmNew++;
             });
 
-            /**
-             * 计算友好趋势：百分比永远正数，箭头方向独立，颜色由 goodDir 判定
-             * @param {number} cur  当前值
-             * @param {number} prev  对比基准值（上月）
-             * @param {number} goodDir  +1=越多越好, -1=越少越好
-             * @returns {{arrow:'▲'|'▼'|'—', pct:string, tone:'good'|'bad'|'flat', desc:string}}
-             */
-            function friendlyTrend(cur, prev, goodDir) {
-                if (cur === prev) {
-                    return { arrow: '—', pct: '0%', tone: 'flat', desc: '持平' };
-                }
-                // 当 prev 为 0 时，用 cur 作为基准
+            /** 友好趋势计算 */
+            function trend(cur, prev, goodDir) {
+                if (cur === prev) return { arrow: '—', pct: '0%', tone: 'flat' };
                 const base = prev > 0 ? prev : Math.max(1, cur);
                 const pct = Math.abs(cur - prev) / base * 100;
                 const pctStr = pct < 1 ? pct.toFixed(2) + '%' : pct.toFixed(1) + '%';
                 const up = cur > prev;
-                const arrow = up ? '▲' : '▼';
-                // tone: up→1, down→-1，乘以 goodDir，正=向好
                 const better = (up ? 1 : -1) * goodDir > 0;
-                const tone = better ? 'good' : 'bad';
-                const desc = (prev === 0 && cur > 0) ? '本月首次' :
-                             (prev > 0 && cur === 0) ? '本月归零' :
-                             (up ? '增加' : '减少');
-                return { arrow, pct: pctStr, tone, desc };
+                return { arrow: up ? '▲' : '▼', pct: pctStr, tone: better ? 'good' : 'bad' };
             }
 
-            // 完成率趋势（特殊处理，因为是比例差不是比值）
-            const curR = mDone + mNew > 0 ? mDone / (mDone + mNew) : 0;
-            const lastR = lmDone + lmNew > 0 ? lmDone / (lmDone + lmNew) : 0;
-            const rateDeltaPct = Math.abs(curR - lastR) * 100;
-            const rateUp = curR > lastR;
-            const rateTone = rateDeltaPct < 0.001 ? 'flat' : (rateUp ? 'good' : 'bad');
-            const rateArrow = rateUp ? '▲' : (curR < lastR ? '▼' : '—');
-            const ratePct = rateDeltaPct < 0.001 ? '0%' : (rateDeltaPct < 1 ? rateDeltaPct.toFixed(2) + '%' : rateDeltaPct.toFixed(1) + '%');
-            const rateDesc = rateDeltaPct < 0.001 ? '持平' : (rateUp ? '上升' : '下降');
+            const tTotal = trend(mNew, lmNew, -1);
+            const tRemain = trend(remain, remain - mDone + lmDone, -1);
+            const tDone = trend(mDone, lmDone, +1);
+            // 完成率趋势
+            const curR = mDone + mNew > 0 ? mDone / (mDone + mNew) * 100 : 0;
+            const lastR = lmDone + lmNew > 0 ? lmDone / (lmDone + lmNew) * 100 : 0;
+            const rd = curR - lastR;
+            const tRate = Math.abs(rd) < 0.01 ? { arrow: '—', pct: '0%', tone: 'flat' }
+                          : { arrow: rd > 0 ? '▲' : '▼',
+                              pct: (Math.abs(rd) < 1 ? Math.abs(rd).toFixed(2) : Math.abs(rd).toFixed(1)) + '%',
+                              tone: rd > 0 ? 'good' : 'bad' };
 
-            const tTotal = friendlyTrend(mNew, lmNew, -1);  // 总数/新增越少越好
-            const tRemain = friendlyTrend(remain, remain - mDone + lmDone, -1); // 剩余越少越好
-            const tDone = friendlyTrend(mDone, lmDone, +1);     // 完成越多越好
+            /**
+             * 生成 sparkline SVG 折线
+             * @param {number[]} data  数据点数组（通常最近6个月）
+             * @param {number} w       画布宽
+             * @param {number} h       画布高
+             */
+            function sparkline(data, w = 72, h = 32) {
+                if (!data || data.length === 0) data = [0];
+                const max = Math.max(...data, 1);
+                const min = Math.min(...data, 0);
+                const range = max - min || 1;
+                const step = data.length > 1 ? w / (data.length - 1) : 0;
+                const pts = data.map((v, i) => {
+                    const x = data.length > 1 ? i * step : w / 2;
+                    const y = h - ((v - min) / range * (h - 4)) - 2;
+                    return [x, y];
+                });
+                const dLine = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+                // 闭合区域：从折线最后一点拉到底部，再拉回起点
+                const dArea = dLine + ` L${pts[pts.length-1][0].toFixed(1)} ${h} L${pts[0][0].toFixed(1)} ${h} Z`;
+                return `<svg class="s-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+                    <path class="area" d="${dArea}" />
+                    <path class="line" d="${dLine}" />
+                    <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="1.5" class="dot" fill="currentColor" opacity="0.9"/>
+                </svg>`;
+            }
+
+            // 生成最近 N 个月的督办数据（用于 sparkline）
+            const MONTHS = 6;
+            const months = [];
+            for (let i = MONTHS - 1; i >= 0; i--) {
+                const d = new Date(curY, curM - i, 1);
+                months.push({ y: d.getFullYear(), m: d.getMonth() });
+            }
+            const slTotal = months.map(m => spRows.filter(r => {
+                const dd = getDateFromDefectId(getId(r));
+                return dd && dd.getFullYear() === m.y && dd.getMonth() === m.m;
+            }).length);
+            const slDone = months.map(m => spRows.filter(r => {
+                if (r.status !== '已消缺项') return false;
+                const cd = getCompleteDate(r);
+                return cd && cd.getFullYear() === m.y && cd.getMonth() === m.m;
+            }).length);
+            const slRemain = months.map(m => {
+                // 估算：该月累计督办 - 截至该月累计完成
+                const cumTotal = slTotal.slice(0, months.indexOf(m) + 1).reduce((a, b) => a + b, 0);
+                const cumDone = slDone.slice(0, months.indexOf(m) + 1).reduce((a, b) => a + b, 0);
+                return Math.max(0, cumTotal - cumDone);
+            });
+            const slRate = months.map((m, i) => {
+                const cumT = slTotal.slice(0, i + 1).reduce((a, b) => a + b, 0);
+                const cumD = slDone.slice(0, i + 1).reduce((a, b) => a + b, 0);
+                return cumT ? +(cumD / cumT * 100).toFixed(1) : 0;
+            });
 
             const cards = [
-                { key: 'total',  cls: 'cyan',  val: total,                  lbl: '督办总数',
-                  arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: '本月新增' + tTotal.desc },
-                { key: 'remain', cls: 'amber', val: remain,                 lbl: '督办剩余',
-                  arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: tRemain.desc + tRemain.pct },
-                { key: 'done',   cls: 'green', val: done,                   lbl: '督办完成',
-                  arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: tDone.desc + tDone.pct },
-                { key: 'rate',   cls: 'purple', val: rate.toFixed(1) + '%', lbl: '督办完成率',
-                  arrow: rateArrow, pct: ratePct, tone: rateTone, tip: rateDesc + ratePct }
+                { key: 'total',  cls: 'cyan',   val: total,                  lbl: '督办总数',   icon: '●', arrow: tTotal.arrow,  pct: tTotal.pct,  tone: tTotal.tone,  tip: '本月新增较上月',   spark: slTotal },
+                { key: 'remain', cls: 'amber',  val: remain,                 lbl: '督办剩余',   icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月',           spark: slRemain },
+                { key: 'done',   cls: 'green',  val: done,                   lbl: '督办完成',   icon: '✓', arrow: tDone.arrow,   pct: tDone.pct,   tone: tDone.tone,   tip: '本月完成较上月',   spark: slDone },
+                { key: 'rate',   cls: 'purple', val: rate.toFixed(1) + '%',  lbl: '督办完成率', icon: '%', arrow: tRate.arrow,   pct: tRate.pct,   tone: tRate.tone,   tip: '较上月',           spark: slRate }
             ];
 
             const grid = document.getElementById('superviseGrid');
             grid.innerHTML = cards.map(c => `
                 <div class="s-card ${c.cls}" data-key="${c.key}">
-                    <div class="s-lbl">${c.lbl}<span class="s-trend s-${c.tone}" title="${c.tip}">
-                        ${c.arrow} ${c.pct} 较上月
-                    </span></div>
-                    <div class="s-val">${c.val}</div>
+                    <div class="s-head">
+                        <div class="s-icon">${c.icon}</div>
+                        <div class="s-lbl">${c.lbl}</div>
+                    </div>
+                    <div class="s-body">
+                        <div class="s-main">
+                            <div class="s-val">${c.val}</div>
+                        </div>
+                        ${sparkline(c.spark)}
+                    </div>
+                    <div class="s-foot">
+                        <span class="s-trend s-${c.tone}" title="${c.tip} ${c.arrow} ${c.pct}">
+                            ${c.arrow} ${c.pct}
+                        </span>
+                        <span style="color:#86b3cc;font-size:11px;margin-left:5px;">${c.tip}</span>
+                    </div>
                 </div>
             `).join('');
 
