@@ -417,8 +417,8 @@
             height: 100%;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            grid-template-rows: repeat(2, 1fr);
-            gap: 8px;
+            grid-template-rows: 1fr;
+            gap: 10px;
         }
 
         .kpi {
@@ -427,12 +427,12 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 3px;
+            gap: 6px;
             overflow: hidden;
-            border: 1px solid rgba(59, 210, 255, 0.2);
-            border-radius: 3px;
-            background: linear-gradient(180deg, rgba(59, 210, 255, 0.08), rgba(59, 210, 255, 0.03));
-            box-shadow: inset 0 0 18px rgba(59, 210, 255, 0.06);
+            border: 1px solid rgba(59, 210, 255, 0.22);
+            border-radius: 4px;
+            background: linear-gradient(180deg, rgba(59, 210, 255, 0.09), rgba(59, 210, 255, 0.02));
+            box-shadow: inset 0 0 24px rgba(59, 210, 255, 0.05);
         }
 
         .kpi::after {
@@ -448,21 +448,22 @@
 
         .kpi .val {
             font-family: var(--num-font);
-            font-size: 30px;
+            font-size: 46px;
             font-weight: 700;
             line-height: 1;
             color: currentColor;
             font-variant-numeric: tabular-nums;
+            letter-spacing: -0.5px;
         }
 
         .kpi .val.small {
-            font-size: 25px;
+            font-size: 38px;
         }
 
         .kpi .lbl {
-            font-size: 12px;
+            font-size: 13px;
             color: #9cc8e2;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
             text-align: center;
         }
 
@@ -568,7 +569,7 @@
 
         .s-card .s-val {
             font-family: var(--num-font);
-            font-size: 36px;
+            font-size: 44px;
             font-weight: 700;
             line-height: 1;
             color: #eafcff;
@@ -1785,7 +1786,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.10.0</span>
+                    <span class="ver">V5.11.0</span>
                 </div>
             </div>
 
@@ -2722,27 +2723,22 @@
 
         function renderKPI() {
             const rows = state.rows;
-            const { stats } = calculateMonthlyStats(rows);
             const total = rows.length;
             const pending = rows.filter(r => r.status === '待消缺项目').length;
             const completed = total - pending;
             const rate = total ? (completed / total * 100) : 0;
-            const flagged = rows.filter(r => r.status === '待消缺项目' && (isFlag(r, '是否督办') || isFlag(r, '是否逾期'))).length;
 
+            // 精简为 4 个核心指标：缺陷总数 / 剩余缺陷 / 完成缺陷 / 消缺率
             const cards = [
-                { key: 'total', cls: 'cyan', value: total, label: '缺陷总数' },
-                { key: 'pending', cls: 'amber', value: pending, label: '待消缺' },
-                { key: 'completed', cls: 'green', value: completed, label: '已消缺' },
-                { key: 'rate', cls: 'purple', value: rate.toFixed(1) + '%', label: '消缺率', small: true },
-                { key: 'classI', cls: 'red', value: stats.remainingI, label: 'Ⅰ类剩余' },
-                { key: 'monthNew', cls: 'cyan', value: stats.monthNew, label: '本月新增' },
-                { key: 'monthDone', cls: 'green', value: stats.monthDone, label: '本月消缺' },
-                { key: 'flagged', cls: 'amber', value: flagged, label: '督办' }
+                { key: 'total',     cls: 'cyan',   value: total,              label: '缺陷总数' },
+                { key: 'pending',   cls: 'amber',  value: pending,            label: '剩余缺陷' },
+                { key: 'completed', cls: 'green',  value: completed,          label: '完成缺陷' },
+                { key: 'rate',      cls: 'purple', value: rate.toFixed(1) + '%', label: '消缺率' }
             ];
 
             document.getElementById('kpiGrid').innerHTML = cards.map(c => `
                 <div class="kpi ${c.cls}" data-key="${c.key}">
-                    <div class="val${c.small ? ' small' : ''}">${c.value}</div>
+                    <div class="val${c.value.length > 4 ? ' small' : ''}">${c.value}</div>
                     <div class="lbl">${c.label}</div>
                 </div>
             `).join('');
