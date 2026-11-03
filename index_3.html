@@ -486,6 +486,112 @@
             color: var(--purple);
         }
 
+        /* ================= 督办统计卡片 ================= */
+
+        .supervise-grid {
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .s-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+            padding: 10px 14px;
+            border: 1px solid rgba(59, 210, 255, 0.2);
+            border-radius: 4px;
+            background: linear-gradient(180deg, rgba(59, 210, 255, 0.08), rgba(59, 210, 255, 0.02));
+            box-shadow: inset 0 0 22px rgba(59, 210, 255, 0.05);
+            overflow: hidden;
+        }
+
+        .s-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: currentColor;
+            opacity: 0.75;
+        }
+
+        .s-card::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, currentColor, transparent);
+            opacity: 0.5;
+        }
+
+        .s-card .s-lbl {
+            font-size: 12px;
+            color: #9cc8e2;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .s-card .s-val {
+            font-family: var(--num-font);
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1;
+            color: currentColor;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 12px currentColor;
+        }
+
+        .s-card .s-trend {
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            color: var(--muted);
+        }
+
+        .s-card .s-trend.up {
+            color: #ff5f6d;
+        }
+
+        .s-card .s-trend.down {
+            color: var(--green);
+        }
+
+        .s-card .s-trend.flat {
+            color: var(--muted);
+        }
+
+        .s-card .s-trend i {
+            font-style: normal;
+            font-size: 10px;
+        }
+
+        .s-card.cyan {
+            color: var(--cyan);
+        }
+
+        .s-card.amber {
+            color: var(--amber);
+        }
+
+        .s-card.green {
+            color: var(--green);
+        }
+
+        .s-card.purple {
+            color: var(--purple);
+        }
+
         /* ================= Center ================= */
 
         .alert-bar {
@@ -1616,7 +1722,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.8.0</span>
+                    <span class="ver">V5.9.0</span>
                 </div>
             </div>
 
@@ -1712,11 +1818,11 @@
                 <div class="panel">
                     <div class="panel-head">
                         <span class="bar"></span>
-                        <h2>分类构成</h2>
-                        <span class="hint">剩余 · 全口径</span>
+                        <h2>督办统计</h2>
+                        <span class="hint">剩余 · 已完成 · 完成率</span>
                     </div>
                     <div class="panel-body">
-                        <div class="chart" id="chartClass"></div>
+                        <div class="supervise-grid" id="superviseGrid"></div>
                     </div>
                 </div>
 
@@ -2541,7 +2647,7 @@
             applyView();
             renderKPI();
             renderTrend();
-            renderClassChart();
+            renderSuperviseStats();
             renderProfChart();
             renderBoardChart();
             renderList();
@@ -2673,59 +2779,99 @@
             });
         }
 
-        function renderClassChart() {
-            const chart = getChart('chartClass');
-            if (!chart) {
-                showChartFallback('chartClass', '图表组件加载失败');
-                return;
+        /* ================= 督办统计卡片（替代原分类构成饼图） ================= */
+        function renderSuperviseStats() {
+            const rows = state.rows;
+            const now = new Date();
+            const curY = now.getFullYear();
+            const curM = now.getMonth();
+            const lastMD = new Date(curY, curM - 1, 1);
+            const lastY = lastMD.getFullYear();
+            const lastM = lastMD.getMonth();
+
+            // 是否督办 = 是（含已消缺 + 待消缺）
+            const spRows = rows.filter(r => isFlag(r, '是否督办'));
+            const total = spRows.length;
+            const done = spRows.filter(r => r.status === '已消缺项').length;
+            const remain = spRows.filter(r => r.status === '待消缺项目').length;
+            const rate = total ? (done / total * 100) : 0;
+
+            // 本月 vs 上月：督办完成数
+            let mDone = 0, lmDone = 0;
+            spRows.forEach(r => {
+                if (r.status !== '已消缺项') return;
+                const cd = getCompleteDate(r);
+                if (!cd) return;
+                if (cd.getFullYear() === curY && cd.getMonth() === curM) mDone++;
+                else if (cd.getFullYear() === lastY && cd.getMonth() === lastM) lmDone++;
+            });
+
+            // 本月 vs 上月：督办新增数（缺陷登记日期）
+            let mNew = 0, lmNew = 0;
+            spRows.forEach(r => {
+                const dd = getDateFromDefectId(getId(r));
+                if (!dd) return;
+                if (dd.getFullYear() === curY && dd.getMonth() === curM) mNew++;
+                else if (dd.getFullYear() === lastY && dd.getMonth() === lastM) lmNew++;
+            });
+
+            // 同比趋势：(cur - prev) / prev × 100%
+            function trend(cur, prev) {
+                if (prev === 0 && cur === 0) return { pct: '0%', dir: 'flat' };
+                if (prev === 0) return { pct: '新增', dir: 'up' };
+                if (cur === 0) return { pct: '清零', dir: 'down' };
+                const pct = ((cur - prev) / prev * 100).toFixed(1) + '%';
+                return { pct, dir: cur > prev ? 'up' : (cur < prev ? 'down' : 'flat') };
             }
-            const { stats } = calculateMonthlyStats(state.rows);
-            const items = [
-                { name: 'Ⅰ类', value: stats.remainingI, color: '#3bd2ff' },
-                { name: 'Ⅱ类', value: stats.remainingII, color: '#ffc658' },
-                { name: '土建', value: stats.remainingCivil, color: '#3ddc97' },
-                { name: '消防', value: stats.remainingFire, color: '#ff5f6d' }
+
+            const tTotal = trend(mNew, lmNew);
+            const tDone = trend(mDone, lmDone);
+            // 剩余趋势：估算上月剩余 ≈ 本月剩余 - 本月完成 + 上月完成
+            let tRemainPct = '0%', tRemainDir = 'flat';
+            const estLastRemain = remain - mDone + lmDone;
+            if (estLastRemain > 0) {
+                tRemainPct = ((remain - estLastRemain) / estLastRemain * 100).toFixed(1) + '%';
+                tRemainDir = remain > estLastRemain ? 'up' : (remain < estLastRemain ? 'down' : 'flat');
+            } else if (remain > 0) { tRemainPct = '新增'; tRemainDir = 'up'; }
+
+            // 完成率趋势：本月 vs 上月
+            const curR = mDone + mNew > 0 ? mDone / (mDone + mNew) * 100 : 0;
+            const lastR = lmDone + lmNew > 0 ? lmDone / (lmDone + lmNew) * 100 : 0;
+            let tRatePct = '0%', tRateDir = 'flat';
+            const rd = curR - lastR;
+            if (Math.abs(rd) > 0.1) {
+                tRatePct = (rd > 0 ? '+' : '') + rd.toFixed(1) + '%';
+                tRateDir = rd > 0 ? 'up' : 'down';
+            }
+
+            const arrow = { up: '▲', down: '▼', flat: '—' };
+            const cards = [
+                { key: 'total', cls: 'cyan',  val: total,                 lbl: '督办总数',   pct: tTotal.pct,    dir: tTotal.dir,   tip: '本月新增' },
+                { key: 'remain', cls: 'amber', val: remain,                lbl: '督办剩余',   pct: tRemainPct,    dir: tRemainDir,   tip: '较上月' },
+                { key: 'done',   cls: 'green',val: done,                  lbl: '督办完成',   pct: tDone.pct,     dir: tDone.dir,    tip: '本月完成' },
+                { key: 'rate',   cls: 'purple',val: rate.toFixed(1) + '%',lbl: '督办完成率', pct: tRatePct,      dir: tRateDir,     tip: '较上月' }
             ];
-            const total = items.reduce((sum, item) => sum + item.value, 0);
 
-            chart.setOption({
-                tooltip: { ...CHART_TOOLTIP, trigger: 'item', formatter: '{b}<br/>剩余 {c} 条（{d}%）' },
-                title: {
-                    text: String(total),
-                    subtext: '待消缺',
-                    left: 'center',
-                    top: '37%',
-                    textStyle: { color: '#eafcff', fontSize: 28, fontWeight: 700, fontFamily: 'Bahnschrift, Microsoft YaHei', textShadowColor: 'rgba(59,210,255,.55)', textShadowBlur: 14 },
-                    subtextStyle: { color: '#86b3cc', fontSize: 11, letterSpacing: 2 }
-                },
-                legend: {
-                    bottom: 0,
-                    left: 'center',
-                    itemWidth: 8,
-                    itemHeight: 8,
-                    itemGap: 14,
-                    textStyle: { color: '#9cc8e2', fontSize: 11 }
-                },
-                series: [{
-                    type: 'pie',
-                    radius: ['48%', '68%'],
-                    center: ['50%', '45%'],
-                    avoidLabelOverlap: true,
-                    label: { show: false },
-                    labelLine: { show: false },
-                    itemStyle: { borderColor: '#05101f', borderWidth: 2 },
-                    data: items.map(item => ({
-                        name: item.name,
-                        value: item.value,
-                        itemStyle: { color: item.color, shadowColor: item.color, shadowBlur: 6 }
-                    }))
-                }]
-            }, true);
+            const grid = document.getElementById('superviseGrid');
+            grid.innerHTML = cards.map(c => `
+                <div class="s-card ${c.cls}" data-key="${c.key}">
+                    <div class="s-lbl">${c.lbl}<span class="s-trend ${c.dir}" title="${c.tip} ${c.pct}">
+                        ${arrow[c.dir]} ${c.pct} ${c.tip}
+                    </span></div>
+                    <div class="s-val">${c.val}</div>
+                </div>
+            `).join('');
 
-            chart.off('click');
-            chart.on('click', function (params) {
-                if (!params.name) return;
-                openModal(`${params.name} · 剩余缺陷清单`, state.rows.filter(classFilter(params.name)));
+            // 点击卡片弹出对应明细
+            grid.querySelectorAll('.s-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const allSp = rows.filter(r => isFlag(r, '是否督办'));
+                    const k = card.dataset.key;
+                    if (k === 'total') openModal('督办 · 全部清单', allSp);
+                    else if (k === 'remain') openModal('督办剩余 · 待消缺', allSp.filter(r => r.status === '待消缺项目'));
+                    else if (k === 'done') openModal('督办已完成 · 已消缺', allSp.filter(r => r.status === '已消缺项'));
+                    else if (k === 'rate') openModal('督办清单（完成率明细）', allSp);
+                });
             });
         }
 
@@ -3414,21 +3560,6 @@
         function openRowDetail(id) {
             const row = state.rows.find(r => getId(r) === id);
             if (row) openModal(`缺陷详情 · ${id}`, [row]);
-        }
-
-        // 分类构成口径：与 calculateMonthlyStats 的剩余统计一致
-        function classFilter(name) {
-            return function (row) {
-                if (row.status !== '待消缺项目') return false;
-                const prof = getProfession(row);
-                const fire = prof.includes('消防');
-                const civil = prof.includes('土建');
-                const levelRaw = getLevelRaw(row);
-                if (name === '消防') return fire;
-                if (name === '土建') return !fire && civil;
-                if (name === 'Ⅰ类') return !fire && !civil && !isEmpty(levelRaw) && isClassILevel(levelRaw);
-                return !fire && !civil && (isEmpty(levelRaw) || !isClassILevel(levelRaw));
-            };
         }
 
         // 专业分布口径：与 getClassIProfessionStats 的剩余统计一致
