@@ -656,11 +656,10 @@
         .map-canvas {
             position: absolute;
             inset: 0;
-            transform-origin: center center;
-            /* 注意：不使用 will-change: transform，避免浏览器为其创建固定分辨率的
-               GPU 合成层 backing store，导致 scale 放大时图片因缓冲像素不足而模糊。
-               不使用 will-change 时浏览器会在每次 transform 变化时重新 paint，
-               图片以原始高清像素重新渲染，保证缩放清晰度。 */
+            /* 只负责平移 translate，不做 scale —— scale 改由 .map-scale-wrap
+               通过 width/height 物理尺寸放大来实现，让浏览器以原始高清像素
+               重新渲染底图，彻底解决 CSS transform:scale 放大时图片模糊的问题。 */
+            will-change: transform;
             user-select: none;
             -webkit-user-select: none;
             background-image:
@@ -669,7 +668,19 @@
             background-size: 38px 38px;
         }
 
-        .map-canvas img {
+        /* 缩放用物理尺寸实现的包裹层：
+           中心对齐 canvas 中心（top:50% + translate(-50%,-50%)），
+           width/height 由 JS 按 scale 动态设置为 viewportW*s / viewportH*s，
+           这样浏览器必须以原始高清像素重新绘制底图 + marker，
+           而不是对固定像素缓冲做视觉放大。 */
+        .map-scale-wrap {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .map-scale-wrap img {
             position: absolute;
             inset: 0;
             width: 100%;
@@ -708,6 +719,7 @@
         .marker-layer {
             position: absolute;
             inset: 0;
+            z-index: 2;
         }
 
         .map-canvas svg {
@@ -715,10 +727,6 @@
             inset: 0;
             width: 100%;
             height: 100%;
-        }
-
-        .marker-layer {
-            z-index: 2;
         }
 
         .map-top {
@@ -815,7 +823,11 @@
         .marker {
             position: absolute;
             z-index: 3;
-            transform: translate(-50%, -50%) scale(calc(1 / var(--mz, 1)));
+            /* 不再需要反向 scale(1/--mz)：原来用它抵消 canvas transform:scale
+               带来的 marker 视觉放大。现在 scale 改由 .map-scale-wrap 的物理
+               width/height 实现，canvas 不再有 transform scale，marker 不会被
+               额外视觉放大，所以直接 translate(-50%,-50%) 即可。 */
+            transform: translate(-50%, -50%);
             transform-origin: center 60%;
             display: flex;
             flex-direction: column;
@@ -1604,7 +1616,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.7.5</span>
+                    <span class="ver">V5.8.0</span>
                 </div>
             </div>
 
@@ -2991,8 +3003,10 @@
             box.innerHTML = `
                 <div class="map-viewport" data-map="${type}">
                     <div class="map-canvas">
-                        <img data-map-img="${type}" alt="${label}卫星图" draggable="false">
-                        <div class="marker-layer" id="markers${type === 'recv' ? 'Recv' : 'Fen'}"></div>
+                        <div class="map-scale-wrap">
+                            <img data-map-img="${type}" alt="${label}卫星图" draggable="false">
+                            <div class="marker-layer" id="markers${type === 'recv' ? 'Recv' : 'Fen'}"></div>
+                        </div>
                     </div>
                 </div>
                 <div class="map-top">
@@ -3120,11 +3134,25 @@
         }
 
         /* ---- 缩放 / 平移 ---- */
+        /* 架构说明：
+           平移用 canvas 的 transform: translate 实现（便宜且直观）；
+           缩放用 .map-scale-wrap 的物理 width/height 实现——
+           当 scale>1 时 wrap 真实变大，浏览器必须以原始高清像素重新绘制底图和 marker，
+           彻底解决 transform:scale 仅视觉放大导致的模糊问题。
+           几何等价：canvas.translate(x,y) + wrap(width=vpW*s,height=vpH*s) + wrap 中心对齐 canvas 中心
+                     ≡ 原来的 canvas.translate(x,y) scale(s) + origin center center
+           clampMap 的边界计算无需改动，因为两者的 wrap/canvas 中心位置和尺寸完全一致。 */
         function applyMapTransform(vp, type) {
             const st = mapState[type];
             const canvas = vp.querySelector('.map-canvas');
-            canvas.style.transform = `translate(${st.x}px, ${st.y}px) scale(${st.s})`;
-            canvas.style.setProperty('--mz', st.s);
+            const wrap = canvas.querySelector('.map-scale-wrap');
+            // 平移：canvas transform 只做 translate
+            canvas.style.transform = `translate(${st.x}px, ${st.y}px)`;
+            // 缩放：wrap 物理尺寸直接放大 s 倍
+            const scaleW = vp.clientWidth * st.s;
+            const scaleH = vp.clientHeight * st.s;
+            wrap.style.width = scaleW + 'px';
+            wrap.style.height = scaleH + 'px';
         }
 
         function clampMap(vp, type) {
