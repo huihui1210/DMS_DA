@@ -553,27 +553,24 @@
 
         .s-card .s-trend {
             font-size: 11px;
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 3px;
+            gap: 2px;
             color: var(--muted);
+            margin-left: 4px;
         }
 
-        .s-card .s-trend.up {
+        /* 趋势颜色语义：s-good=向好（绿），s-bad=向坏（红），s-flat=持平（灰） */
+        .s-card .s-trend.s-good {
+            color: #3ddc97;
+        }
+
+        .s-card .s-trend.s-bad {
             color: #ff5f6d;
         }
 
-        .s-card .s-trend.down {
-            color: var(--green);
-        }
-
-        .s-card .s-trend.flat {
+        .s-card .s-trend.s-flat {
             color: var(--muted);
-        }
-
-        .s-card .s-trend i {
-            font-style: normal;
-            font-size: 10px;
         }
 
         .s-card.cyan {
@@ -1722,7 +1719,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.9.0</span>
+                    <span class="ver">V5.9.1</span>
                 </div>
             </div>
 
@@ -2780,6 +2777,12 @@
         }
 
         /* ================= 督办统计卡片（替代原分类构成饼图） ================= */
+        /* 设计原则：
+           - 每张卡片有 goodDir: +1 表示越多越好（绿），-1 表示越少越好（绿）
+           - 趋势百分比永远是正数（绝对差/基准），方向由箭头表示
+           - 颜色由 (差值方向 × goodDir) 决定是否"向好"
+           - 参考图样式：标签 + 大数字 + 小趋势行（箭头+百分比+对比词）
+        */
         function renderSuperviseStats() {
             const rows = state.rows;
             const now = new Date();
@@ -2815,48 +2818,62 @@
                 else if (dd.getFullYear() === lastY && dd.getMonth() === lastM) lmNew++;
             });
 
-            // 同比趋势：(cur - prev) / prev × 100%
-            function trend(cur, prev) {
-                if (prev === 0 && cur === 0) return { pct: '0%', dir: 'flat' };
-                if (prev === 0) return { pct: '新增', dir: 'up' };
-                if (cur === 0) return { pct: '清零', dir: 'down' };
-                const pct = ((cur - prev) / prev * 100).toFixed(1) + '%';
-                return { pct, dir: cur > prev ? 'up' : (cur < prev ? 'down' : 'flat') };
+            /**
+             * 计算友好趋势：百分比永远正数，箭头方向独立，颜色由 goodDir 判定
+             * @param {number} cur  当前值
+             * @param {number} prev  对比基准值（上月）
+             * @param {number} goodDir  +1=越多越好, -1=越少越好
+             * @returns {{arrow:'▲'|'▼'|'—', pct:string, tone:'good'|'bad'|'flat', desc:string}}
+             */
+            function friendlyTrend(cur, prev, goodDir) {
+                if (cur === prev) {
+                    return { arrow: '—', pct: '0%', tone: 'flat', desc: '持平' };
+                }
+                // 当 prev 为 0 时，用 cur 作为基准
+                const base = prev > 0 ? prev : Math.max(1, cur);
+                const pct = Math.abs(cur - prev) / base * 100;
+                const pctStr = pct < 1 ? pct.toFixed(2) + '%' : pct.toFixed(1) + '%';
+                const up = cur > prev;
+                const arrow = up ? '▲' : '▼';
+                // tone: up→1, down→-1，乘以 goodDir，正=向好
+                const better = (up ? 1 : -1) * goodDir > 0;
+                const tone = better ? 'good' : 'bad';
+                const desc = (prev === 0 && cur > 0) ? '本月首次' :
+                             (prev > 0 && cur === 0) ? '本月归零' :
+                             (up ? '增加' : '减少');
+                return { arrow, pct: pctStr, tone, desc };
             }
 
-            const tTotal = trend(mNew, lmNew);
-            const tDone = trend(mDone, lmDone);
-            // 剩余趋势：估算上月剩余 ≈ 本月剩余 - 本月完成 + 上月完成
-            let tRemainPct = '0%', tRemainDir = 'flat';
-            const estLastRemain = remain - mDone + lmDone;
-            if (estLastRemain > 0) {
-                tRemainPct = ((remain - estLastRemain) / estLastRemain * 100).toFixed(1) + '%';
-                tRemainDir = remain > estLastRemain ? 'up' : (remain < estLastRemain ? 'down' : 'flat');
-            } else if (remain > 0) { tRemainPct = '新增'; tRemainDir = 'up'; }
+            // 完成率趋势（特殊处理，因为是比例差不是比值）
+            const curR = mDone + mNew > 0 ? mDone / (mDone + mNew) : 0;
+            const lastR = lmDone + lmNew > 0 ? lmDone / (lmDone + lmNew) : 0;
+            const rateDeltaPct = Math.abs(curR - lastR) * 100;
+            const rateUp = curR > lastR;
+            const rateTone = rateDeltaPct < 0.001 ? 'flat' : (rateUp ? 'good' : 'bad');
+            const rateArrow = rateUp ? '▲' : (curR < lastR ? '▼' : '—');
+            const ratePct = rateDeltaPct < 0.001 ? '0%' : (rateDeltaPct < 1 ? rateDeltaPct.toFixed(2) + '%' : rateDeltaPct.toFixed(1) + '%');
+            const rateDesc = rateDeltaPct < 0.001 ? '持平' : (rateUp ? '上升' : '下降');
 
-            // 完成率趋势：本月 vs 上月
-            const curR = mDone + mNew > 0 ? mDone / (mDone + mNew) * 100 : 0;
-            const lastR = lmDone + lmNew > 0 ? lmDone / (lmDone + lmNew) * 100 : 0;
-            let tRatePct = '0%', tRateDir = 'flat';
-            const rd = curR - lastR;
-            if (Math.abs(rd) > 0.1) {
-                tRatePct = (rd > 0 ? '+' : '') + rd.toFixed(1) + '%';
-                tRateDir = rd > 0 ? 'up' : 'down';
-            }
+            const tTotal = friendlyTrend(mNew, lmNew, -1);  // 总数/新增越少越好
+            const tRemain = friendlyTrend(remain, remain - mDone + lmDone, -1); // 剩余越少越好
+            const tDone = friendlyTrend(mDone, lmDone, +1);     // 完成越多越好
 
-            const arrow = { up: '▲', down: '▼', flat: '—' };
             const cards = [
-                { key: 'total', cls: 'cyan',  val: total,                 lbl: '督办总数',   pct: tTotal.pct,    dir: tTotal.dir,   tip: '本月新增' },
-                { key: 'remain', cls: 'amber', val: remain,                lbl: '督办剩余',   pct: tRemainPct,    dir: tRemainDir,   tip: '较上月' },
-                { key: 'done',   cls: 'green',val: done,                  lbl: '督办完成',   pct: tDone.pct,     dir: tDone.dir,    tip: '本月完成' },
-                { key: 'rate',   cls: 'purple',val: rate.toFixed(1) + '%',lbl: '督办完成率', pct: tRatePct,      dir: tRateDir,     tip: '较上月' }
+                { key: 'total',  cls: 'cyan',  val: total,                  lbl: '督办总数',
+                  arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: '本月新增' + tTotal.desc },
+                { key: 'remain', cls: 'amber', val: remain,                 lbl: '督办剩余',
+                  arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: tRemain.desc + tRemain.pct },
+                { key: 'done',   cls: 'green', val: done,                   lbl: '督办完成',
+                  arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: tDone.desc + tDone.pct },
+                { key: 'rate',   cls: 'purple', val: rate.toFixed(1) + '%', lbl: '督办完成率',
+                  arrow: rateArrow, pct: ratePct, tone: rateTone, tip: rateDesc + ratePct }
             ];
 
             const grid = document.getElementById('superviseGrid');
             grid.innerHTML = cards.map(c => `
                 <div class="s-card ${c.cls}" data-key="${c.key}">
-                    <div class="s-lbl">${c.lbl}<span class="s-trend ${c.dir}" title="${c.tip} ${c.pct}">
-                        ${arrow[c.dir]} ${c.pct} ${c.tip}
+                    <div class="s-lbl">${c.lbl}<span class="s-trend s-${c.tone}" title="${c.tip}">
+                        ${c.arrow} ${c.pct} 较上月
                     </span></div>
                     <div class="s-val">${c.val}</div>
                 </div>
