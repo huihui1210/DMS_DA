@@ -3070,10 +3070,14 @@
                     const vp = box.querySelector('.map-viewport');
                     const defaultS = state.view === 'all' ? 1 : getMapDefaultScale(vp, type);
                     mapState[type].defaultS = defaultS;
+                    // 关键：切换视图重建 DOM 后，必须无条件 applyMapTransform ——
+                    // 原来的 canvas transform 方案不调用也能正常显示（默认 scale=1），
+                    // 但现在 .map-scale-wrap 依赖显式 width/height，默认是 0 → 黑屏。
+                    // 同时 defaultS 也需要每次按当前视图重算（all↔single 切换时值会变）。
                     if (mapState[type].s === 1 && mapState[type].x === 0 && mapState[type].y === 0) {
                         mapState[type].s = defaultS;
-                        applyMapTransform(vp, type);
                     }
+                    applyMapTransform(vp, type);
                 }
             });
 
