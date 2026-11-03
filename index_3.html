@@ -293,13 +293,20 @@
 
         .col {
             display: grid;
+            /* 三行等高分配：
+               row 1: 关键指标 ↔ 督办统计（2×2 卡片，需要足够高度）
+               row 2: 缺陷趋势 ↔ 消缺榜单（图表）
+               row 3: 专业分布 ↔ 督办清单（图表/清单）
+               minmax 保证卡片面板至少 180px 不被压扁
+            */
+            grid-template-rows: minmax(180px, 0.85fr) 1fr 1fr;
             gap: 12px;
             min-height: 0;
             min-width: 0;
         }
 
         .col-left {
-            grid-template-rows: 250px 380px minmax(0, 1fr);
+            grid-template-rows: minmax(200px, 0.85fr) 1fr 1fr;
         }
 
         .col-center {
@@ -307,7 +314,7 @@
         }
 
         .col-right {
-            grid-template-rows: 330px 316px minmax(0, 1fr);
+            grid-template-rows: minmax(200px, 0.85fr) 1fr 1fr;
         }
 
         /* ================= Panel ================= */
@@ -485,7 +492,7 @@
             transition: transform 0.15s ease, box-shadow 0.2s ease;
             /* 玻璃质感：深色底 + 半透明叠层 */
             background:
-                linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01) 60%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01) 60%),
                 rgba(10, 28, 52, 0.55);
             border: 1px solid rgba(59, 210, 255, 0.15);
         }
@@ -508,11 +515,22 @@
             flex-shrink: 0;
         }
 
-        .s-card.cyan  .s-icon { background: linear-gradient(135deg, #3bd2ff, #0e7490); }
-        .s-card.amber .s-icon { background: linear-gradient(135deg, #ffc658, #c9881c); }
-        .s-card.green .s-icon { background: linear-gradient(135deg, #3ddc97, #0e7a52); }
+        .s-card.cyan .s-icon {
+            background: linear-gradient(135deg, #3bd2ff, #0e7490);
+        }
+
+        .s-card.amber .s-icon {
+            background: linear-gradient(135deg, #ffc658, #c9881c);
+        }
+
+        .s-card.green .s-icon {
+            background: linear-gradient(135deg, #3ddc97, #0e7a52);
+        }
+
         .s-card.purple.s-icon,
-        .s-card.purple .s-icon { background: linear-gradient(135deg, #a78bfa, #6a4bc4); }
+        .s-card.purple .s-icon {
+            background: linear-gradient(135deg, #a78bfa, #6a4bc4);
+        }
 
         /* 标签行 */
         .s-card .s-head {
@@ -554,10 +572,21 @@
             letter-spacing: -0.5px;
         }
 
-        .s-card.cyan  .s-val { color: #3bd2ff; }
-        .s-card.amber .s-val { color: #ffc658; }
-        .s-card.green .s-val { color: #3ddc97; }
-        .s-card.purple .s-val { color: #a78bfa; }
+        .s-card.cyan .s-val {
+            color: #3bd2ff;
+        }
+
+        .s-card.amber .s-val {
+            color: #ffc658;
+        }
+
+        .s-card.green .s-val {
+            color: #3ddc97;
+        }
+
+        .s-card.purple .s-val {
+            color: #a78bfa;
+        }
 
         /* sparkline 折线区域 */
         .s-card .s-spark {
@@ -579,10 +608,21 @@
             opacity: 0.25;
         }
 
-        .s-card.cyan  .s-spark path.line { stroke: #3bd2ff; }
-        .s-card.amber .s-spark path.line { stroke: #ffc658; }
-        .s-card.green .s-spark path.line { stroke: #3ddc97; }
-        .s-card.purple .s-spark path.line { stroke: #a78bfa; }
+        .s-card.cyan .s-spark path.line {
+            stroke: #3bd2ff;
+        }
+
+        .s-card.amber .s-spark path.line {
+            stroke: #ffc658;
+        }
+
+        .s-card.green .s-spark path.line {
+            stroke: #3ddc97;
+        }
+
+        .s-card.purple .s-spark path.line {
+            stroke: #a78bfa;
+        }
 
         /* 趋势行：底部 */
         .s-card .s-foot {
@@ -628,10 +668,21 @@
             opacity: 0.7;
         }
 
-        .s-card.cyan::before  { background: linear-gradient(90deg, #3bd2ff, transparent); }
-        .s-card.amber::before { background: linear-gradient(90deg, #ffc658, transparent); }
-        .s-card.green::before { background: linear-gradient(90deg, #3ddc97, transparent); }
-        .s-card.purple::before { background: linear-gradient(90deg, #a78bfa, transparent); }
+        .s-card.cyan::before {
+            background: linear-gradient(90deg, #3bd2ff, transparent);
+        }
+
+        .s-card.amber::before {
+            background: linear-gradient(90deg, #ffc658, transparent);
+        }
+
+        .s-card.green::before {
+            background: linear-gradient(90deg, #3ddc97, transparent);
+        }
+
+        .s-card.purple::before {
+            background: linear-gradient(90deg, #a78bfa, transparent);
+        }
 
         /* ================= Center ================= */
 
@@ -737,7 +788,7 @@
             margin-left: auto;
         }
 
-        .map-grid.single ~ * .map-dots,
+        .map-grid.single~* .map-dots,
         .map-dots:empty {
             display: none;
         }
@@ -1763,7 +1814,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.12.0</span>
+                    <span class="ver">V5.12.2</span>
                 </div>
             </div>
 
@@ -1870,7 +1921,7 @@
                 <div class="panel board-panel">
                     <div class="panel-head">
                         <span class="bar"></span>
-                        <h2>消缺龙虎榜</h2>
+                        <h2>消缺榜单</h2>
                         <div class="period-tabs" id="periodTabs">
                             <button class="pbtn" data-period="yesterday">昨日</button>
                             <button class="pbtn" data-period="week">本周</button>
@@ -2745,9 +2796,11 @@
             const lastR = lmDone + lmTotal > 0 ? lmDone / (lmDone + lmTotal) * 100 : 0;
             const rd = curR - lastR;
             const tRate = Math.abs(rd) < 0.01 ? { arrow: '—', pct: '0%', tone: 'flat' }
-                          : { arrow: rd > 0 ? '▲' : '▼',
-                              pct: (Math.abs(rd) < 1 ? Math.abs(rd).toFixed(2) : Math.abs(rd).toFixed(1)) + '%',
-                              tone: rd > 0 ? 'good' : 'bad' };
+                : {
+                    arrow: rd > 0 ? '▲' : '▼',
+                    pct: (Math.abs(rd) < 1 ? Math.abs(rd).toFixed(2) : Math.abs(rd).toFixed(1)) + '%',
+                    tone: rd > 0 ? 'good' : 'bad'
+                };
 
             /** sparkline SVG（跟督办卡片共用同一套视觉） */
             function sparkline(data, w = 56, h = 28) {
@@ -2762,11 +2815,11 @@
                     return [x, y];
                 });
                 const dLine = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
-                const dArea = dLine + ` L${pts[pts.length-1][0].toFixed(1)} ${h} L${pts[0][0].toFixed(1)} ${h} Z`;
+                const dArea = dLine + ` L${pts[pts.length - 1][0].toFixed(1)} ${h} L${pts[0][0].toFixed(1)} ${h} Z`;
                 return `<svg class="s-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
                     <path class="area" d="${dArea}" />
                     <path class="line" d="${dLine}" />
-                    <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="1.5" class="dot" fill="currentColor" opacity="0.9"/>
+                    <circle cx="${pts[pts.length - 1][0].toFixed(1)}" cy="${pts[pts.length - 1][1].toFixed(1)}" r="1.5" class="dot" fill="currentColor" opacity="0.9"/>
                 </svg>`;
             }
 
@@ -2806,10 +2859,10 @@
             const tDone = trend(mDone, lmDone, +1);
 
             const cards = [
-                { key: 'total',     cls: 'cyan',   val: total,                  lbl: '缺陷总数',   icon: '●', arrow: tTotal.arrow,  pct: tTotal.pct,  tone: tTotal.tone,  tip: '较上月', spark: slTotal },
-                { key: 'pending',   cls: 'amber',  val: pending,                lbl: '剩余缺陷',   icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月', spark: slRemain },
-                { key: 'completed', cls: 'green',  val: completed,              lbl: '完成缺陷',   icon: '✓', arrow: tDone.arrow,   pct: tDone.pct,   tone: tDone.tone,   tip: '较上月', spark: slDone },
-                { key: 'rate',      cls: 'purple', val: rate.toFixed(1) + '%',  lbl: '消缺率',     icon: '%', arrow: tRate.arrow,   pct: tRate.pct,   tone: tRate.tone,   tip: '较上月', spark: slRate }
+                { key: 'total', cls: 'cyan', val: total, lbl: '缺陷总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: '较上月', spark: slTotal },
+                { key: 'pending', cls: 'amber', val: pending, lbl: '剩余缺陷', icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月', spark: slRemain },
+                { key: 'completed', cls: 'green', val: completed, lbl: '完成缺陷', icon: '✓', arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: '较上月', spark: slDone },
+                { key: 'rate', cls: 'purple', val: rate.toFixed(1) + '%', lbl: '消缺率', icon: '%', arrow: tRate.arrow, pct: tRate.pct, tone: tRate.tone, tip: '较上月', spark: slRate }
             ];
 
             const grid = document.getElementById('kpiGrid');
@@ -2995,9 +3048,11 @@
             const lastR = lmDone + lmNew > 0 ? lmDone / (lmDone + lmNew) * 100 : 0;
             const rd = curR - lastR;
             const tRate = Math.abs(rd) < 0.01 ? { arrow: '—', pct: '0%', tone: 'flat' }
-                          : { arrow: rd > 0 ? '▲' : '▼',
-                              pct: (Math.abs(rd) < 1 ? Math.abs(rd).toFixed(2) : Math.abs(rd).toFixed(1)) + '%',
-                              tone: rd > 0 ? 'good' : 'bad' };
+                : {
+                    arrow: rd > 0 ? '▲' : '▼',
+                    pct: (Math.abs(rd) < 1 ? Math.abs(rd).toFixed(2) : Math.abs(rd).toFixed(1)) + '%',
+                    tone: rd > 0 ? 'good' : 'bad'
+                };
 
             /**
              * 生成 sparkline SVG 折线
@@ -3018,11 +3073,11 @@
                 });
                 const dLine = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
                 // 闭合区域：从折线最后一点拉到底部，再拉回起点
-                const dArea = dLine + ` L${pts[pts.length-1][0].toFixed(1)} ${h} L${pts[0][0].toFixed(1)} ${h} Z`;
+                const dArea = dLine + ` L${pts[pts.length - 1][0].toFixed(1)} ${h} L${pts[0][0].toFixed(1)} ${h} Z`;
                 return `<svg class="s-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
                     <path class="area" d="${dArea}" />
                     <path class="line" d="${dLine}" />
-                    <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="1.5" class="dot" fill="currentColor" opacity="0.9"/>
+                    <circle cx="${pts[pts.length - 1][0].toFixed(1)}" cy="${pts[pts.length - 1][1].toFixed(1)}" r="1.5" class="dot" fill="currentColor" opacity="0.9"/>
                 </svg>`;
             }
 
@@ -3055,10 +3110,10 @@
             });
 
             const cards = [
-                { key: 'total',  cls: 'cyan',   val: total,                  lbl: '督办总数',   icon: '●', arrow: tTotal.arrow,  pct: tTotal.pct,  tone: tTotal.tone,  tip: '本月新增较上月',   spark: slTotal },
-                { key: 'remain', cls: 'amber',  val: remain,                 lbl: '督办剩余',   icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月',           spark: slRemain },
-                { key: 'done',   cls: 'green',  val: done,                   lbl: '督办完成',   icon: '✓', arrow: tDone.arrow,   pct: tDone.pct,   tone: tDone.tone,   tip: '本月完成较上月',   spark: slDone },
-                { key: 'rate',   cls: 'purple', val: rate.toFixed(1) + '%',  lbl: '督办完成率', icon: '%', arrow: tRate.arrow,   pct: tRate.pct,   tone: tRate.tone,   tip: '较上月',           spark: slRate }
+                { key: 'total', cls: 'cyan', val: total, lbl: '督办总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: '本月新增较上月', spark: slTotal },
+                { key: 'remain', cls: 'amber', val: remain, lbl: '督办剩余', icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月', spark: slRemain },
+                { key: 'done', cls: 'green', val: done, lbl: '督办完成', icon: '✓', arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: '本月完成较上月', spark: slDone },
+                { key: 'rate', cls: 'purple', val: rate.toFixed(1) + '%', lbl: '督办完成率', icon: '%', arrow: tRate.arrow, pct: tRate.pct, tone: tRate.tone, tip: '较上月', spark: slRate }
             ];
 
             const grid = document.getElementById('superviseGrid');
