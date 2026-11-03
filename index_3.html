@@ -284,7 +284,8 @@
             min-height: 0;
             min-width: 0;
             display: grid;
-            grid-template-columns: minmax(0, 440px) minmax(0, 1fr) minmax(0, 520px);
+            /* 左右对称 500px，中列自适应（会自动缩小，地图+清单宽度随之微调） */
+            grid-template-columns: minmax(0, 500px) minmax(0, 1fr) minmax(0, 500px);
             gap: 12px;
             padding-top: 12px;
             overflow: hidden;
@@ -412,79 +413,55 @@
             min-width: 0;
         }
 
-        /* ================= KPI ================= */
+        /* ================= KPI（复用 s-card 督办卡片样式，保持视觉一致） ================= */
         .kpi-grid {
             height: 100%;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             grid-template-rows: 1fr;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .kpi {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+        /* 复用督办 .s-card 的结构和样式，覆盖只做微调 */
+        .kpi-grid .s-card {
+            padding: 12px 10px 10px;
+            border-radius: 6px;
+            gap: 3px;
+        }
+
+        .kpi-grid .s-card .s-head {
+            gap: 5px;
+            margin-bottom: 6px;
+        }
+
+        .kpi-grid .s-card .s-icon {
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+        }
+
+        .kpi-grid .s-card .s-lbl {
+            font-size: 11px;
+        }
+
+        .kpi-grid .s-card .s-body {
             gap: 6px;
-            overflow: hidden;
-            border: 1px solid rgba(59, 210, 255, 0.22);
-            border-radius: 4px;
-            background: linear-gradient(180deg, rgba(59, 210, 255, 0.09), rgba(59, 210, 255, 0.02));
-            box-shadow: inset 0 0 24px rgba(59, 210, 255, 0.05);
+            flex: 1;
         }
 
-        .kpi::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, currentColor, transparent);
-            opacity: 0.7;
-        }
-
-        .kpi .val {
-            font-family: var(--num-font);
-            font-size: 46px;
-            font-weight: 700;
-            line-height: 1;
-            color: currentColor;
-            font-variant-numeric: tabular-nums;
+        .kpi-grid .s-card .s-val {
+            font-size: 38px;
             letter-spacing: -0.5px;
         }
 
-        .kpi .val.small {
-            font-size: 38px;
+        .kpi-grid .s-card .s-spark {
+            width: 56px;
+            height: 28px;
         }
 
-        .kpi .lbl {
-            font-size: 13px;
-            color: #9cc8e2;
-            letter-spacing: 1px;
-            text-align: center;
-        }
-
-        .kpi.cyan {
-            color: var(--cyan);
-        }
-
-        .kpi.amber {
-            color: var(--amber);
-        }
-
-        .kpi.red {
-            color: var(--red);
-        }
-
-        .kpi.green {
-            color: var(--green);
-        }
-
-        .kpi.purple {
-            color: var(--purple);
+        .kpi-grid .s-card .s-foot {
+            margin-top: 4px;
+            font-size: 10px;
         }
 
         /* ================= 督办统计卡片（重新设计 · 参考图风格） ================= */
@@ -1786,7 +1763,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.11.0</span>
+                    <span class="ver">V5.12.0</span>
                 </div>
             </div>
 
@@ -2723,25 +2700,150 @@
 
         function renderKPI() {
             const rows = state.rows;
+            const now = new Date();
+            const curY = now.getFullYear();
+            const curM = now.getMonth();
+            const lastMD = new Date(curY, curM - 1, 1);
+            const lastY = lastMD.getFullYear();
+            const lastM = lastMD.getMonth();
+
             const total = rows.length;
             const pending = rows.filter(r => r.status === '待消缺项目').length;
             const completed = total - pending;
             const rate = total ? (completed / total * 100) : 0;
 
-            // 精简为 4 个核心指标：缺陷总数 / 剩余缺陷 / 完成缺陷 / 消缺率
+            // 本月 vs 上月
+            let mDone = 0, lmDone = 0;
+            rows.forEach(r => {
+                if (r.status !== '已消缺项') return;
+                const cd = getCompleteDate(r);
+                if (!cd) return;
+                if (cd.getFullYear() === curY && cd.getMonth() === curM) mDone++;
+                else if (cd.getFullYear() === lastY && cd.getMonth() === lastM) lmDone++;
+            });
+            let mTotal = 0, lmTotal = 0;
+            rows.forEach(r => {
+                const dd = getDateFromDefectId(getId(r));
+                if (!dd) return;
+                if (dd.getFullYear() === curY && dd.getMonth() === curM) mTotal++;
+                else if (dd.getFullYear() === lastY && dd.getMonth() === lastM) lmTotal++;
+            });
+
+            /** 友好趋势 */
+            function trend(cur, prev, goodDir) {
+                if (cur === prev) return { arrow: '—', pct: '0%', tone: 'flat' };
+                const base = prev > 0 ? prev : Math.max(1, cur);
+                const pct = Math.abs(cur - prev) / base * 100;
+                const pctStr = pct < 1 ? pct.toFixed(2) + '%' : pct.toFixed(1) + '%';
+                const up = cur > prev;
+                const better = (up ? 1 : -1) * goodDir > 0;
+                return { arrow: up ? '▲' : '▼', pct: pctStr, tone: better ? 'good' : 'bad' };
+            }
+
+            // 完成率趋势
+            const curR = mDone + mTotal > 0 ? mDone / (mDone + mTotal) * 100 : 0;
+            const lastR = lmDone + lmTotal > 0 ? lmDone / (lmDone + lmTotal) * 100 : 0;
+            const rd = curR - lastR;
+            const tRate = Math.abs(rd) < 0.01 ? { arrow: '—', pct: '0%', tone: 'flat' }
+                          : { arrow: rd > 0 ? '▲' : '▼',
+                              pct: (Math.abs(rd) < 1 ? Math.abs(rd).toFixed(2) : Math.abs(rd).toFixed(1)) + '%',
+                              tone: rd > 0 ? 'good' : 'bad' };
+
+            /** sparkline SVG（跟督办卡片共用同一套视觉） */
+            function sparkline(data, w = 56, h = 28) {
+                if (!data || data.length === 0) data = [0];
+                const max = Math.max(...data, 1);
+                const min = Math.min(...data, 0);
+                const range = max - min || 1;
+                const step = data.length > 1 ? w / (data.length - 1) : 0;
+                const pts = data.map((v, i) => {
+                    const x = data.length > 1 ? i * step : w / 2;
+                    const y = h - ((v - min) / range * (h - 4)) - 2;
+                    return [x, y];
+                });
+                const dLine = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+                const dArea = dLine + ` L${pts[pts.length-1][0].toFixed(1)} ${h} L${pts[0][0].toFixed(1)} ${h} Z`;
+                return `<svg class="s-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+                    <path class="area" d="${dArea}" />
+                    <path class="line" d="${dLine}" />
+                    <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="1.5" class="dot" fill="currentColor" opacity="0.9"/>
+                </svg>`;
+            }
+
+            // 最近 6 个月 sparkline 数据
+            const MONTHS = 6;
+            const months = [];
+            for (let i = MONTHS - 1; i >= 0; i--) {
+                const d = new Date(curY, curM - i, 1);
+                months.push({ y: d.getFullYear(), m: d.getMonth() });
+            }
+            // 各月新增
+            const slTotal = months.map(m => rows.filter(r => {
+                const dd = getDateFromDefectId(getId(r));
+                return dd && dd.getFullYear() === m.y && dd.getMonth() === m.m;
+            }).length);
+            // 各月完成
+            const slDone = months.map(m => rows.filter(r => {
+                if (r.status !== '已消缺项') return false;
+                const cd = getCompleteDate(r);
+                return cd && cd.getFullYear() === m.y && cd.getMonth() === m.m;
+            }).length);
+            // 剩余累计估算
+            const slRemain = months.map((_, i) => {
+                const cumT = slTotal.slice(0, i + 1).reduce((a, b) => a + b, 0);
+                const cumD = slDone.slice(0, i + 1).reduce((a, b) => a + b, 0);
+                return Math.max(0, cumT - cumD);
+            });
+            // 完成率累计
+            const slRate = months.map((_, i) => {
+                const cumT = slTotal.slice(0, i + 1).reduce((a, b) => a + b, 0);
+                const cumD = slDone.slice(0, i + 1).reduce((a, b) => a + b, 0);
+                return cumT ? +(cumD / cumT * 100).toFixed(1) : 0;
+            });
+
+            const tTotal = trend(mTotal, lmTotal, -1);
+            const tRemain = trend(pending, pending - mDone + lmDone, -1);
+            const tDone = trend(mDone, lmDone, +1);
+
             const cards = [
-                { key: 'total',     cls: 'cyan',   value: total,              label: '缺陷总数' },
-                { key: 'pending',   cls: 'amber',  value: pending,            label: '剩余缺陷' },
-                { key: 'completed', cls: 'green',  value: completed,          label: '完成缺陷' },
-                { key: 'rate',      cls: 'purple', value: rate.toFixed(1) + '%', label: '消缺率' }
+                { key: 'total',     cls: 'cyan',   val: total,                  lbl: '缺陷总数',   icon: '●', arrow: tTotal.arrow,  pct: tTotal.pct,  tone: tTotal.tone,  tip: '较上月', spark: slTotal },
+                { key: 'pending',   cls: 'amber',  val: pending,                lbl: '剩余缺陷',   icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月', spark: slRemain },
+                { key: 'completed', cls: 'green',  val: completed,              lbl: '完成缺陷',   icon: '✓', arrow: tDone.arrow,   pct: tDone.pct,   tone: tDone.tone,   tip: '较上月', spark: slDone },
+                { key: 'rate',      cls: 'purple', val: rate.toFixed(1) + '%',  lbl: '消缺率',     icon: '%', arrow: tRate.arrow,   pct: tRate.pct,   tone: tRate.tone,   tip: '较上月', spark: slRate }
             ];
 
-            document.getElementById('kpiGrid').innerHTML = cards.map(c => `
-                <div class="kpi ${c.cls}" data-key="${c.key}">
-                    <div class="val${c.value.length > 4 ? ' small' : ''}">${c.value}</div>
-                    <div class="lbl">${c.label}</div>
+            const grid = document.getElementById('kpiGrid');
+            grid.innerHTML = cards.map(c => `
+                <div class="s-card ${c.cls}" data-key="${c.key}">
+                    <div class="s-head">
+                        <div class="s-icon">${c.icon}</div>
+                        <div class="s-lbl">${c.lbl}</div>
+                    </div>
+                    <div class="s-body">
+                        <div class="s-main">
+                            <div class="s-val">${c.val}</div>
+                        </div>
+                        ${sparkline(c.spark)}
+                    </div>
+                    <div class="s-foot">
+                        <span class="s-trend s-${c.tone}" title="${c.tip} ${c.arrow} ${c.pct}">
+                            ${c.arrow} ${c.pct}
+                        </span>
+                        <span style="color:#86b3cc;font-size:10px;margin-left:5px;">${c.tip}</span>
+                    </div>
                 </div>
             `).join('');
+
+            // 点击 KPI 弹出明细
+            grid.querySelectorAll('.s-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const k = card.dataset.key;
+                    if (k === 'total') openModal('缺陷 · 全部清单', rows);
+                    else if (k === 'pending') openModal('剩余缺陷 · 待消缺', rows.filter(r => r.status === '待消缺项目'));
+                    else if (k === 'completed') openModal('完成缺陷 · 已消缺', rows.filter(r => r.status === '已消缺项'));
+                    else if (k === 'rate') openModal('缺陷清单（消缺率明细）', rows);
+                });
+            });
         }
 
         function renderTrend() {
