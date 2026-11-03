@@ -657,7 +657,10 @@
             position: absolute;
             inset: 0;
             transform-origin: center center;
-            will-change: transform;
+            /* 注意：不使用 will-change: transform，避免浏览器为其创建固定分辨率的
+               GPU 合成层 backing store，导致 scale 放大时图片因缓冲像素不足而模糊。
+               不使用 will-change 时浏览器会在每次 transform 变化时重新 paint，
+               图片以原始高清像素重新渲染，保证缩放清晰度。 */
             user-select: none;
             -webkit-user-select: none;
             background-image:
