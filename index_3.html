@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.21.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.22.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -2603,7 +2603,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.21.0</span>
+                    <span class="ver">V5.22.0</span>
                 </div>
             </div>
 
@@ -2693,7 +2693,6 @@
                     <div class="panel-head">
                         <span class="bar"></span>
                         <h2>缺陷滚动清单</h2>
-                        <span class="hint" id="listHint"></span>
                     </div>
                     <div class="panel-body">
                         <div class="list-head">
@@ -2713,7 +2712,6 @@
                     <div class="panel-head">
                         <span class="bar"></span>
                         <h2>督办统计</h2>
-                        <span class="hint">剩余 · 已完成 · 完成率</span>
                     </div>
                     <div class="panel-body">
                         <div class="supervise-grid" id="superviseGrid"></div>
@@ -4421,9 +4419,7 @@
 
         function renderList() {
             const viewport = document.getElementById('listViewport');
-            const hint = document.getElementById('listHint');
             const pending = state.rows.filter(row => row.status === '待消缺项目');
-            if (hint) hint.textContent = `待消缺 ${pending.length} 条 · 按登记日期倒序`;
 
             if (pending.length === 0) {
                 viewport.innerHTML = '<div class="empty-row">当前视图暂无待消缺缺陷</div>';
@@ -4549,7 +4545,7 @@
                     <span class="map-name"><i></i>${label}</span>
                     <span class="map-stats">待消缺<b id="${type}Pending">0</b>Ⅰ类<b id="${type}ClassI">0</b></span>
                 </div>
-                <div class="map-foot">滚轮缩放 / 拖拽平移 / 双击复位<span class="map-unplaced" id="${type}Unplaced"></span></div>`;
+                <div class="map-foot"><span class="map-unplaced" id="${type}Unplaced"></span></div>`;
             const vp = box.querySelector('.map-viewport');
             bindMapInteractions(vp, type);
             applyMapTransform(vp, type);
@@ -4670,7 +4666,7 @@
             }).join('');
             const unplaced = Object.keys(zoneAll).filter(z => !spots[z]).length;
             const el = document.getElementById(type + 'Unplaced');
-            if (el) el.textContent = unplaced ? ` · ${unplaced}个区域未定位` : '';
+            if (el) el.textContent = unplaced ? `${unplaced}个区域未定位` : '';
         }
 
         /* ---- 缩放 / 平移 ---- */
