@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.18.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.19.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -418,6 +418,263 @@
             width: 100%;
             min-height: 0;
             min-width: 0;
+        }
+
+        /* ================= 专业分布（立体饼环） ================= */
+        .prof-wrap {
+            flex: 1;
+            min-height: 0;
+            min-width: 0;
+            display: flex;
+            gap: 10px;
+            padding: 2px 0;
+        }
+
+        .prof-plot {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        .prof-chart {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .prof-slice {
+            cursor: pointer;
+            outline: none;
+            transition: opacity 0.18s ease, filter 0.18s ease;
+        }
+
+        /* hover 时其余扇区压暗，当前扇区提亮 —— 只作用于顶层扇区，侧壁保持稳定 */
+        .prof-chart:hover .prof-slice {
+            opacity: 0.55;
+        }
+
+        .prof-chart:hover .prof-slice:hover,
+        .prof-chart:hover .prof-slice.hot {
+            opacity: 1;
+            filter: brightness(1.16);
+        }
+
+        .prof-chart .prof-slice:focus-visible {
+            opacity: 1;
+            filter: brightness(1.2) drop-shadow(0 0 7px rgba(59, 210, 255, 0.85));
+        }
+
+        /* 扇区计数标注：数字带描边阴影，压在渐变上也能读清 */
+        .prof-chart .pf-num {
+            font-family: var(--num-font);
+            font-size: 12px;
+            font-weight: 700;
+            fill: #f6fcff;
+            paint-order: stroke;
+            stroke: rgba(3, 14, 26, 0.62);
+            stroke-width: 2px;
+            pointer-events: none;
+        }
+
+        .prof-chart .pf-hub-cap {
+            font-size: 9px;
+            letter-spacing: 2.5px;
+            fill: #7fb6d2;
+        }
+
+        .prof-chart .pf-hub-num {
+            font-family: var(--num-font);
+            font-size: 36px;
+            font-weight: 700;
+            fill: url(#pfHubGrad);
+            font-variant-numeric: tabular-nums;
+            filter: drop-shadow(0 0 9px rgba(59, 210, 255, 0.45));
+        }
+
+        .prof-chart .pf-hub-unit {
+            font-family: 'Microsoft YaHei', sans-serif;
+            font-size: 11px;
+            font-weight: 400;
+            fill: #8fb9d3;
+        }
+
+        .prof-chart .pf-shadow {
+            filter: blur(9px);
+        }
+
+        .prof-legend {
+            flex: 0 0 138px;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 2px;
+            padding-right: 2px;
+        }
+
+        .prof-legend-head {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 6px 5px;
+            margin-bottom: 2px;
+            border-bottom: 1px solid rgba(59, 210, 255, 0.16);
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: #6d97b4;
+        }
+
+        .prof-legend-head span:first-child {
+            flex: 1;
+        }
+
+        .prof-leg {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            width: 100%;
+            height: 22px;
+            padding: 0 6px 0 5px;
+            font-family: inherit;
+            text-align: left;
+            color: #bfe3f5;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+        }
+
+        .prof-leg:hover,
+        .prof-leg.hot {
+            color: #eafcff;
+            background: rgba(59, 210, 255, 0.08);
+            border-color: rgba(59, 210, 255, 0.28);
+        }
+
+        .prof-leg i {
+            flex: 0 0 7px;
+            width: 7px;
+            height: 7px;
+            border-radius: 1px;
+        }
+
+        .prof-leg .pl-name {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .prof-leg .pl-cnt {
+            font-family: var(--num-font);
+            font-size: 14px;
+            color: #eafcff;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* 底部悬浮读数：当前扇区（默认最大扇区）的专业名 + 剩余数 */
+        .prof-spot {
+            position: absolute;
+            left: 50%;
+            bottom: 2px;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            max-width: 96%;
+            padding: 2px 10px 3px;
+            border: 1px solid rgba(59, 210, 255, 0.22);
+            border-radius: 2px;
+            background: linear-gradient(180deg, rgba(9, 32, 58, 0.86), rgba(5, 20, 38, 0.74));
+            box-shadow: inset 0 1px 0 rgba(59, 210, 255, 0.16);
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .prof-spot i {
+            width: 7px;
+            height: 7px;
+            border-radius: 1px;
+        }
+
+        .prof-spot .ps-name {
+            font-size: 12px;
+            letter-spacing: 1px;
+            color: #d8f2ff;
+        }
+
+        .prof-spot .ps-cnt {
+            font-size: 10px;
+            letter-spacing: 0.5px;
+            color: #7fb6d2;
+        }
+
+        .prof-spot .ps-cnt b {
+            margin: 0 2px;
+            font-family: var(--num-font);
+            font-size: 17px;
+            color: #8feaff;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .prof-empty {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            letter-spacing: 1px;
+            color: #6d97b4;
+        }
+
+        /* ================= 全屏按钮（顶栏右上角） ================= */
+        .sys-link.fs-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            font-family: inherit;
+            background: none;
+            cursor: pointer;
+        }
+
+        .fs-btn svg {
+            display: block;
+            width: 14px;
+            height: 14px;
+            color: #aee3f8;
+            transition: color 0.2s ease;
+        }
+
+        .fs-btn .fs-out,
+        .fs-btn.on .fs-in {
+            display: none;
+        }
+
+        .fs-btn.on .fs-out {
+            display: block;
+        }
+
+        .sys-link.fs-btn:hover svg {
+            color: #03121e;
+        }
+
+        .sys-link.fs-btn.on {
+            color: #03121e;
+            border-color: #3bd2ff;
+            background: linear-gradient(180deg, #8feaff, #3bd2ff);
+            box-shadow: 0 0 16px rgba(59, 210, 255, 0.55);
+        }
+
+        .sys-link.fs-btn.on svg {
+            color: #03121e;
         }
 
         /* ================= 消缺龙虎榜（纯领奖台 · 立体柱台） ================= */
@@ -2339,13 +2596,21 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.18.0</span>
+                    <span class="ver">V5.19.0</span>
                 </div>
             </div>
 
             <div class="top-right">
                 <button class="sys-link as-btn" id="mapImgBtn" type="button">底图</button>
                 <button class="sys-link as-btn" id="mapEditBtn" type="button">点位</button>
+                <button class="sys-link fs-btn" id="fsBtn" type="button" title="铺满全屏" aria-label="铺满全屏" aria-pressed="false">
+                    <svg class="fs-in" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+                        <path d="M6 2H2v4M10 2h4v4M6 14H2v-4M10 14h4v-4" />
+                    </svg>
+                    <svg class="fs-out" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+                        <path d="M2 6h4V2M14 6h-4V2M2 10h4v4M14 10h-4v4" />
+                    </svg>
+                </button>
                 <a class="sys-link" href="index_1.html">福建LNG</a>
                 <div class="clock">
                     <b id="clockTime">00:00:00</b>
@@ -2392,7 +2657,7 @@
                         <span class="hint">Ⅰ类 · 剩余</span>
                     </div>
                     <div class="panel-body">
-                        <div class="chart" id="chartProf"></div>
+                        <div class="prof-wrap" id="chartProf"></div>
                     </div>
                 </div>
             </div>
@@ -2521,30 +2786,6 @@
             '后勤': '综合管理部'
         };
         const PERIOD_LABELS = { yesterday: '昨日', week: '本周', month: '本月', year: '今年' };
-
-        // 柱状图多彩渐变配色（深海科技蓝色系为主）
-        const BAR_PALETTE = [
-            ['rgba(16,110,170,.95)', '#54e0ff'],
-            ['rgba(63,78,196,.95)', '#8aa4ff'],
-            ['rgba(12,132,116,.95)', '#41e0a4'],
-            ['rgba(150,102,22,.95)', '#ffc658'],
-            ['rgba(96,66,186,.95)', '#bda2ff'],
-            ['rgba(172,66,86,.95)', '#ff93a0'],
-            ['rgba(16,132,150,.95)', '#4fe6d8'],
-            ['rgba(34,116,66,.95)', '#7ee6a0']
-        ];
-        function barStyle(idx) {
-            const pair = BAR_PALETTE[idx % BAR_PALETTE.length];
-            return {
-                borderRadius: 2,
-                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-                    { offset: 0, color: pair[0] },
-                    { offset: 1, color: pair[1] }
-                ]),
-                shadowColor: pair[1],
-                shadowBlur: 4
-            };
-        }
 
         /* ================= 点位存储（localStorage 持久化，由点位编辑模式写入） ================= */
         function getMapSpots() {
@@ -3078,6 +3319,61 @@
         function fitStage() {
             const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
             document.getElementById('stage').style.transform = `translate(-50%, -50%) scale(${s})`;
+        }
+
+        /* ================= 全屏（Fullscreen API） ================= */
+        function isFullscreen() {
+            return !!(document.fullscreenElement || document.webkitFullscreenElement);
+        }
+
+        function updateFsBtn() {
+            const btn = document.getElementById('fsBtn');
+            if (!btn) return;
+            const on = isFullscreen();
+            btn.classList.toggle('on', on);
+            btn.title = on ? '退出全屏' : '铺满全屏';
+            btn.setAttribute('aria-label', btn.title);
+            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        }
+
+        // 进入 / 退出全屏后统一同步一次尺寸：
+        // 舞台缩放 → ECharts resize → 底图视口按新尺寸重算默认倍率并重新应用 transform
+        function syncLayoutSize() {
+            fitStage();
+            requestAnimationFrame(function () {
+                Object.keys(state.charts).forEach(id => {
+                    const chart = state.charts[id];
+                    if (chart && !chart.isDisposed()) chart.resize();
+                });
+                document.querySelectorAll('.map-box[data-station]').forEach(box => {
+                    const type = box.dataset.station;
+                    const vp = box.querySelector('.map-viewport');
+                    if (!vp || !mapState[type]) return;
+                    const st = mapState[type];
+                    const prevDefault = st.defaultS;
+                    st.defaultS = state.view === 'all' ? 1 : getMapDefaultScale(vp, type);
+                    // 用户没缩放过（仍是上一次的默认倍率且未拖动）时，跟随新尺寸重新贴合
+                    if (st.s === prevDefault && st.x === 0 && st.y === 0) st.s = st.defaultS;
+                    clampMap(vp, type);
+                    applyMapTransform(vp, type);
+                });
+            });
+        }
+
+        function toggleFullscreen() {
+            if (isFullscreen()) {
+                const p = document.exitFullscreen ? document.exitFullscreen()
+                    : (document.webkitExitFullscreen && document.webkitExitFullscreen());
+                if (p && p.catch) p.catch(function () { });
+                return;
+            }
+            const el = document.documentElement;
+            const req = el.requestFullscreen || el.webkitRequestFullscreen;
+            if (!req) return;
+            try {
+                const p = req.call(el);
+                if (p && p.catch) p.catch(function () { });
+            } catch (e) { }
         }
 
         window.addEventListener('load', fitStage);
@@ -3836,73 +4132,199 @@
             });
         }
 
-        function renderProfChart() {
-            const chart = getChart('chartProf');
-            if (!chart) {
-                showChartFallback('chartProf', '图表组件加载失败');
-                return;
+        /* ---- 专业分布：纯 SVG 立体饼环（挤出侧壁 + 底座椭圆投影 + 渐变顶面），零第三方依赖 ---- */
+        const PROF_SLICE_COLORS = ['#d8b174', '#bccfe0', '#c58c66', '#4fc3e8', '#3f95cf', '#5a7fc0', '#48b3a9', '#8f9fd6'];
+
+        function shadeHex(hex, p) {
+            const num = parseInt(hex.slice(1), 16);
+            const r = (num >> 16) & 255;
+            const g = (num >> 8) & 255;
+            const b = num & 255;
+            const to = p >= 0 ? 255 : 0;
+            const k = Math.abs(p);
+            const f = v => Math.round(v + (to - v) * k).toString(16).padStart(2, '0');
+            return '#' + f(r) + f(g) + f(b);
+        }
+
+        function escHtml(v) {
+            return String(v).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+        }
+
+        function openProfItem(idx) {
+            const item = (state.profItems || [])[idx];
+            if (!item) return;
+            const rows = state.rows.filter(row => {
+                if (!classIRemaining(row)) return false;
+                const prof = getProfession(row);
+                return item.members ? item.members.indexOf(prof) >= 0 : prof === item.prof;
+            });
+            openModal(`${item.disp} · Ⅰ类剩余缺陷`, rows);
+        }
+
+        // 底部读数：默认显示最大扇区，hover 扇区/图例时跟随切换
+        function updateProfSpot(idx) {
+            const items = state.profItems || [];
+            const item = items[idx] || items[0];
+            const spot = document.getElementById('profSpot');
+            if (!spot || !item) return;
+            const color = PROF_SLICE_COLORS[idx % PROF_SLICE_COLORS.length];
+            const chip = spot.querySelector('i');
+            if (chip) {
+                chip.style.background = color;
+                chip.style.boxShadow = `0 0 8px ${color}`;
             }
+            const name = spot.querySelector('.ps-name');
+            if (name) name.textContent = item.disp;
+            const cnt = spot.querySelector('.ps-cnt b');
+            if (cnt) cnt.textContent = item.count;
+        }
+
+        function renderProfChart() {
+            const box = document.getElementById('chartProf');
+            if (!box) return;
+
             const { remainingStats } = getClassIProfessionStats(state.rows);
-            const items = Object.entries(remainingStats)
+            const all = Object.entries(remainingStats)
                 .map(([prof, count]) => ({ prof, disp: displayProfession(prof), count }))
                 .filter(item => item.count > 0)
-                .sort((a, b) => b.count - a.count)
-                .slice(0, 8);
-            state.profItems = items;
+                .sort((a, b) => b.count - a.count);
+            const total = all.reduce((sum, item) => sum + item.count, 0);
 
-            if (items.length === 0) {
-                chart.clear();
-                chart.setOption({
-                    title: {
-                        text: '暂无Ⅰ类剩余缺陷',
-                        left: 'center',
-                        top: 'middle',
-                        textStyle: { color: '#6d97b4', fontSize: 12, fontWeight: 400 }
-                    }
-                }, true);
+            // 扇区过多会挤成细缝：保留前 5 名，尾部合并为「其他 N 类」。
+            // 仅做展示层合并，取数与过滤口径完全沿用 getClassIProfessionStats（合计仍为全量）。
+            const MAX_SLICES = 6;
+            let items = all;
+            if (all.length > MAX_SLICES) {
+                const rest = all.slice(MAX_SLICES - 1);
+                items = all.slice(0, MAX_SLICES - 1).concat([{
+                    prof: '__other__',
+                    disp: `其他 ${rest.length} 类`,
+                    count: rest.reduce((sum, item) => sum + item.count, 0),
+                    members: rest.map(item => item.prof)
+                }]);
+            }
+            state.profItems = items;
+            state.profTotal = total;
+
+            if (!items.length) {
+                box.innerHTML = '<div class="prof-empty">暂无Ⅰ类剩余缺陷</div>';
                 return;
             }
 
-            chart.setOption({
-                tooltip: { ...CHART_TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: '{b}<br/>剩余 {c} 条' },
-                grid: { left: 76, right: 34, top: 8, bottom: 6 },
-                xAxis: {
-                    type: 'value',
-                    axisLine: { show: false },
-                    axisTick: { show: false },
-                    axisLabel: { show: false },
-                    splitLine: { show: false }
-                },
-                yAxis: {
-                    type: 'category',
-                    inverse: true,
-                    data: items.map(item => item.disp),
-                    axisLine: { show: false },
-                    axisTick: { show: false },
-                    axisLabel: { color: '#bfe3f5', fontSize: 12 }
-                },
-                series: [{
-                    type: 'bar',
-                    data: items.map((item, idx) => ({ value: item.count, itemStyle: barStyle(idx) })),
-                    barWidth: 11,
-                    showBackground: true,
-                    backgroundStyle: { color: 'rgba(59,210,255,.05)', borderRadius: 2 },
-                    label: {
-                        show: true,
-                        position: 'right',
-                        color: '#eafcff',
-                        fontSize: 12,
-                        fontFamily: 'Bahnschrift, Microsoft YaHei'
-                    }
-                }]
-            }, true);
+            // 画布坐标（viewBox 324×250，随容器等比缩放，不做固定像素假设）
+            const CX = 162, CY = 112, RX = 112, RY = 72, IRX = 54, IRY = 34, DEP = 17;
+            const rad = d => d * Math.PI / 180;
+            const P = (x, y) => `${x.toFixed(1)} ${y.toFixed(1)}`;
+            const outer = (a, dy) => P(CX + RX * Math.cos(rad(a)), CY - RY * Math.sin(rad(a)) + (dy || 0));
+            const inner = (a, dy) => P(CX + IRX * Math.cos(rad(a)), CY - IRY * Math.sin(rad(a)) + (dy || 0));
 
-            chart.off('click');
-            chart.on('click', function (params) {
-                const item = (state.profItems || [])[params.dataIndex];
-                if (!item) return;
-                openModal(`${item.prof} · Ⅰ类剩余缺陷`, state.rows.filter(r => classIRemaining(r) && getProfession(r) === item.prof));
+            // 从 12 点开始顺时针排布（数学角递减），count 越大扇区越大
+            let angle = 90;
+            const slices = items.map((item, idx) => {
+                const sweep = item.count / total * 360;
+                const a1 = angle;
+                const a2 = angle - sweep;
+                angle = a2;
+                return {
+                    ...item,
+                    idx,
+                    a1,
+                    a2,
+                    sweep,
+                    color: PROF_SLICE_COLORS[idx % PROF_SLICE_COLORS.length]
+                };
             });
+
+            const defs = [];
+            const walls = [];
+            const tops = [];
+            const single = slices.length === 1;
+
+            slices.forEach(s => {
+                defs.push(`<linearGradient id="pfT${s.idx}" x1="0" y1="0" x2="1" y2="1">` +
+                    `<stop offset="0" stop-color="${shadeHex(s.color, 0.34)}"/>` +
+                    `<stop offset="42%" stop-color="${s.color}"/>` +
+                    `<stop offset="100%" stop-color="${shadeHex(s.color, -0.24)}"/></linearGradient>`);
+                defs.push(`<linearGradient id="pfW${s.idx}" x1="0" y1="0" x2="0" y2="1">` +
+                    `<stop offset="0" stop-color="${shadeHex(s.color, -0.3)}"/>` +
+                    `<stop offset="100%" stop-color="${shadeHex(s.color, -0.62)}"/></linearGradient>`);
+
+                // 扇区内计数标注（太窄的扇区跳过，交给图例呈现）
+                let label = '';
+                if (s.sweep >= 18) {
+                    const mid = rad((s.a1 + s.a2) / 2);
+                    const lx = CX + RX * 0.74 * Math.cos(mid);
+                    const ly = CY - RY * 0.74 * Math.sin(mid);
+                    label = `<text class="pf-num" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="central">${s.count}</text>`;
+                }
+
+                const aria = `${escHtml(s.disp)} 剩余 ${s.count} 条`;
+
+                if (single) {
+                    // 整圆：起止点重合，用两段 180° 圆弧闭合
+                    walls.push(`<path d="M ${outer(90, 0)} A ${RX} ${RY} 0 0 1 ${outer(-90, 0)} A ${RX} ${RY} 0 0 1 ${outer(-270, 0)} ` +
+                        `L ${outer(-270, DEP)} A ${RX} ${RY} 0 0 0 ${outer(-90, DEP)} A ${RX} ${RY} 0 0 0 ${outer(90, DEP)} ` +
+                        `L ${outer(90, 0)} Z" fill="url(#pfW${s.idx})"/>`);
+                    tops.push(`<g class="prof-slice" data-idx="${s.idx}" tabindex="0" role="button" aria-label="${aria}">` +
+                        `<path d="M ${inner(90, 0)} L ${outer(90, 0)} A ${RX} ${RY} 0 0 1 ${outer(-90, 0)} A ${RX} ${RY} 0 0 1 ${outer(-270, 0)} ` +
+                        `L ${inner(-270, 0)} A ${IRX} ${IRY} 0 0 0 ${inner(-90, 0)} A ${IRX} ${IRY} 0 0 0 ${inner(90, 0)} Z" ` +
+                        `fill="url(#pfT${s.idx})" stroke="rgba(4,14,26,.5)" stroke-width="1"/>${label}</g>`);
+                    return;
+                }
+
+                const large = s.sweep > 180 ? 1 : 0;
+                // 侧壁：外弧顶 → 外弧底（下沉 DEP）→ 回程，先画壁后画顶，上半圈侧壁天然被顶面遮住
+                walls.push(`<path d="M ${outer(s.a1, 0)} L ${outer(s.a1, DEP)} ` +
+                    `A ${RX} ${RY} 0 ${large} 1 ${outer(s.a2, DEP)} L ${outer(s.a2, 0)} ` +
+                    `A ${RX} ${RY} 0 ${large} 0 ${outer(s.a1, 0)} Z" fill="url(#pfW${s.idx})"/>`);
+                tops.push(`<g class="prof-slice" data-idx="${s.idx}" tabindex="0" role="button" aria-label="${aria}">` +
+                    `<path d="M ${inner(s.a1, 0)} L ${outer(s.a1, 0)} ` +
+                    `A ${RX} ${RY} 0 ${large} 1 ${outer(s.a2, 0)} L ${inner(s.a2, 0)} ` +
+                    `A ${IRX} ${IRY} 0 ${large} 0 ${inner(s.a1, 0)} Z" ` +
+                    `fill="url(#pfT${s.idx})" stroke="rgba(4,14,26,.5)" stroke-width="1"/>${label}</g>`);
+            });
+
+            const legend = slices.map(s =>
+                `<button type="button" class="prof-leg" data-idx="${s.idx}" title="${escHtml(s.disp)} · 剩余 ${s.count} 条">` +
+                `<i style="background:${s.color};box-shadow:0 0 8px ${s.color}"></i>` +
+                `<span class="pl-name">${escHtml(s.disp)}</span>` +
+                `<span class="pl-cnt">${s.count}</span></button>`
+            ).join('');
+
+            box.innerHTML = `
+                <div class="prof-plot">
+                    <svg class="prof-chart" viewBox="0 0 324 250" preserveAspectRatio="xMidYMid meet" role="img"
+                        aria-label="Ⅰ类剩余缺陷专业分布，共 ${total} 条">
+                        <defs>
+                            <radialGradient id="pfShadow" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="rgba(0,0,0,.62)"/>
+                                <stop offset="62%" stop-color="rgba(0,0,0,.3)"/>
+                                <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+                            </radialGradient>
+                            <linearGradient id="pfHubGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0" stop-color="#ffffff"/>
+                                <stop offset="55%" stop-color="#a7ecff"/>
+                                <stop offset="100%" stop-color="#3bd2ff"/>
+                            </linearGradient>
+                            ${defs.join('')}
+                        </defs>
+                        <ellipse class="pf-shadow" cx="${CX}" cy="192" rx="${RX + 8}" ry="30" fill="url(#pfShadow)"/>
+                        <g>${walls.join('')}</g>
+                        <g>${tops.join('')}</g>
+                        <ellipse cx="${CX}" cy="${CY}" rx="${IRX}" ry="${IRY}" fill="none" stroke="rgba(59,210,255,.2)" stroke-width="1.5"/>
+                        <text class="pf-hub-cap" x="${CX}" y="100" text-anchor="middle">剩余合计</text>
+                        <text class="pf-hub-num" x="${CX}" y="136" text-anchor="middle">${total}<tspan class="pf-hub-unit" dx="3" dy="-3">条</tspan></text>
+                    </svg>
+                    <div class="prof-spot" id="profSpot" aria-hidden="true">
+                        <i style="background:${slices[0].color};box-shadow:0 0 8px ${slices[0].color}"></i>
+                        <span class="ps-name">${escHtml(slices[0].disp)}</span>
+                        <span class="ps-cnt">剩余<b>${slices[0].count}</b>条</span>
+                    </div>
+                </div>
+                <div class="prof-legend">
+                    <div class="prof-legend-head"><span>专业</span><span>剩余</span></div>
+                    ${legend}
+                </div>`;
         }
 
         function renderBoardChart() {
@@ -4604,6 +5026,43 @@
                 ));
             });
 
+            // ===== 专业分布（饼环）交互：扇区 / 图例共用一套高亮与弹清单逻辑 =====
+            const profBox = document.getElementById('chartProf');
+            profBox.addEventListener('click', function (e) {
+                const node = e.target.closest('.prof-slice, .prof-leg');
+                if (!node) return;
+                openProfItem(+node.dataset.idx);
+            });
+            profBox.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                const slice = e.target.closest('.prof-slice');
+                if (!slice) return;
+                e.preventDefault();
+                openProfItem(+slice.dataset.idx);
+            });
+            profBox.addEventListener('mouseover', function (e) {
+                const node = e.target.closest('.prof-slice, .prof-leg');
+                if (!node) return;
+                const idx = +node.dataset.idx;
+                profBox.querySelectorAll('.prof-slice, .prof-leg').forEach(n => {
+                    n.classList.toggle('hot', +n.dataset.idx === idx);
+                });
+                updateProfSpot(idx);
+            });
+            profBox.addEventListener('mouseleave', function () {
+                profBox.querySelectorAll('.prof-slice.hot, .prof-leg.hot').forEach(n => n.classList.remove('hot'));
+                updateProfSpot(0);
+            });
+
+            // ===== 全屏 =====
+            document.getElementById('fsBtn').addEventListener('click', toggleFullscreen);
+            ['fullscreenchange', 'webkitfullscreenchange'].forEach(evt => {
+                document.addEventListener(evt, function () {
+                    updateFsBtn();
+                    syncLayoutSize();
+                });
+            });
+
             // ===== 弹窗交互 =====
             document.getElementById('modalClose').addEventListener('click', closeModal);
             document.getElementById('modalMask').addEventListener('click', function (e) {
@@ -4611,7 +5070,13 @@
             });
             document.addEventListener('keydown', function (e) {
                 if (e.key !== 'Escape') return;
-                closeModal();
+                // Esc 优先级：弹窗 → 点位编辑 → 全屏。
+                // 全屏的 Esc 是浏览器原生行为（无法用 preventDefault 拦截），
+                // 因此全屏态下按 Esc 会直接退出全屏，这里只保证前两级不会被全屏抢走。
+                if (document.getElementById('modalMask').classList.contains('show')) {
+                    closeModal();
+                    return;
+                }
                 if (mapEdit.active) toggleMapEdit();
             });
 
@@ -4729,6 +5194,7 @@
         function init() {
             fitStage();
             bindEvents();
+            updateFsBtn();
             startClock();
             loadData();
             startAutoSync();
