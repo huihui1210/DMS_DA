@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.24.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.25.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -1940,42 +1940,42 @@
             overflow: hidden;
         }
 
+        /* 与「缺陷滚动清单」对齐：行间不留空隙，用 1px 分隔线；
+           斑马纹走 background-color（同 .list-row:nth-child(even) 的色值），
+           督办/逾期状态色改为 background-image 叠加层，避免盖住或造成深浅跳变 */
         .sp-item {
             flex: 0 0 auto;
             display: flex;
             align-items: center;
             gap: 8px;
             min-height: 44px;
-            margin-bottom: 6px;
+            margin-bottom: 0;
             padding: 4px 8px;
             overflow: hidden;
             border-left: 2px solid var(--amber);
-            border-radius: 2px;
-            background: rgba(255, 198, 88, 0.05);
+            border-bottom: 1px solid rgba(59, 210, 255, 0.08);
+            border-radius: 0;
+            background-color: transparent;
+            background-image: linear-gradient(rgba(255, 198, 88, 0.05), rgba(255, 198, 88, 0.05));
         }
 
         .sp-item.red {
             border-left-color: var(--red);
-            background: rgba(255, 95, 109, 0.05);
+            background-image: linear-gradient(rgba(255, 95, 109, 0.06), rgba(255, 95, 109, 0.06));
         }
 
         .sp-item.normal {
             border-left-color: rgba(59, 210, 255, 0.55);
-            background: rgba(59, 210, 255, 0.04);
+            background-image: none;
         }
 
         .sp-item.normal .sp-side b {
             color: #7fd4e8;
         }
 
-        /* 斑马底纹：仅叠加半透明白色，保留督办/逾期状态底色；
-           使用 nth-child 全局序号，复制第二份后奇偶仍连续，接缝不出现同色相邻 */
-        .sp-list .sp-item:nth-child(odd) {
-            background-image: linear-gradient(rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.018));
-        }
-
+        /* 斑马底纹：偶数行叠加青色，与缺陷滚动清单一致；复制第二份后全局奇偶仍连续 */
         .sp-list .sp-item:nth-child(even) {
-            background-image: linear-gradient(rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.055));
+            background-color: rgba(59, 210, 255, 0.04);
         }
 
         .sp-main {
@@ -2605,7 +2605,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.24.0</span>
+                    <span class="ver">V5.25.0</span>
                 </div>
             </div>
 
@@ -3952,6 +3952,94 @@
             else renderKPIGroup(group);
         }
 
+        /* ===== 缺陷趋势 · 3D 立体柱（ECharts custom series 手绘，不新增依赖） ===== */
+        const TREND_COL3D = {
+            新增: {
+                offset: -7,
+                face: ['#ffe9a8', 'rgba(255,158,44,.62)'],
+                side: 'rgba(150,90,18,.82)',
+                cap: 'rgba(255,232,170,.88)',
+                label: '#ffe8b0',
+                legend: '#ffc658'
+            },
+            消缺: {
+                offset: 7,
+                face: ['#c9f7ff', 'rgba(24,118,196,.62)'],
+                side: 'rgba(9,62,112,.82)',
+                cap: 'rgba(206,247,255,.88)',
+                label: '#c8f2ff',
+                legend: '#3bd2ff'
+            }
+        };
+
+        /* 单根柱：接触阴影 → 右侧斜切暗面 → 正面渐变 → 顶面 + 高光椭圆 → 柱顶数值 */
+        function trend3dBarItem(style) {
+            return function (params, api) {
+                const idx = api.value(0);
+                const value = Math.max(0, Number(api.value(1)) || 0);
+                const base = api.coord([idx, 0]);
+                const top = api.coord([idx, value]);
+                const zero = value <= 0;
+                const cx = base[0] + style.offset;
+                const half = 6;
+                const depth = 4;
+                const rise = 2.2;
+                const x0 = cx - half;
+                const x1 = cx + half;
+                const baseY = base[1];
+                const barTop = zero ? baseY - 2.5 : Math.min(top[1], baseY - 2);
+                const capTop = barTop - rise;
+                const faceFill = zero ? 'rgba(120,150,170,.26)' : new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: style.face[0] },
+                    { offset: 1, color: style.face[1] }
+                ]);
+                return {
+                    type: 'group',
+                    children: [
+                        {
+                            type: 'ellipse', silent: true,
+                            shape: { cx: cx + depth / 2, cy: baseY + 0.5, rx: half + depth + 3, ry: 2.4 },
+                            style: { fill: 'rgba(2,9,20,.5)' }
+                        },
+                        {
+                            type: 'polygon', silent: true,
+                            shape: { points: [[x1, barTop], [x1 + depth, capTop], [x1 + depth, baseY - rise], [x1, baseY]] },
+                            style: { fill: zero ? 'rgba(60,90,110,.22)' : style.side }
+                        },
+                        {
+                            type: 'rect',
+                            shape: { x: x0, y: barTop, width: half * 2, height: Math.max(baseY - barTop, 2), r: [2, 2, 0, 0] },
+                            style: { fill: faceFill }
+                        },
+                        {
+                            type: 'polygon', silent: true,
+                            shape: { points: [[x0, barTop], [x0 + depth, capTop], [x1 + depth, capTop], [x1, barTop]] },
+                            style: { fill: zero ? 'rgba(120,150,170,.28)' : style.cap }
+                        },
+                        {
+                            type: 'ellipse', silent: true,
+                            shape: { cx: cx + depth / 2, cy: barTop - rise / 2, rx: half + depth / 2 - 1.5, ry: 1.5 },
+                            style: { fill: zero ? 'rgba(180,200,215,.2)' : 'rgba(255,255,255,.5)' }
+                        },
+                        {
+                            type: 'text', silent: true,
+                            style: {
+                                text: String(value),
+                                x: cx,
+                                y: capTop - 3,
+                                textAlign: 'center',
+                                textVerticalAlign: 'bottom',
+                                fill: zero ? 'rgba(134,179,204,.5)' : style.label,
+                                stroke: zero ? null : 'rgba(2,8,18,.95)',
+                                lineWidth: zero ? 0 : 3,
+                                font: `${value >= 100 ? '700 8px' : '700 10px'} "Bahnschrift", "Microsoft YaHei", sans-serif`
+                            }
+                        }
+                    ]
+                };
+            };
+        }
+
         function renderTrend() {
             const chart = getChart('chartTrend');
             if (!chart) {
@@ -3966,73 +4054,103 @@
             const pendingData = filteredMonths.map(m => monthlyStats[m].pending);
 
             chart.setOption({
-                tooltip: { ...CHART_TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' } },
+                tooltip: {
+                    ...CHART_TOOLTIP,
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(59,210,255,.10)' } },
+                    formatter: function (items) {
+                        if (!items || !items.length) return '';
+                        const i = items[0].dataIndex;
+                        const month = filteredMonths[i] || '';
+                        const dot = c => `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:6px;vertical-align:middle;"></span>`;
+                        const row = (name, color, v) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:20px;line-height:1.7;"><span style="color:#9cc8e2;">${dot(color)}${name}</span><b style="color:#eafcff;font-family:var(--num-font);">${v}</b></div>`;
+                        return `<div style="font-size:11px;letter-spacing:1px;color:#86b3cc;margin-bottom:3px;">${month.slice(0, 4)}年${Number(month.slice(5))}月 · Ⅰ类</div>`
+                            + row('新增', TREND_COL3D.新增.legend, newData[i])
+                            + row('消缺', TREND_COL3D.消缺.legend, doneData[i])
+                            + row('剩余', '#ff7b6d', pendingData[i]);
+                    }
+                },
                 legend: {
                     top: 0,
                     right: 0,
                     itemWidth: 9,
                     itemHeight: 9,
                     itemGap: 12,
-                    textStyle: { color: '#9cc8e2', fontSize: 11 }
+                    data: ['新增', '消缺', '剩余'],
+                    textStyle: { color: '#9cc8e2', fontSize: 11 },
+                    inactiveColor: '#41647a'
                 },
-                grid: { left: 34, right: 8, top: 28, bottom: 24 },
+                grid: { left: 30, right: 52, top: 30, bottom: 24 },
                 xAxis: {
                     type: 'category',
                     data: labels,
-                    axisLine: { lineStyle: { color: 'rgba(59,210,255,.3)' } },
+                    axisLine: { lineStyle: { color: 'rgba(59,210,255,.22)' } },
                     axisTick: { show: false },
-                    axisLabel: { color: '#86b3cc', fontSize: 10, interval: 0 }
+                    axisLabel: { color: '#86b3cc', fontSize: 10, interval: 0, margin: 9 }
                 },
                 yAxis: {
                     type: 'value',
-                    axisLabel: { color: '#86b3cc', fontSize: 10 },
-                    splitLine: { lineStyle: { color: 'rgba(59,210,255,.12)' } }
+                    splitNumber: 3,
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    axisLabel: { color: '#6f9cb5', fontSize: 9 },
+                    splitLine: { lineStyle: { color: 'rgba(59,210,255,.08)' } },
+                    max: function (v) { return v.max > 0 ? Math.ceil(v.max * 1.15) : 1; }
                 },
                 series: [
                     {
                         name: '新增',
-                        type: 'bar',
-                        data: newData,
-                        barWidth: 7,
-                        itemStyle: {
-                            borderRadius: [2, 2, 0, 0],
-                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                { offset: 0, color: '#ffd97a' },
-                                { offset: 1, color: 'rgba(255,158,44,.72)' }
-                            ]),
-                            shadowColor: 'rgba(255,198,88,.55)',
-                            shadowBlur: 4
-                        }
+                        type: 'custom',
+                        data: newData.map((v, i) => [i, v]),
+                        encode: { x: 0, y: 1 },
+                        renderItem: trend3dBarItem(TREND_COL3D.新增),
+                        z: 4,
+                        itemStyle: { color: TREND_COL3D.新增.legend }
                     },
                     {
                         name: '消缺',
-                        type: 'bar',
-                        data: doneData,
-                        barWidth: 7,
-                        itemStyle: {
-                            borderRadius: [2, 2, 0, 0],
-                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                { offset: 0, color: '#8feaff' },
-                                { offset: 1, color: 'rgba(22,120,200,.75)' }
-                            ]),
-                            shadowColor: 'rgba(59,210,255,.55)',
-                            shadowBlur: 4
-                        }
+                        type: 'custom',
+                        data: doneData.map((v, i) => [i, v]),
+                        encode: { x: 0, y: 1 },
+                        renderItem: trend3dBarItem(TREND_COL3D.消缺),
+                        z: 4,
+                        itemStyle: { color: TREND_COL3D.消缺.legend }
+                    },
+                    {
+                        /* 折线描边层：深色宽线垫在彩色折线下，柱体上不会糊在一起 */
+                        name: '剩余描边',
+                        type: 'line',
+                        data: pendingData,
+                        smooth: true,
+                        symbol: 'none',
+                        silent: true,
+                        z: 5,
+                        tooltip: { show: false },
+                        legendHoverLink: false,
+                        lineStyle: { color: 'rgba(2,8,18,.9)', width: 6, opacity: .95 }
                     },
                     {
                         name: '剩余',
                         type: 'line',
+                        data: pendingData,
                         smooth: true,
                         symbol: 'circle',
-                        symbolSize: 4,
-                        data: pendingData,
-                        lineStyle: { color: '#ff7b6d', width: 2, shadowColor: 'rgba(255,123,109,.6)', shadowBlur: 4 },
-                        itemStyle: { color: '#ff7b6d' },
-                        areaStyle: {
-                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                { offset: 0, color: 'rgba(255,123,109,.22)' },
-                                { offset: 1, color: 'rgba(255,123,109,0)' }
-                            ])
+                        symbolSize: 5,
+                        z: 6,
+                        lineStyle: { color: '#ff7b6d', width: 2, shadowColor: 'rgba(255,123,109,.55)', shadowBlur: 6 },
+                        itemStyle: { color: '#ff8b7d', borderColor: 'rgba(2,8,18,.9)', borderWidth: 1 },
+                        endLabel: {
+                            show: true,
+                            distance: 6,
+                            formatter: p => '剩余 ' + p.value,
+                            color: '#ffb0a6',
+                            fontSize: 9,
+                            fontWeight: 700,
+                            backgroundColor: 'rgba(6,18,32,.9)',
+                            borderColor: 'rgba(255,123,109,.5)',
+                            borderWidth: 1,
+                            borderRadius: 3,
+                            padding: [2, 4]
                         }
                     }
                 ]
@@ -4410,6 +4528,15 @@
         }
 
         /* ================= 滚动清单 / 预警 / 督办 ================= */
+        /* 两个滚动清单共用同一套滚动参数：按实测「一份内容高度」换算时长，速度统一 14.2px/s */
+        const LIST_SCROLL_SPEED = 14.2;
+        const LIST_SCROLL_MIN_DURATION = 18;
+
+        function listScrollDuration(halfHeight) {
+            const secs = Math.max(LIST_SCROLL_MIN_DURATION, Math.round(halfHeight / LIST_SCROLL_SPEED * 10) / 10);
+            return secs.toFixed(1) + 's';
+        }
+
         function listRowHTML(row) {
             const id = getId(row);
             return `<div class="list-row" data-id="${id || ''}">
@@ -4442,7 +4569,12 @@
 
             const rowsHTML = sorted.map(listRowHTML).join('');
             const needScroll = sorted.length > 10;
-            viewport.innerHTML = `<div class="scroll-track" id="scrollTrack" style="animation-name:${needScroll ? 'scrollUp' : 'none'};animation-duration:${Math.max(18, sorted.length * 2.4)}s;">${rowsHTML}${needScroll ? rowsHTML : ''}</div>`;
+            viewport.innerHTML = `<div class="scroll-track" id="scrollTrack" style="animation-name:${needScroll ? 'scrollUp' : 'none'};">${rowsHTML}${needScroll ? rowsHTML : ''}</div>`;
+            if (!needScroll) return;
+            const track = document.getElementById('scrollTrack');
+            if (!track) return;
+            // 位移距离是 -50%，即一份内容高度；按实测高度换算时长，与督办清单同速
+            track.style.animationDuration = listScrollDuration(track.scrollHeight / 2);
         }
 
         function getAlertCandidates() {
@@ -4526,7 +4658,7 @@
             track.innerHTML = rowsHTML + rowsHTML;
             track.classList.add('scroll-track');
             track.style.animationName = 'scrollUp';
-            track.style.animationDuration = Math.max(18, Math.round(copyH / 22)) + 's';
+            track.style.animationDuration = listScrollDuration(copyH);
         }
 
         /* ================= 卫星底图 + 点位 ================= */
