@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.26.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.27.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -2647,7 +2647,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.26.0</span>
+                    <span class="ver">V5.27.0</span>
                 </div>
             </div>
 
@@ -4002,7 +4002,6 @@
                 face: ['rgba(255,226,160,.70)', 'rgba(230,150,50,.44)'],
                 side: 'rgba(140,86,20,.62)',
                 cap: 'rgba(255,226,160,.62)',
-                label: 'rgba(255,214,150,.62)',
                 legend: '#ffc658'
             },
             消缺: {
@@ -4010,12 +4009,11 @@
                 face: ['rgba(185,240,255,.70)', 'rgba(28,120,190,.44)'],
                 side: 'rgba(10,58,106,.62)',
                 cap: 'rgba(196,240,255,.62)',
-                label: 'rgba(150,214,240,.62)',
                 legend: '#3bd2ff'
             }
         };
 
-        /* 单根柱：接触阴影 → 右侧斜切暗面 → 正面渐变 → 顶面 + 高光椭圆 → 柱顶数值 */
+        /* 单根柱：接触阴影 → 右侧斜切暗面 → 正面渐变 → 顶面 + 高光椭圆（不再标柱顶数值，数值看 tooltip） */
         function trend3dBarItem(style) {
             return function (params, api) {
                 const idx = api.value(0);
@@ -4063,20 +4061,6 @@
                             type: 'ellipse', silent: true,
                             shape: { cx: cx + depth / 2, cy: barTop - rise / 2, rx: half + depth / 2 - 1.5, ry: 1.5 },
                             style: { fill: zero ? 'rgba(180,200,215,.2)' : 'rgba(255,255,255,.5)' }
-                        },
-                        {
-                            type: 'text', silent: true,
-                            style: {
-                                text: String(value),
-                                x: cx,
-                                y: capTop - 3,
-                                textAlign: 'center',
-                                textVerticalAlign: 'bottom',
-                                fill: zero ? 'rgba(134,179,204,.34)' : style.label,
-                                stroke: zero ? null : 'rgba(2,8,18,.85)',
-                                lineWidth: zero ? 0 : 2,
-                                font: `${value >= 100 ? '600 8px' : '600 9px'} "Bahnschrift", "Microsoft YaHei", sans-serif`
-                            }
                         }
                     ]
                 };
@@ -4096,15 +4080,15 @@
             const doneData = filteredMonths.map(m => monthlyStats[m].completed);
             const pendingData = filteredMonths.map(m => monthlyStats[m].pending);
 
-            /* 「剩余」是主视觉：线尾胶囊承载当前值 + 环比方向 */
+            /* 「剩余」是主视觉：只在最新月份点上方标一个数值，其余数值交给 tooltip */
             const lastRemain = pendingData.length ? pendingData[pendingData.length - 1] : 0;
-            const prevRemain = pendingData.length > 1 ? pendingData[pendingData.length - 2] : lastRemain;
-            const remainDelta = lastRemain - prevRemain;
-            const deltaText = remainDelta === 0 ? '持平' : (remainDelta > 0 ? '▲' : '▼') + Math.abs(remainDelta);
             const REMAIN_HERO = '#ff7b6d';
-            /* 纵轴：按全部系列的最大值取 15 的整数倍，保证刻度均匀（0/15/30/45…） */
+            /* 纵轴：按全部系列的最大值取 15 的整数倍，保证刻度均匀（0/15/30/45…）；
+               并为最新月的点上方标签预留足够余量，避免被顶部裁切 */
             const dataMax = Math.max(0, ...newData, ...doneData, ...pendingData);
-            const axisMax = dataMax > 0 ? Math.ceil(dataMax * 1.15 / 15) * 15 : 15;
+            let axisMax = dataMax > 0 ? Math.ceil(dataMax * 1.15 / 15) * 15 : 15;
+            const labelHead = Math.max(1, Math.ceil(axisMax * 0.12));
+            if (lastRemain + labelHead > axisMax) axisMax = Math.ceil((lastRemain + labelHead) / 15) * 15;
             const axisInterval = axisMax / 3;
             const remainLineGrad = new echarts.graphic.LinearGradient(0, 0, 1, 0, [
                 { offset: 0, color: '#ffd76a' },
@@ -4122,13 +4106,22 @@
                         const i = items[0].dataIndex;
                         const month = filteredMonths[i] || '';
                         const dot = c => `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:6px;vertical-align:middle;"></span>`;
-                        /* 剩余置顶并放大，新增/消缺退为次要行 */
-                        const heroRow = (v) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:24px;line-height:1.85;">
+                        /* 剩余置顶并放大，环比放在 tooltip 里（不回到图面） */
+                        const heroRow = (i) => {
+                            const cur = pendingData[i];
+                            const prev = i > 0 ? pendingData[i - 1] : cur;
+                            const d = cur - prev;
+                            const dTxt = d === 0 ? '持平' : (d > 0 ? '▲' : '▼') + Math.abs(d);
+                            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:24px;line-height:1.85;">
                             <span style="color:#ffd0b5;font-weight:700;">${dot(REMAIN_HERO)}剩余</span>
-                            <b style="color:#ffeedd;font-family:var(--num-font);font-size:16px;font-weight:800;letter-spacing:.5px;">${v}</b></div>`;
+                            <span style="display:flex;align-items:baseline;gap:6px;">
+                                <b style="color:#ffeedd;font-family:var(--num-font);font-size:16px;font-weight:800;letter-spacing:.5px;">${cur}</b>
+                                <em style="font-style:normal;font-size:10px;color:#c99a86;">${dTxt} 环比</em>
+                            </span></div>`;
+                        };
                         const row = (name, color, v) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:24px;line-height:1.6;opacity:.86;"><span style="color:#9cc8e2;">${dot(color)}${name}</span><b style="color:#d3ecf9;font-family:var(--num-font);font-size:12px;">${v}</b></div>`;
                         return `<div style="font-size:11px;letter-spacing:1px;color:#86b3cc;margin-bottom:4px;">${month.slice(0, 4)}年${Number(month.slice(5))}月 · Ⅰ类</div>`
-                            + heroRow(pendingData[i])
+                            + heroRow(i)
                             + `<div style="height:1px;background:rgba(59,210,255,.18);margin:5px 0 4px;"></div>`
                             + row('新增', TREND_COL3D.新增.legend, newData[i])
                             + row('消缺', TREND_COL3D.消缺.legend, doneData[i]);
@@ -4145,7 +4138,7 @@
                     textStyle: { color: '#6f9cb5', fontSize: 10 },
                     inactiveColor: '#41647a'
                 },
-                grid: { left: 30, right: 82, top: 28, bottom: 24 },
+                grid: { left: 30, right: 24, top: 24, bottom: 24 },
                 xAxis: {
                     type: 'category',
                     data: labels,
@@ -4220,22 +4213,34 @@
                             borderWidth: 1.5,
                             shadowColor: 'rgba(255,150,96,.6)',
                             shadowBlur: 6
-                        },
-                        endLabel: {
+                        }
+                    },
+                    {
+                        /* 只在最新月份的数据点正上方标一个数值：不占右侧留白，也不越出绘图区 */
+                        name: '剩余数值',
+                        type: 'scatter',
+                        data: pendingData.map((v, i) => (i === pendingData.length - 1 ? v : null)),
+                        symbolSize: 1,
+                        itemStyle: { color: 'rgba(0,0,0,0)', borderWidth: 0 },
+                        silent: true,
+                        z: 8,
+                        clip: false,
+                        tooltip: { show: false },
+                        legendHoverLink: false,
+                        label: {
                             show: true,
+                            position: 'top',
                             distance: 7,
-                            formatter: () => `剩余 ${lastRemain}  ${deltaText}`,
-                            color: '#fff0d2',
-                            fontSize: 12,
+                            formatter: p => String(p.value),
+                            /* 文字渐变在 label 上不生效，改用暖金实色 + 珊瑚描边光，保持与折线同一色系 */
+                            color: '#ffcf8d',
+                            fontSize: 15,
                             fontWeight: 800,
                             fontFamily: 'Bahnschrift, Microsoft YaHei, sans-serif',
-                            backgroundColor: 'rgba(42,16,10,.92)',
-                            borderColor: 'rgba(255,168,110,.85)',
-                            borderWidth: 1,
-                            borderRadius: 9,
-                            padding: [3, 8],
-                            shadowColor: 'rgba(255,123,109,.45)',
-                            shadowBlur: 10
+                            textBorderColor: 'rgba(2,8,18,.9)',
+                            textBorderWidth: 2.5,
+                            textShadowColor: 'rgba(255,120,90,.85)',
+                            textShadowBlur: 8
                         }
                     }
                 ]
