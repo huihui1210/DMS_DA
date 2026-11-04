@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.17.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.18.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -420,26 +420,42 @@
             min-width: 0;
         }
 
-        /* ================= 消缺龙虎榜（纯领奖台：2-1-3 站位，柱台撑满面板） ================= */
+        /* ================= 消缺龙虎榜（纯领奖台 · 立体柱台） ================= */
         .board-list {
             flex: 1;
             min-height: 0;
             min-width: 0;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             overflow: hidden;
         }
 
-        /* 领奖台：默认 2-1-3；柱台用 flex-grow 分配剩余高度，随面板高度自适应 */
+        /* 领奖台：默认 2-1-3；柱台百分比高度，随面板高度自适应 */
         .board-podium {
+            position: relative;
             flex: 1;
             min-height: 0;
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             align-items: stretch;
-            gap: 8px;
-            padding: 4px 4px 0;
+            gap: 10px;
+            padding: 8px 8px 0;
+        }
+
+        /* 底部光台：柱台落点的柔和反光 */
+        .board-podium::before {
+            content: '';
+            position: absolute;
+            left: 4%;
+            right: 4%;
+            bottom: -6px;
+            height: 46%;
+            background: radial-gradient(58% 100% at 50% 100%,
+                    rgba(59, 210, 255, 0.15),
+                    rgba(59, 210, 255, 0.05) 42%,
+                    transparent 76%);
+            pointer-events: none;
         }
 
         /* 不足三席：双席居中 / 单席居中，避免出现空柱台 */
@@ -451,180 +467,439 @@
 
         .board-podium.solo {
             grid-template-columns: minmax(0, 1fr);
-            width: 46%;
+            width: 48%;
             margin: 0 auto;
         }
 
         .podium-item {
+            /* 体积相关变量，按名次覆写：--side-w 右侧暗面宽度 / --top-h 受光顶面高度 */
+            --side-w: 9px;
+            --top-h: 8px;
+            --tint: 59, 210, 255;
+            --edge: rgba(120, 190, 220, 0.34);
+            --edge-weak: rgba(120, 190, 220, 0.22);
+            --metal-hi: #ffffff;
+            --metal-mid: #dcecf7;
+            --metal-lo: #7f9cb0;
+            --unit: #8fb4c9;
+            --plate-txt: #c6e3f2;
+            --plate-glow: rgba(59, 210, 255, 0.10);
+            --emblem: #c3e2f2;
+            --body: #1e2a37;
+            position: relative;
+            z-index: 2;
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
-            gap: 7px;
             height: 100%;
             min-width: 0;
             min-height: 0;
             cursor: pointer;
         }
 
-        /* 柱台上方：专业名 + 消缺条数，两级字号拉开层级 */
-        .podium-meta {
+        /* ---- 顶部悬浮标识牌：专业名 + 消缺条数（主视觉区） ---- */
+        .po-plaque {
+            position: relative;
+            z-index: 5;
+            flex: 0 0 auto;
+            align-self: center;
+            width: min(calc(100% - var(--side-w) - 22px), 172px);
+            max-width: calc(100% - var(--side-w));
+            margin-right: var(--side-w);
+            margin-bottom: -10px;
+            min-width: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 2px;
-            min-width: 0;
-            padding: 0 2px;
+            padding: 6px 14px 8px;
+            border: 1px solid var(--edge);
+            border-radius: 4px;
+            background:
+                linear-gradient(180deg,
+                    rgba(16, 42, 68, 0.95) 0%,
+                    rgba(6, 17, 31, 0.92) 62%,
+                    rgba(3, 11, 21, 0.94) 100%);
+            box-shadow:
+                0 8px 16px rgba(0, 0, 0, 0.48),
+                inset 0 1px 0 rgba(255, 255, 255, 0.12),
+                inset 0 0 20px var(--plate-glow);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        /* 牌面顶缘金属细线 */
+        .po-plaque::before {
+            content: '';
+            position: absolute;
+            left: 12%;
+            right: 12%;
+            top: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--edge), transparent);
         }
 
         .po-name {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
             max-width: 100%;
-            font-size: 12px;
-            letter-spacing: 0.8px;
-            color: #a9cfe3;
-            white-space: nowrap;
+            min-width: 0;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.15;
+            letter-spacing: 1.2px;
+            color: #eef8ff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7), 0 0 8px rgba(var(--tint), 0.20);
+        }
+
+        .po-name > span {
+            min-width: 0;
             overflow: hidden;
+            white-space: nowrap;
             text-overflow: ellipsis;
         }
 
+        .po-emblem {
+            width: 15px;
+            height: 15px;
+            flex: 0 0 auto;
+            color: var(--emblem);
+            opacity: 0.95;
+        }
+
         .po-count {
-            font-family: Bahnschrift, "Microsoft YaHei", sans-serif;
-            font-size: 22px;
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 3px;
+            font-family: var(--num-font);
+            font-size: 30px;
             font-weight: 700;
-            line-height: 1.05;
-            color: #eafcff;
+            line-height: 1;
             font-variant-numeric: tabular-nums;
-            letter-spacing: -0.3px;
+            background-image: linear-gradient(180deg,
+                    var(--metal-hi) 0%,
+                    var(--metal-mid) 46%,
+                    var(--metal-lo) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55));
         }
 
         .po-count em {
             font-style: normal;
-            font-size: 9px;
+            font-size: 10px;
             font-weight: 400;
-            color: #6d97b4;
-            margin-left: 3px;
-            letter-spacing: 0;
+            line-height: 1;
+            letter-spacing: 1px;
+            color: var(--unit);
+            -webkit-text-fill-color: var(--unit);
+            transform: translateY(-2px);
         }
 
-        /* 柱台：半透明玻璃 + 顶缘光带 + 底部厚度感 */
+        /* 牌面与柱台之间的短飘带，压住接缝 */
+        .po-ribbon {
+            position: absolute;
+            left: 50%;
+            bottom: -4px;
+            width: 56%;
+            height: 5px;
+            transform: translateX(-50%);
+            background: linear-gradient(90deg, transparent, var(--edge) 22%, var(--edge) 78%, transparent);
+            clip-path: polygon(0 0, 100% 0, 94% 100%, 6% 100%);
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* 冠军牌面的少量星芒 */
+        .po-spark {
+            position: absolute;
+            width: 7px;
+            height: 7px;
+            background: var(--edge);
+            clip-path: polygon(50% 0%, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0% 50%, 39% 39%);
+            opacity: 0.62;
+            pointer-events: none;
+        }
+
+        .po-spark.sp-a {
+            left: -5px;
+            top: 3px;
+        }
+
+        .po-spark.sp-b {
+            right: -4px;
+            bottom: 13px;
+            width: 5px;
+            height: 5px;
+            opacity: 0.36;
+        }
+
+        /* ---- 柱台：前立面 + 右侧暗面 + 受光顶面 的三层体积 ---- */
         .podium-block {
             position: relative;
-            flex: 0 0 auto;
-            height: 62%;
+            z-index: 2;
+            flex: 0 1 auto;
+            width: 100%;
+            height: 60%;
             min-height: 0;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            padding-bottom: 6px;
-            border: 1px solid rgba(59, 210, 255, 0.16);
-            border-bottom: 0;
-            border-radius: 5px 5px 0 0;
-            background:
-                linear-gradient(180deg, rgba(59, 210, 255, 0.13) 0%, rgba(20, 52, 82, 0.34) 46%, rgba(6, 18, 34, 0.62) 100%);
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.08),
-                inset 0 -9px 0 rgba(0, 0, 0, 0.22),
-                inset 1px 0 0 rgba(255, 255, 255, 0.03);
-            overflow: hidden;
-            transition: border-color 0.2s ease, filter 0.2s ease;
+            transition: filter 0.2s ease;
         }
 
-        /* 顶缘光带 */
-        .podium-block::before {
-            content: '';
+        /* 前立面：正对镜头的受光面，左缘内倒角高光、右缘折线压暗 */
+        .pb-front {
             position: absolute;
-            left: 10%;
-            right: 10%;
-            top: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, rgba(59, 210, 255, 0.7), transparent);
+            left: 0;
+            right: var(--side-w);
+            top: var(--top-h);
+            bottom: 0;
+            border-radius: 7px 2px 2px 5px;
+            background-color: var(--body);
+            background-image:
+                linear-gradient(100deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0) 42%),
+                linear-gradient(180deg,
+                    rgba(var(--tint), 0.38) 0%,
+                    rgba(var(--tint), 0.10) 28%,
+                    rgba(0, 0, 0, 0.20) 64%,
+                    rgba(0, 0, 0, 0.46) 100%);
+            box-shadow:
+                inset 1px 0 0 rgba(255, 255, 255, 0.16),
+                inset 0 1px 0 rgba(255, 255, 255, 0.18),
+                inset -1px 0 0 rgba(0, 0, 0, 0.45),
+                inset 0 -18px 26px -14px rgba(0, 0, 0, 0.8);
         }
 
-        /* 底部内高光，做出台面厚度 */
-        .podium-block::after {
+        /* 柱脚台基：底部一圈金属压边，避免柱体沉成黑洞 */
+        .pb-front::after {
             content: '';
             position: absolute;
             left: 0;
             right: 0;
-            bottom: 8px;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+            bottom: 0;
+            height: 9px;
+            border-top: 1px solid rgba(255, 255, 255, 0.13);
+            border-radius: 0 0 2px 5px;
+            background: linear-gradient(180deg,
+                    rgba(255, 255, 255, 0.10) 0%,
+                    rgba(var(--tint), 0.10) 55%,
+                    rgba(0, 0, 0, 0.38) 100%);
         }
 
-        .podium-item:hover .podium-block {
-            border-color: rgba(59, 210, 255, 0.42);
-            filter: brightness(1.08);
+        /* 右侧暗面：明确转折，越靠右越沉 */
+        .pb-side {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--side-w);
+            clip-path: polygon(0 var(--top-h), 100% 0, 100% calc(100% - var(--top-h)), 0 100%);
+            background-color: var(--body);
+            background-image:
+                linear-gradient(90deg, rgba(255, 255, 255, 0.16) 0%, rgba(0, 0, 0, 0.30) 26%, rgba(0, 0, 0, 0.66) 100%),
+                linear-gradient(180deg, rgba(var(--tint), 0.24) 0%, rgba(0, 0, 0, 0.36) 100%);
         }
 
-        /* 名次数字：金属渐变 + 内高光 + 投影，底部对齐柱台 */
+        /* 受光顶面：近端亮、远端收，形成台面厚度 */
+        .pb-top {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: var(--top-h);
+            clip-path: polygon(0 100%, var(--side-w) 0, 100% 0, calc(100% - var(--side-w)) 100%);
+            background:
+                linear-gradient(180deg,
+                    rgba(var(--tint), 0.38) 0%,
+                    rgba(var(--tint), 0.62) 64%,
+                    rgba(255, 255, 255, 0.42) 100%);
+        }
+
+        /* 落地/接触阴影：柱体底部与面板之间的压暗 */
+        .pb-floor {
+            position: absolute;
+            left: -7%;
+            right: calc(-7% - var(--side-w));
+            bottom: -10px;
+            height: 20px;
+            z-index: 1;
+            background: radial-gradient(50% 100% at 50% 0%,
+                    rgba(0, 0, 0, 0.66) 0%,
+                    rgba(0, 0, 0, 0.30) 46%,
+                    transparent 100%);
+            filter: blur(3px);
+            pointer-events: none;
+        }
+
+        /* 柱台顶缘编号铭牌 */
+        .pb-plate {
+            position: absolute;
+            left: calc(50% - var(--side-w) / 2);
+            top: calc(var(--top-h) + 5px);
+            transform: translateX(-50%);
+            z-index: 3;
+            padding: 1px 7px 2px;
+            font-family: var(--num-font);
+            font-size: 8px;
+            line-height: 1.2;
+            letter-spacing: 2px;
+            color: var(--plate-txt);
+            white-space: nowrap;
+            border: 1px solid var(--edge-weak);
+            border-radius: 2px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(0, 0, 0, 0.38));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+            opacity: 0.9;
+        }
+
+        /* 名次底衬：细金属环，把数字压为次层级 */
+        .pb-medal {
+            position: absolute;
+            left: calc(50% - var(--side-w) / 2);
+            bottom: 9px;
+            transform: translateX(-50%);
+            z-index: 3;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 1px solid var(--edge-weak);
+            background: radial-gradient(50% 50% at 50% 42%, rgba(var(--tint), 0.14), transparent 72%);
+            box-shadow: inset 0 0 14px rgba(255, 255, 255, 0.06);
+            opacity: 0.8;
+        }
+
+        /* 名次数字：柱台内部的次层级 */
         .po-rank {
-            font-family: Bahnschrift, "Microsoft YaHei", sans-serif;
-            font-size: 44px;
+            position: absolute;
+            left: calc(50% - var(--side-w) / 2);
+            bottom: 12px;
+            transform: translateX(-50%);
+            z-index: 4;
+            font-family: var(--num-font);
+            font-size: 32px;
             font-weight: 700;
-            line-height: 0.92;
-            background: linear-gradient(180deg, #ffffff 0%, #d7ecf8 40%, rgba(140, 182, 206, 0.5) 100%);
+            line-height: 1;
+            background-image: linear-gradient(180deg,
+                    var(--metal-hi) 0%,
+                    var(--metal-mid) 50%,
+                    var(--metal-lo) 100%);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45));
-            opacity: 0.94;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+            opacity: 0.9;
         }
 
-        /* 冠军：金色柱台，层级最高 */
+        /* 冠军：金调降饱和，柱体最厚、最靠前（z-index 最高、投影更长） */
+        .podium-item.p1 {
+            --side-w: 11px;
+            --top-h: 9px;
+            --tint: 226, 186, 116;
+            --edge: rgba(226, 190, 120, 0.50);
+            --edge-weak: rgba(226, 190, 120, 0.30);
+            --metal-hi: #fff8e3;
+            --metal-mid: #eccb90;
+            --metal-lo: #8a631f;
+            --unit: #d0ad74;
+            --plate-txt: #f0d9ae;
+            --plate-glow: rgba(226, 186, 116, 0.16);
+            --emblem: #e6c68f;
+            --body: #2b2315;
+            z-index: 4;
+        }
+
         .podium-item.p1 .podium-block {
-            height: 78%;
-            border-color: rgba(226, 190, 120, 0.42);
-            background:
-                linear-gradient(180deg, rgba(255, 205, 120, 0.17) 0%, rgba(48, 40, 26, 0.3) 46%, rgba(6, 18, 34, 0.66) 100%);
+            height: 76%;
         }
 
-        .podium-item.p1 .podium-block::before {
-            background: linear-gradient(90deg, transparent, rgba(255, 217, 140, 0.85), transparent);
-        }
-
-        .podium-item.p1 .po-rank {
-            font-size: 58px;
-            background-image: linear-gradient(180deg, #fff6dc 0%, #f0cf92 44%, #a8791f 100%);
-            filter: drop-shadow(0 0 14px rgba(255, 198, 88, 0.45)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45));
+        .podium-item.p1 .pb-floor {
+            left: -10%;
+            right: calc(-10% - var(--side-w));
+            bottom: -12px;
+            height: 24px;
+            filter: blur(4px);
         }
 
         .podium-item.p1 .po-count {
-            color: #f0cf92;
+            font-size: 34px;
         }
 
         .podium-item.p1 .po-name {
-            color: #f6dfb0;
+            font-size: 16px;
+            color: #f7e3b8;
+            text-shadow: 0 0 10px rgba(226, 186, 116, 0.28), 0 1px 2px rgba(0, 0, 0, 0.75);
         }
 
-        /* 亚军：银白柱台 */
+        .podium-item.p1 .po-emblem {
+            width: 17px;
+            height: 17px;
+            color: #e6c68f;
+        }
+
+        .podium-item.p1 .pb-medal {
+            width: 48px;
+            height: 48px;
+            bottom: 8px;
+        }
+
+        .podium-item.p1 .po-rank {
+            font-size: 36px;
+            opacity: 1;
+            filter: drop-shadow(0 0 12px rgba(226, 186, 116, 0.40)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.55));
+        }
+
+        /* 亚军：银白，退到中景 */
+        .podium-item.p2 {
+            --tint: 198, 224, 238;
+            --edge: rgba(198, 224, 238, 0.36);
+            --edge-weak: rgba(198, 224, 238, 0.22);
+            --metal-hi: #ffffff;
+            --metal-mid: #dbeaf5;
+            --metal-lo: #8097a8;
+            --unit: #93b4c7;
+            --plate-txt: #d5e8f3;
+            --plate-glow: rgba(198, 224, 238, 0.12);
+            --emblem: #d7e9f4;
+            --body: #1e2a37;
+            z-index: 2;
+        }
+
         .podium-item.p2 .podium-block {
-            height: 62%;
-            border-color: rgba(186, 210, 226, 0.28);
-            background:
-                linear-gradient(180deg, rgba(206, 228, 242, 0.12) 0%, rgba(30, 52, 74, 0.32) 46%, rgba(6, 18, 34, 0.62) 100%);
+            height: 60%;
         }
 
-        .podium-item.p2 .podium-block::before {
-            background: linear-gradient(90deg, transparent, rgba(230, 245, 255, 0.7), transparent);
+        /* 季军：铜调降饱和，最靠后 */
+        .podium-item.p3 {
+            --tint: 202, 154, 112;
+            --edge: rgba(202, 154, 112, 0.36);
+            --edge-weak: rgba(202, 154, 112, 0.22);
+            --metal-hi: #fff3e6;
+            --metal-mid: #dcb08a;
+            --metal-lo: #8a5c38;
+            --unit: #bd9271;
+            --plate-txt: #e6c4a4;
+            --plate-glow: rgba(202, 154, 112, 0.12);
+            --emblem: #d5a681;
+            --body: #2a2118;
+            z-index: 1;
         }
 
-        .podium-item.p2 .po-rank {
-            background-image: linear-gradient(180deg, #ffffff 0%, #e2f1fb 42%, #8aa6b9 100%);
-        }
-
-        /* 季军：铜色柱台 */
         .podium-item.p3 .podium-block {
-            height: 48%;
-            border-color: rgba(196, 148, 108, 0.28);
-            background:
-                linear-gradient(180deg, rgba(206, 156, 112, 0.13) 0%, rgba(46, 34, 26, 0.3) 46%, rgba(6, 18, 34, 0.62) 100%);
+            height: 46%;
         }
 
-        .podium-item.p3 .podium-block::before {
-            background: linear-gradient(90deg, transparent, rgba(230, 181, 143, 0.68), transparent);
+        /* 悬停：牌面加亮 + 柱体提亮，不改变体积结构 */
+        .podium-item:hover .po-plaque {
+            box-shadow:
+                0 8px 18px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.16),
+                inset 0 0 22px var(--plate-glow),
+                0 0 16px rgba(var(--tint), 0.18);
         }
 
-        .podium-item.p3 .po-rank {
-            background-image: linear-gradient(180deg, #fff1e2 0%, #e0b18d 45%, #8f5f3b 100%);
+        .podium-item:hover .podium-block {
+            filter: brightness(1.07);
         }
 
         /* 面板底部轻量刻度光带，收住领奖台的视觉重量 */
@@ -2064,7 +2339,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.17.0</span>
+                    <span class="ver">V5.18.0</span>
                 </div>
             </div>
 
@@ -3648,16 +3923,46 @@
             const podiumCls = items.length === 1 ? ' solo' : (items.length === 2 ? ' duo' : '');
             const order = items.length >= 3 ? [1, 0, 2] : (items.length === 2 ? [1, 0] : [0]);
 
+            // 名次标识：冠军皇冠，亚军盾牌，季军奖牌（内联 SVG，单色金属线条）
+            const EMBLEMS = {
+                1: `<svg class="po-emblem" viewBox="0 0 22 16" fill="none" aria-hidden="true">
+                        <path d="M3.4 12.6 L2 4.9 L7 8.3 L11 2 L15 8.3 L20 4.9 L18.6 12.6 Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+                        <path d="M3.2 14.2 H18.8" stroke="currentColor" stroke-width="1.1" opacity=".7"/>
+                        <circle cx="2" cy="4.9" r="1" fill="currentColor"/>
+                        <circle cx="20" cy="4.9" r="1" fill="currentColor"/>
+                    </svg>`,
+                2: `<svg class="po-emblem" viewBox="0 0 22 16" fill="none" aria-hidden="true">
+                        <path d="M11 1.6 L19 4.2 V9.4 C19 12.8 15.7 14.3 11 15.2 C6.3 14.3 3 12.8 3 9.4 V4.2 Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+                        <path d="M7.8 6.4 L11 9.2 L14.2 6.4" stroke="currentColor" stroke-width="1" opacity=".85"/>
+                    </svg>`,
+                3: `<svg class="po-emblem" viewBox="0 0 22 16" fill="none" aria-hidden="true">
+                        <circle cx="11" cy="6" r="4.1" stroke="currentColor" stroke-width="1.3"/>
+                        <path d="M11 3.7 L11.9 5.5 L13.8 6 L11.9 6.5 L11 8.3 L10.1 6.5 L8.2 6 L10.1 5.5 Z" fill="currentColor" opacity=".8"/>
+                        <path d="M8.8 9.2 L7.6 15 L11 13.3 L14.4 15 L13.2 9.2" stroke="currentColor" stroke-width="1.1" opacity=".85"/>
+                    </svg>`
+            };
+
             const podiumSlot = (idx) => {
                 const item = items[idx];
                 const prof = displayProfession(item.prof);
-                return `<div class="podium-item p${idx + 1}" data-idx="${idx}"
+                const rank = idx + 1;
+                return `<div class="podium-item p${rank}" data-idx="${idx}"
                             title="${prof} · ${periodLabel}消缺 ${item.count} 条">
-                            <div class="podium-meta">
-                                <span class="po-name">${prof}</span>
+                            <div class="po-plaque">
+                                <span class="po-name">${EMBLEMS[rank]}<span>${prof}</span></span>
                                 <span class="po-count">${item.count}<em>条</em></span>
+                                <i class="po-ribbon"></i>
+                                ${rank === 1 ? '<i class="po-spark sp-a"></i><i class="po-spark sp-b"></i>' : ''}
                             </div>
-                            <div class="podium-block"><span class="po-rank">${idx + 1}</span></div>
+                            <div class="podium-block">
+                                <i class="pb-top"></i>
+                                <i class="pb-front"></i>
+                                <i class="pb-side"></i>
+                                <i class="pb-floor"></i>
+                                <span class="pb-plate">NO.${rank}</span>
+                                <span class="pb-medal"></span>
+                                <span class="po-rank">${rank}</span>
+                            </div>
                         </div>`;
             };
 
