@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.16.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.17.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -420,48 +420,67 @@
             min-width: 0;
         }
 
-        /* ================= 消缺龙虎榜（领奖台 + 榜单，参考图：名次徽章 / 柱台 / 行式列表） ================= */
+        /* ================= 消缺龙虎榜（纯领奖台：2-1-3 站位，柱台撑满面板） ================= */
         .board-list {
             flex: 1;
             min-height: 0;
             min-width: 0;
             display: flex;
             flex-direction: column;
-            gap: 7px;
+            gap: 8px;
             overflow: hidden;
         }
 
-        /* 领奖台：2-1-3 站位，1 号居中最高，柱台高度即名次层级 */
+        /* 领奖台：默认 2-1-3；柱台用 flex-grow 分配剩余高度，随面板高度自适应 */
         .board-podium {
-            flex: 0 0 auto;
+            flex: 1;
+            min-height: 0;
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            align-items: end;
-            gap: 7px;
-            padding: 0 2px;
+            align-items: stretch;
+            gap: 8px;
+            padding: 4px 4px 0;
+        }
+
+        /* 不足三席：双席居中 / 单席居中，避免出现空柱台 */
+        .board-podium.duo {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            width: 70%;
+            margin: 0 auto;
+        }
+
+        .board-podium.solo {
+            grid-template-columns: minmax(0, 1fr);
+            width: 46%;
+            margin: 0 auto;
         }
 
         .podium-item {
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
-            gap: 4px;
+            gap: 7px;
+            height: 100%;
             min-width: 0;
+            min-height: 0;
             cursor: pointer;
         }
 
+        /* 柱台上方：专业名 + 消缺条数，两级字号拉开层级 */
         .podium-meta {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1px;
+            gap: 2px;
             min-width: 0;
+            padding: 0 2px;
         }
 
         .po-name {
             max-width: 100%;
-            font-size: 11.5px;
-            color: #bfe3f5;
+            font-size: 12px;
+            letter-spacing: 0.8px;
+            color: #a9cfe3;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -469,11 +488,12 @@
 
         .po-count {
             font-family: Bahnschrift, "Microsoft YaHei", sans-serif;
-            font-size: 15px;
+            font-size: 22px;
             font-weight: 700;
-            line-height: 1.1;
+            line-height: 1.05;
             color: #eafcff;
             font-variant-numeric: tabular-nums;
+            letter-spacing: -0.3px;
         }
 
         .po-count em {
@@ -481,182 +501,153 @@
             font-size: 9px;
             font-weight: 400;
             color: #6d97b4;
-            margin-left: 2px;
+            margin-left: 3px;
+            letter-spacing: 0;
         }
 
-        /* 柱台：半透明玻璃 + 顶缘高光线 + 大号名次数字 */
+        /* 柱台：半透明玻璃 + 顶缘光带 + 底部厚度感 */
         .podium-block {
             position: relative;
+            flex: 0 0 auto;
+            height: 62%;
+            min-height: 0;
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             justify-content: center;
+            padding-bottom: 6px;
             border: 1px solid rgba(59, 210, 255, 0.16);
             border-bottom: 0;
-            border-radius: 4px 4px 0 0;
-            background: linear-gradient(180deg, rgba(59, 210, 255, 0.14), rgba(10, 28, 52, 0.5) 78%);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            border-radius: 5px 5px 0 0;
+            background:
+                linear-gradient(180deg, rgba(59, 210, 255, 0.13) 0%, rgba(20, 52, 82, 0.34) 46%, rgba(6, 18, 34, 0.62) 100%);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                inset 0 -9px 0 rgba(0, 0, 0, 0.22),
+                inset 1px 0 0 rgba(255, 255, 255, 0.03);
             overflow: hidden;
-            transition: border-color 0.18s ease, background 0.18s ease;
+            transition: border-color 0.2s ease, filter 0.2s ease;
         }
 
+        /* 顶缘光带 */
+        .podium-block::before {
+            content: '';
+            position: absolute;
+            left: 10%;
+            right: 10%;
+            top: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(59, 210, 255, 0.7), transparent);
+        }
+
+        /* 底部内高光，做出台面厚度 */
         .podium-block::after {
             content: '';
             position: absolute;
-            left: 12%;
-            right: 12%;
-            top: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, rgba(59, 210, 255, 0.75), transparent);
-        }
-
-        .po-rank {
-            font-family: Bahnschrift, "Microsoft YaHei", sans-serif;
-            font-size: 26px;
-            font-weight: 700;
-            line-height: 1;
-            color: rgba(216, 242, 255, 0.5);
-            text-shadow: 0 0 12px rgba(59, 210, 255, 0.25);
+            left: 0;
+            right: 0;
+            bottom: 8px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
         }
 
         .podium-item:hover .podium-block {
-            border-color: rgba(59, 210, 255, 0.4);
+            border-color: rgba(59, 210, 255, 0.42);
+            filter: brightness(1.08);
         }
 
-        /* 冠军：金色柱台 */
+        /* 名次数字：金属渐变 + 内高光 + 投影，底部对齐柱台 */
+        .po-rank {
+            font-family: Bahnschrift, "Microsoft YaHei", sans-serif;
+            font-size: 44px;
+            font-weight: 700;
+            line-height: 0.92;
+            background: linear-gradient(180deg, #ffffff 0%, #d7ecf8 40%, rgba(140, 182, 206, 0.5) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45));
+            opacity: 0.94;
+        }
+
+        /* 冠军：金色柱台，层级最高 */
         .podium-item.p1 .podium-block {
-            height: 86px;
-            border-color: rgba(255, 198, 88, 0.42);
-            background: linear-gradient(180deg, rgba(255, 198, 88, 0.2), rgba(10, 28, 52, 0.52) 78%);
+            height: 78%;
+            border-color: rgba(226, 190, 120, 0.42);
+            background:
+                linear-gradient(180deg, rgba(255, 205, 120, 0.17) 0%, rgba(48, 40, 26, 0.3) 46%, rgba(6, 18, 34, 0.66) 100%);
         }
 
-        .podium-item.p1 .podium-block::after {
-            background: linear-gradient(90deg, transparent, rgba(255, 217, 122, 0.9), transparent);
+        .podium-item.p1 .podium-block::before {
+            background: linear-gradient(90deg, transparent, rgba(255, 217, 140, 0.85), transparent);
         }
 
         .podium-item.p1 .po-rank {
-            font-size: 34px;
-            color: #ffd97a;
-            text-shadow: 0 0 16px rgba(255, 198, 88, 0.55);
+            font-size: 58px;
+            background-image: linear-gradient(180deg, #fff6dc 0%, #f0cf92 44%, #a8791f 100%);
+            filter: drop-shadow(0 0 14px rgba(255, 198, 88, 0.45)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45));
         }
 
         .podium-item.p1 .po-count {
-            color: #ffd97a;
+            color: #f0cf92;
+        }
+
+        .podium-item.p1 .po-name {
+            color: #f6dfb0;
         }
 
         /* 亚军：银白柱台 */
         .podium-item.p2 .podium-block {
-            height: 62px;
-            border-color: rgba(210, 231, 246, 0.28);
-            background: linear-gradient(180deg, rgba(210, 231, 246, 0.14), rgba(10, 28, 52, 0.5) 78%);
+            height: 62%;
+            border-color: rgba(186, 210, 226, 0.28);
+            background:
+                linear-gradient(180deg, rgba(206, 228, 242, 0.12) 0%, rgba(30, 52, 74, 0.32) 46%, rgba(6, 18, 34, 0.62) 100%);
         }
 
-        .podium-item.p2 .podium-block::after {
-            background: linear-gradient(90deg, transparent, rgba(230, 245, 255, 0.75), transparent);
+        .podium-item.p2 .podium-block::before {
+            background: linear-gradient(90deg, transparent, rgba(230, 245, 255, 0.7), transparent);
         }
 
         .podium-item.p2 .po-rank {
-            color: #dceefb;
+            background-image: linear-gradient(180deg, #ffffff 0%, #e2f1fb 42%, #8aa6b9 100%);
         }
 
         /* 季军：铜色柱台 */
         .podium-item.p3 .podium-block {
-            height: 46px;
-            border-color: rgba(224, 165, 118, 0.3);
-            background: linear-gradient(180deg, rgba(224, 165, 118, 0.15), rgba(10, 28, 52, 0.5) 78%);
+            height: 48%;
+            border-color: rgba(196, 148, 108, 0.28);
+            background:
+                linear-gradient(180deg, rgba(206, 156, 112, 0.13) 0%, rgba(46, 34, 26, 0.3) 46%, rgba(6, 18, 34, 0.62) 100%);
         }
 
-        .podium-item.p3 .podium-block::after {
-            background: linear-gradient(90deg, transparent, rgba(238, 190, 150, 0.7), transparent);
+        .podium-item.p3 .podium-block::before {
+            background: linear-gradient(90deg, transparent, rgba(230, 181, 143, 0.68), transparent);
         }
 
         .podium-item.p3 .po-rank {
-            color: #e6b58f;
+            background-image: linear-gradient(180deg, #fff1e2 0%, #e0b18d 45%, #8f5f3b 100%);
         }
 
-        .podium-slot {
-            min-width: 0;
-        }
-
-        /* 第 4 名及以后：行式榜单（圆形名次 + 专业 + 右侧数值 + 底部比例条） */
-        .board-rest {
-            flex: 1;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .board-row {
+        /* 面板底部轻量刻度光带，收住领奖台的视觉重量 */
+        .board-foot {
             position: relative;
-            flex: 1;
-            min-height: 0;
-            display: grid;
-            grid-template-columns: 22px minmax(0, 1fr) auto;
-            column-gap: 9px;
-            align-items: center;
-            padding: 0 9px 1px;
-            border-radius: 4px;
-            border: 1px solid rgba(59, 210, 255, 0.09);
-            background: rgba(10, 28, 52, 0.34);
-            cursor: pointer;
-            overflow: hidden;
-            transition: background 0.18s ease, border-color 0.18s ease;
+            flex: 0 0 14px;
+            margin: 0 4px;
+            background-image: repeating-linear-gradient(90deg, rgba(59, 210, 255, 0.3) 0 1px, transparent 1px 13px);
+            background-size: 100% 7px;
+            background-position: center;
+            background-repeat: no-repeat;
+            -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
         }
 
-        .board-row:hover {
-            background: rgba(59, 210, 255, 0.1);
-            border-color: rgba(59, 210, 255, 0.34);
-        }
-
-        /* 底部比例条：低透明度，只做量级提示，不抢数值 */
-        .board-bar {
+        .board-foot::after {
+            content: '';
             position: absolute;
             left: 0;
-            bottom: 0;
-            height: 2px;
-            border-radius: 2px;
-            background: linear-gradient(90deg, rgba(59, 210, 255, 0.45), rgba(59, 210, 255, 0.85));
-            transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-
-        .board-rank {
-            width: 22px;
-            height: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            font-family: Bahnschrift, "Microsoft YaHei", sans-serif;
-            font-size: 11px;
-            font-weight: 600;
-            color: #7fb4d2;
-            background: rgba(59, 210, 255, 0.07);
-            border: 1px solid rgba(59, 210, 255, 0.2);
-        }
-
-        .board-name {
-            font-size: 12px;
-            color: #bfe3f5;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .board-val {
-            font-family: Bahnschrift, "Microsoft YaHei", sans-serif;
-            font-size: 14px;
-            color: #eafcff;
-            text-align: right;
-            line-height: 1;
-            white-space: nowrap;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .board-val em {
-            font-style: normal;
-            font-size: 9px;
-            color: #6d97b4;
-            margin-left: 2px;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(59, 210, 255, 0.38), transparent);
         }
 
         .board-empty {
@@ -665,6 +656,7 @@
             align-items: center;
             justify-content: center;
             font-size: 12px;
+            letter-spacing: 1px;
             color: #6d97b4;
         }
 
@@ -2072,7 +2064,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.16.0</span>
+                    <span class="ver">V5.17.0</span>
                 </div>
             </div>
 
@@ -3641,7 +3633,7 @@
         function renderBoardChart() {
             const period = state.period || 'month';
             const periodLabel = PERIOD_LABELS[period] || '本月';
-            const items = getLeaderboard(state.rows, period).slice(0, 6);
+            const items = getLeaderboard(state.rows, period).slice(0, 3);
             state.boardItems = items;
 
             const box = document.getElementById('boardList');
@@ -3652,12 +3644,12 @@
                 return;
             }
 
-            const max = Math.max(...items.map(i => i.count), 1);
+            // 领奖台：3 席 2-1-3；2 席 2-1；1 席居中，不留空柱台
+            const podiumCls = items.length === 1 ? ' solo' : (items.length === 2 ? ' duo' : '');
+            const order = items.length >= 3 ? [1, 0, 2] : (items.length === 2 ? [1, 0] : [0]);
 
-            // 领奖台：2-1-3 站位，1 号居中最高
             const podiumSlot = (idx) => {
                 const item = items[idx];
-                if (!item) return `<div class="podium-slot"></div>`;
                 const prof = displayProfession(item.prof);
                 return `<div class="podium-item p${idx + 1}" data-idx="${idx}"
                             title="${prof} · ${periodLabel}消缺 ${item.count} 条">
@@ -3669,23 +3661,9 @@
                         </div>`;
             };
 
-            // 4 名及以后：行式榜单
-            const restRows = items.slice(3).map((item, i) => {
-                const idx = i + 3;
-                const prof = displayProfession(item.prof);
-                const pct = max > 0 ? (item.count / max * 100) : 0;
-                return `<div class="board-row" data-idx="${idx}"
-                            title="${prof} · ${periodLabel}消缺 ${item.count} 条">
-                            <span class="board-rank">${idx + 1}</span>
-                            <span class="board-name">${prof}</span>
-                            <span class="board-val">${item.count}<em>条</em></span>
-                            <i class="board-bar" style="width:${pct.toFixed(1)}%"></i>
-                        </div>`;
-            }).join('');
-
             box.innerHTML = `
-                <div class="board-podium">${podiumSlot(1)}${podiumSlot(0)}${podiumSlot(2)}</div>
-                ${restRows ? `<div class="board-rest">${restRows}</div>` : ''}
+                <div class="board-podium${podiumCls}">${order.map(podiumSlot).join('')}</div>
+                <div class="board-foot"></div>
             `;
         }
 
@@ -4311,7 +4289,7 @@
             });
 
             document.getElementById('boardList').addEventListener('click', function (e) {
-                const row = e.target.closest('.board-row, .podium-item');
+                const row = e.target.closest('.podium-item');
                 if (!row) return;
                 const item = (state.boardItems || [])[+row.dataset.idx];
                 if (!item) return;
