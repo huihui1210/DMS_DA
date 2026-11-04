@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.13.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.14.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -418,6 +418,167 @@
             width: 100%;
             min-height: 0;
             min-width: 0;
+        }
+
+        /* ================= 消缺龙虎榜（榜单化 DOM，替代原柱状图） ================= */
+        .board-list {
+            flex: 1;
+            min-height: 0;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            overflow: hidden;
+        }
+
+        .board-caption {
+            display: grid;
+            grid-template-columns: 22px 100px minmax(0, 1fr) 56px;
+            column-gap: 8px;
+            align-items: center;
+            flex: 0 0 15px;
+            padding: 0 7px;
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: #5f8aa8;
+        }
+
+        .board-caption .bc-val {
+            text-align: right;
+        }
+
+        .board-row {
+            flex: 1;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: 22px 100px minmax(0, 1fr) 56px;
+            column-gap: 8px;
+            align-items: center;
+            padding: 0 7px;
+            border-radius: 4px;
+            border: 1px solid rgba(59, 210, 255, 0.09);
+            background: rgba(10, 28, 52, 0.34);
+            cursor: pointer;
+            transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+        }
+
+        .board-row:hover {
+            background: rgba(59, 210, 255, 0.1);
+            border-color: rgba(59, 210, 255, 0.34);
+        }
+
+        .board-rank {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3px;
+            font-family: Bahnschrift, "Microsoft YaHei", sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            color: #7fb4d2;
+            background: rgba(59, 210, 255, 0.07);
+            border: 1px solid rgba(59, 210, 255, 0.2);
+        }
+
+        .board-name {
+            font-size: 12px;
+            color: #bfe3f5;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .board-track {
+            position: relative;
+            height: 7px;
+            border-radius: 4px;
+            background: rgba(59, 210, 255, 0.07);
+            overflow: hidden;
+        }
+
+        .board-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            border-radius: 4px;
+            background: linear-gradient(90deg, rgba(59, 210, 255, 0.35), rgba(59, 210, 255, 0.85));
+            transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .board-val {
+            font-family: Bahnschrift, "Microsoft YaHei", sans-serif;
+            font-size: 14px;
+            color: #eafcff;
+            text-align: right;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        .board-val em {
+            font-style: normal;
+            font-size: 9px;
+            color: #6d97b4;
+            margin-left: 2px;
+        }
+
+        /* 前三名：领奖台强调 */
+        .board-row.top1 {
+            border-color: rgba(255, 198, 88, 0.45);
+            background: linear-gradient(90deg, rgba(255, 198, 88, 0.16), rgba(255, 198, 88, 0.03) 62%, rgba(10, 28, 52, 0.34));
+            box-shadow: inset 2px 0 0 #ffc658, 0 0 10px rgba(255, 198, 88, 0.14);
+        }
+
+        .board-row.top1:hover {
+            border-color: rgba(255, 217, 122, 0.7);
+        }
+
+        .board-row.top1 .board-rank {
+            color: #22160a;
+            background: linear-gradient(160deg, #ffe7b0, #ffc658);
+            border-color: rgba(255, 217, 122, 0.85);
+            box-shadow: 0 0 8px rgba(255, 198, 88, 0.5);
+        }
+
+        .board-row.top1 .board-name {
+            color: #ffd97a;
+            font-weight: 600;
+        }
+
+        .board-row.top1 .board-val {
+            color: #ffd97a;
+        }
+
+        .board-row.top1 .board-fill {
+            background: linear-gradient(90deg, rgba(255, 198, 88, 0.55), #ffd97a);
+            box-shadow: 0 0 6px rgba(255, 198, 88, 0.45);
+        }
+
+        .board-row.top2 .board-rank {
+            color: #0b1c30;
+            background: linear-gradient(160deg, #eef7ff, #a9c6dc);
+            border-color: rgba(210, 231, 246, 0.7);
+        }
+
+        .board-row.top2 .board-name {
+            color: #d9ecf8;
+        }
+
+        .board-row.top3 .board-rank {
+            color: #2a1409;
+            background: linear-gradient(160deg, #f0c9a8, #cd8b57);
+            border-color: rgba(224, 165, 118, 0.7);
+        }
+
+        .board-empty {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #6d97b4;
         }
 
         /* ================= KPI（复用 s-card 督办卡片样式，保持视觉一致） ================= */
@@ -1813,7 +1974,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.13.0</span>
+                    <span class="ver">V5.14.0</span>
                 </div>
             </div>
 
@@ -1837,9 +1998,10 @@
                         <span class="bar"></span>
                         <h2>关键指标</h2>
                         <div class="period-tabs" id="kpiTabs">
-                            <button class="pbtn active" data-group="remain">剩余</button>
-                            <button class="pbtn" data-group="week">日·周</button>
-                            <button class="pbtn" data-group="month">月·年</button>
+                            <button class="pbtn active" data-group="overview">总览</button>
+                            <button class="pbtn" data-group="remain">剩余</button>
+                            <button class="pbtn" data-group="week">较上日·较上周</button>
+                            <button class="pbtn" data-group="month">较上月·较上年</button>
                         </div>
                     </div>
                     <div class="panel-body">
@@ -1924,7 +2086,7 @@
                 <div class="panel board-panel">
                     <div class="panel-head">
                         <span class="bar"></span>
-                        <h2>消缺榜单</h2>
+                        <h2>消缺龙虎榜</h2>
                         <div class="period-tabs" id="periodTabs">
                             <button class="pbtn" data-period="yesterday">昨日</button>
                             <button class="pbtn" data-period="week">本周</button>
@@ -1933,7 +2095,7 @@
                         </div>
                     </div>
                     <div class="panel-body">
-                        <div class="chart" id="chartBoard"></div>
+                        <div class="board-list" id="boardList"></div>
                     </div>
                 </div>
 
@@ -2152,7 +2314,7 @@
             view: 'all',
             mapSlide: 'recv',
             period: 'month',
-            kpiGroup: 'remain',
+            kpiGroup: 'overview',
             allRows: [],
             rows: [],
             charts: {},
@@ -2784,8 +2946,9 @@
             document.getElementById('emptyState').classList.toggle('show', state.allRows.length === 0);
         }
 
-        /* ================= 关键指标：12 项口径（取数与 index_1 完全一致） ================= */
-        // 三组：剩余分类 / 日·周（昨日+本周 的新增+消缺） / 月·年（本月+今年 的新增+消缺）
+        /* ================= 关键指标 ================= */
+        // 四组：总览（原有四卡） / 剩余分类 / 较上日·较上周 / 较上月·较上年（12 项，取数与 index_1 一致）
+        const KPI_GROUPS = ['overview', 'remain', 'week', 'month'];
         const KPI_GROUP_DEFS = {
             remain: [
                 { key: 'remainI', cls: 'cyan', icon: 'Ⅰ', lbl: '剩余Ⅰ类缺陷数' },
@@ -2816,9 +2979,12 @@
             return (!isEmpty(levelRaw) && isClassILevel(levelRaw)) ? 'remainI' : 'remainII';
         }
 
+        function monthKeyOf(d) {
+            return d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : null;
+        }
+
         // 一次性把每行的日期 / 状态 / 剩余分类算好，避免多次重复解析
         function buildKpiMeta(rows) {
-            const monthOf = d => d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : null;
             return rows.map(row => {
                 const dd = getDateFromDefectId(getId(row));
                 const done = row.status === '已消缺项';
@@ -2827,8 +2993,8 @@
                     row,
                     dd,
                     cd,
-                    mk: monthOf(dd),
-                    ck: monthOf(cd),
+                    mk: monthKeyOf(dd),
+                    ck: monthKeyOf(cd),
                     pending: row.status === '待消缺项目',
                     done,
                     cat: remainCategoryOf(row)
@@ -2856,67 +3022,41 @@
             return buildKpiMeta(rows).filter(m => kpiMatches(m, key)).map(m => m.row);
         }
 
-        function renderKPI() {
-            const rows = state.rows;
-            const group = KPI_GROUP_DEFS[state.kpiGroup] ? state.kpiGroup : 'remain';
-            const meta = buildKpiMeta(rows);
-            const now = new Date();
+        /* ===== 趋势 / sparkline / 卡片渲染（总览与分组共用） ===== */
+        function kpiTrend(cur, prev, goodDir) {
+            if (cur === prev) return { arrow: '—', pct: '0%', tone: 'flat' };
+            const base = prev > 0 ? prev : Math.max(1, cur);
+            const pct = Math.abs(cur - prev) / base * 100;
+            const pctStr = pct < 1 ? pct.toFixed(2) + '%' : pct.toFixed(1) + '%';
+            const up = cur > prev;
+            const better = (up ? 1 : -1) * goodDir > 0;
+            return { arrow: up ? '▲' : '▼', pct: pctStr, tone: better ? 'good' : 'bad' };
+        }
 
-            // 三个分母：剩余总量 / 今年新增 / 今年消缺
-            const remainTotal = meta.filter(m => m.pending).length;
-            const yearNewTotal = meta.filter(m => kpiMatches(m, 'yearNew')).length;
-            const yearDoneTotal = meta.filter(m => kpiMatches(m, 'yearDone')).length;
-
-            // 最近 6 个自然月（含本月）
-            const monthKeys = [];
-            for (let i = 5; i >= 0; i--) {
-                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
-            }
-
-            /** sparkline SVG（与督办卡片同一套视觉） */
-            function sparkline(data, w = 60, h = 30) {
-                const arr = (data && data.length) ? data : [0];
-                const max = Math.max(...arr, 1);
-                const min = Math.min(...arr, 0);
-                const range = max - min || 1;
-                const step = arr.length > 1 ? w / (arr.length - 1) : 0;
-                const pts = arr.map((v, i) => {
-                    const x = arr.length > 1 ? i * step : w / 2;
-                    const y = h - ((v - min) / range * (h - 4)) - 2;
-                    return [x, y];
-                });
-                const dLine = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
-                const dArea = dLine + ` L${pts[pts.length - 1][0].toFixed(1)} ${h} L${pts[0][0].toFixed(1)} ${h} Z`;
-                return `<svg class="s-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-                    <path class="area" d="${dArea}" />
-                    <path class="line" d="${dLine}" />
-                    <circle cx="${pts[pts.length - 1][0].toFixed(1)}" cy="${pts[pts.length - 1][1].toFixed(1)}" r="1.5" fill="currentColor" opacity="0.9"/>
-                </svg>`;
-            }
-
-            const cards = KPI_GROUP_DEFS[group].map(def => {
-                const val = meta.filter(m => kpiMatches(m, def.key)).length;
-
-                let base = remainTotal, tip = '占剩余总量';
-                if (def.key.slice(-3) === 'New') { base = yearNewTotal; tip = '占今年新增'; }
-                else if (def.key.slice(-4) === 'Done') { base = yearDoneTotal; tip = '占今年消缺'; }
-                const share = base > 0 ? (val / base * 100) : 0;
-
-                const spark = monthKeys.map(mk => {
-                    if (def.key.indexOf('remain') === 0) {
-                        // 该月末仍未消缺的同类缺陷数
-                        return meta.filter(m => m.mk && m.mk <= mk
-                            && !(m.done && (!m.ck || m.ck <= mk))
-                            && m.cat === def.key).length;
-                    }
-                    return meta.filter(m => def.key.slice(-3) === 'New' ? m.mk === mk : (m.done && m.ck === mk)).length;
-                });
-
-                return { ...def, val, share, tip, spark };
+        function sparklineSVG(data, w, h) {
+            w = w || 56;
+            h = h || 28;
+            const arr = (data && data.length) ? data : [0];
+            const max = Math.max(...arr, 1);
+            const min = Math.min(...arr, 0);
+            const range = max - min || 1;
+            const step = arr.length > 1 ? w / (arr.length - 1) : 0;
+            const pts = arr.map((v, i) => {
+                const x = arr.length > 1 ? i * step : w / 2;
+                const y = h - ((v - min) / range * (h - 4)) - 2;
+                return [x, y];
             });
+            const dLine = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+            const dArea = dLine + ` L${pts[pts.length - 1][0].toFixed(1)} ${h} L${pts[0][0].toFixed(1)} ${h} Z`;
+            return `<svg class="s-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+                <path class="area" d="${dArea}" />
+                <path class="line" d="${dLine}" />
+                <circle cx="${pts[pts.length - 1][0].toFixed(1)}" cy="${pts[pts.length - 1][1].toFixed(1)}" r="1.5" fill="currentColor" opacity="0.9"/>
+            </svg>`;
+        }
 
-            document.getElementById('kpiGrid').innerHTML = cards.map(c => `
+        function kpiCardHTML(c) {
+            return `
                 <div class="s-card ${c.cls}" data-key="${c.key}">
                     <div class="s-head">
                         <div class="s-icon">${c.icon}</div>
@@ -2926,14 +3066,193 @@
                         <div class="s-main">
                             <div class="s-val">${c.val}</div>
                         </div>
-                        ${sparkline(c.spark)}
+                        ${sparklineSVG(c.spark, c.sparkW, c.sparkH)}
                     </div>
                     <div class="s-foot">
-                        <span class="s-trend s-flat">${c.share.toFixed(1)}%</span>
+                        <span class="s-trend s-${c.tone}" title="${c.tip} ${c.arrow} ${c.pct}">
+                            ${c.arrow} ${c.pct}
+                        </span>
                         <span style="color:#86b3cc;font-size:10px;margin-left:5px;">${c.tip}</span>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+        }
+
+        /* ===== 总览：原有四张指标卡（缺陷总数 / 剩余缺陷 / 完成缺陷 / 消缺率） ===== */
+        function renderKPIOverview() {
+            const rows = state.rows;
+            const now = new Date();
+            const curY = now.getFullYear();
+            const curM = now.getMonth();
+            const lastMD = new Date(curY, curM - 1, 1);
+            const lastY = lastMD.getFullYear();
+            const lastM = lastMD.getMonth();
+
+            const total = rows.length;
+            const pending = rows.filter(r => r.status === '待消缺项目').length;
+            const completed = total - pending;
+            const rate = total ? (completed / total * 100) : 0;
+
+            // 本月 vs 上月
+            let mDone = 0, lmDone = 0;
+            rows.forEach(r => {
+                if (r.status !== '已消缺项') return;
+                const cd = getCompleteDate(r);
+                if (!cd) return;
+                if (cd.getFullYear() === curY && cd.getMonth() === curM) mDone++;
+                else if (cd.getFullYear() === lastY && cd.getMonth() === lastM) lmDone++;
+            });
+            let mTotal = 0, lmTotal = 0;
+            rows.forEach(r => {
+                const dd = getDateFromDefectId(getId(r));
+                if (!dd) return;
+                if (dd.getFullYear() === curY && dd.getMonth() === curM) mTotal++;
+                else if (dd.getFullYear() === lastY && dd.getMonth() === lastM) lmTotal++;
+            });
+
+            // 完成率趋势
+            const curR = mDone + mTotal > 0 ? mDone / (mDone + mTotal) * 100 : 0;
+            const lastR = lmDone + lmTotal > 0 ? lmDone / (lmDone + lmTotal) * 100 : 0;
+            const rd = curR - lastR;
+            const tRate = Math.abs(rd) < 0.01 ? { arrow: '—', pct: '0%', tone: 'flat' }
+                : {
+                    arrow: rd > 0 ? '▲' : '▼',
+                    pct: (Math.abs(rd) < 1 ? Math.abs(rd).toFixed(2) : Math.abs(rd).toFixed(1)) + '%',
+                    tone: rd > 0 ? 'good' : 'bad'
+                };
+
+            // 最近 6 个月 sparkline 数据
+            const months = [];
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(curY, curM - i, 1);
+                months.push({ y: d.getFullYear(), m: d.getMonth() });
+            }
+            const slTotal = months.map(m => rows.filter(r => {
+                const dd = getDateFromDefectId(getId(r));
+                return dd && dd.getFullYear() === m.y && dd.getMonth() === m.m;
+            }).length);
+            const slDone = months.map(m => rows.filter(r => {
+                if (r.status !== '已消缺项') return false;
+                const cd = getCompleteDate(r);
+                return cd && cd.getFullYear() === m.y && cd.getMonth() === m.m;
+            }).length);
+            const slRemain = months.map((_, i) => {
+                const cumT = slTotal.slice(0, i + 1).reduce((a, b) => a + b, 0);
+                const cumD = slDone.slice(0, i + 1).reduce((a, b) => a + b, 0);
+                return Math.max(0, cumT - cumD);
+            });
+            const slRate = months.map((_, i) => {
+                const cumT = slTotal.slice(0, i + 1).reduce((a, b) => a + b, 0);
+                const cumD = slDone.slice(0, i + 1).reduce((a, b) => a + b, 0);
+                return cumT ? +(cumD / cumT * 100).toFixed(1) : 0;
+            });
+
+            const tTotal = kpiTrend(mTotal, lmTotal, -1);
+            const tRemain = kpiTrend(pending, pending - mDone + lmDone, -1);
+            const tDone = kpiTrend(mDone, lmDone, +1);
+
+            const cards = [
+                { key: 'total', cls: 'cyan', val: total, lbl: '缺陷总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: '较上月', spark: slTotal },
+                { key: 'pending', cls: 'amber', val: pending, lbl: '剩余缺陷', icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月', spark: slRemain },
+                { key: 'completed', cls: 'green', val: completed, lbl: '完成缺陷', icon: '✓', arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: '较上月', spark: slDone },
+                { key: 'rate', cls: 'purple', val: rate.toFixed(1) + '%', lbl: '消缺率', icon: '%', arrow: tRate.arrow, pct: tRate.pct, tone: tRate.tone, tip: '较上月', spark: slRate }
+            ];
+
+            document.getElementById('kpiGrid').innerHTML = cards.map(kpiCardHTML).join('');
+        }
+
+        /* ===== 分组：12 项指标（剩余 / 较上日·较上周 / 较上月·较上年） ===== */
+        function rangeCount(meta, kind, start, end) {
+            return meta.filter(m => {
+                const d = kind === 'new' ? m.dd : (m.done ? m.cd : null);
+                return d && d >= start && d < end;
+            }).length;
+        }
+
+        function renderKPIGroup(group) {
+            const rows = state.rows;
+            const meta = buildKpiMeta(rows);
+            const now = new Date();
+
+            // 对比窗口：上日 / 上周同期 / 上月同期 / 上年同期
+            const day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const day1 = new Date(day0); day1.setDate(day0.getDate() + 1);
+            const dayM1 = new Date(day0); dayM1.setDate(day0.getDate() - 1);
+            const dayM2 = new Date(dayM1); dayM2.setDate(dayM1.getDate() - 1);
+
+            const wd = now.getDay() || 7;
+            const week0 = new Date(day0); week0.setDate(day0.getDate() - wd + 1);
+            const weekPrev0 = new Date(week0); weekPrev0.setDate(week0.getDate() - 7);
+            const weekPrevEnd = new Date(weekPrev0);
+            weekPrevEnd.setDate(weekPrev0.getDate() + Math.round((day1 - week0) / 86400000));
+
+            const monthPrev0 = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const monthPrevEnd = new Date(now.getFullYear(), now.getMonth(), day0.getDate());
+            const yearPrev0 = new Date(now.getFullYear() - 1, 0, 1);
+            const yearPrevEnd = new Date(now.getFullYear() - 1, now.getMonth(), day0.getDate());
+            const lastMonthKey = monthKeyOf(monthPrev0);
+
+            const PREV_WIN = {
+                yesterdayNew: ['new', dayM2, dayM1],
+                weekNew: ['new', weekPrev0, weekPrevEnd],
+                monthNew: ['new', monthPrev0, monthPrevEnd],
+                yearNew: ['new', yearPrev0, yearPrevEnd],
+                yesterdayDone: ['done', dayM2, dayM1],
+                weekDone: ['done', weekPrev0, weekPrevEnd],
+                monthDone: ['done', monthPrev0, monthPrevEnd],
+                yearDone: ['done', yearPrev0, yearPrevEnd]
+            };
+            const TREND_LABEL = {
+                yesterdayNew: '较上日', weekNew: '较上周', monthNew: '较上月', yearNew: '较上年',
+                yesterdayDone: '较上日', weekDone: '较上周', monthDone: '较上月', yearDone: '较上年'
+            };
+
+            const monthKeys = [];
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                monthKeys.push(monthKeyOf(d));
+            }
+
+            const cards = KPI_GROUP_DEFS[group].map(def => {
+                const val = meta.filter(m => kpiMatches(m, def.key)).length;
+                const isRemain = def.key.indexOf('remain') === 0;
+                let prev, label, goodDir;
+                if (isRemain) {
+                    // 与上月末同类剩余量对比
+                    prev = meta.filter(m => m.cat === def.key && m.mk && m.mk <= lastMonthKey
+                        && !(m.done && (!m.ck || m.ck <= lastMonthKey))).length;
+                    label = '较上月';
+                    goodDir = -1;
+                } else {
+                    const w = PREV_WIN[def.key];
+                    prev = rangeCount(meta, w[0], w[1], w[2]);
+                    label = TREND_LABEL[def.key];
+                    goodDir = def.key.slice(-3) === 'New' ? -1 : 1;
+                }
+                const t = kpiTrend(val, prev, goodDir);
+
+                const spark = monthKeys.map(mk => {
+                    if (isRemain) {
+                        // 该月末仍未消缺的同类缺陷数
+                        return meta.filter(m => m.mk && m.mk <= mk
+                            && !(m.done && (!m.ck || m.ck <= mk))
+                            && m.cat === def.key).length;
+                    }
+                    return meta.filter(m => def.key.slice(-3) === 'New' ? m.mk === mk : (m.done && m.ck === mk)).length;
+                });
+
+                return {
+                    ...def, val, spark, sparkW: 60, sparkH: 30,
+                    arrow: t.arrow, pct: t.pct, tone: t.tone, tip: label
+                };
+            });
+
+            document.getElementById('kpiGrid').innerHTML = cards.map(kpiCardHTML).join('');
+        }
+
+        function renderKPI() {
+            const group = KPI_GROUPS.indexOf(state.kpiGroup) >= 0 ? state.kpiGroup : 'overview';
+            if (group === 'overview') renderKPIOverview();
+            else renderKPIGroup(group);
         }
 
         function renderTrend() {
@@ -3258,85 +3577,41 @@
         }
 
         function renderBoardChart() {
-            const chart = getChart('chartBoard');
-            if (!chart) {
-                showChartFallback('chartBoard', '图表组件加载失败');
-                return;
-            }
             const period = state.period || 'month';
             const periodLabel = PERIOD_LABELS[period] || '本月';
             const items = getLeaderboard(state.rows, period).slice(0, 6);
             state.boardItems = items;
 
+            const box = document.getElementById('boardList');
+            if (!box) return;
+
             if (items.length === 0) {
-                chart.clear();
-                chart.setOption({
-                    title: {
-                        text: `${periodLabel}暂无消缺记录`,
-                        left: 'center',
-                        top: 'middle',
-                        textStyle: { color: '#6d97b4', fontSize: 12, fontWeight: 400 }
-                    }
-                }, true);
+                box.innerHTML = `<div class="board-empty">${periodLabel}暂无消缺记录</div>`;
                 return;
             }
 
-            chart.setOption({
-                tooltip: { ...CHART_TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: `{b}<br/>${periodLabel}消缺 {c} 条` },
-                grid: { left: 76, right: 34, top: 8, bottom: 6 },
-                xAxis: {
-                    type: 'value',
-                    axisLine: { show: false },
-                    axisTick: { show: false },
-                    axisLabel: { show: false },
-                    splitLine: { show: false }
-                },
-                yAxis: {
-                    type: 'category',
-                    inverse: true,
-                    data: items.map(item => displayProfession(item.prof)),
-                    axisLine: { show: false },
-                    axisTick: { show: false },
-                    axisLabel: { color: '#bfe3f5', fontSize: 12 }
-                },
-                series: [{
-                    type: 'bar',
-                    data: items.map((item, idx) => ({
-                        value: item.count,
-                        itemStyle: idx === 0
-                            ? {
-                                borderRadius: 2,
-                                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-                                    { offset: 0, color: 'rgba(255,198,88,.6)' },
-                                    { offset: 1, color: '#ffd97a' }
-                                ]),
-                                shadowColor: 'rgba(255,198,88,.5)',
-                                shadowBlur: 5
-                            }
-                            : barStyle(idx)
-                    })),
-                    barWidth: 11,
-                    showBackground: true,
-                    backgroundStyle: { color: 'rgba(59,210,255,.05)', borderRadius: 2 },
-                    label: {
-                        show: true,
-                        position: 'right',
-                        color: '#eafcff',
-                        fontSize: 12,
-                        fontFamily: 'Bahnschrift, Microsoft YaHei'
-                    }
-                }]
-            }, true);
+            const max = Math.max(...items.map(i => i.count), 1);
+            const rankCls = ['top1', 'top2', 'top3'];
 
-            chart.off('click');
-            chart.on('click', function (params) {
-                const item = (state.boardItems || [])[params.dataIndex];
-                if (!item) return;
-                const p = state.period || 'month';
-                openModal(`${item.prof} · ${PERIOD_LABELS[p]}消缺清单`, state.rows.filter(r =>
-                    r.status === '已消缺项' && getProfession(r) === item.prof && inSelectedPeriod(getCompleteDate(r), p)
-                ));
-            });
+            box.innerHTML = `
+                <div class="board-caption">
+                    <span class="bc-rank">名次</span>
+                    <span class="bc-name">专业</span>
+                    <span>消缺量占比</span>
+                    <span class="bc-val">消缺</span>
+                </div>
+                ${items.map((item, idx) => {
+                    const pct = max > 0 ? (item.count / max * 100) : 0;
+                    const prof = displayProfession(item.prof);
+                    return `<div class="board-row ${rankCls[idx] || ''}" data-idx="${idx}"
+                        title="${prof} · ${periodLabel}消缺 ${item.count} 条">
+                        <span class="board-rank">${idx + 1}</span>
+                        <span class="board-name">${prof}</span>
+                        <span class="board-track"><i class="board-fill" style="width:${pct.toFixed(1)}%"></i></span>
+                        <span class="board-val">${item.count}<em>条</em></span>
+                    </div>`;
+                }).join('')}
+            `;
         }
 
         /* ================= 滚动清单 / 预警 / 督办 ================= */
@@ -3935,6 +4210,14 @@
             return acc;
         }, {});
 
+        // 总览四卡：标题与明细口径与原 V5.12.5 完全一致
+        Object.assign(KPI_ACTIONS, {
+            total: ['缺陷 · 全部清单', rows => rows],
+            pending: ['剩余缺陷 · 待消缺', rows => rows.filter(r => r.status === '待消缺项目')],
+            completed: ['完成缺陷 · 已消缺', rows => rows.filter(r => r.status === '已消缺项')],
+            rate: ['缺陷清单（消缺率明细）', rows => rows]
+        });
+
         /* ================= 事件 / 初始化 ================= */
         function bindEvents() {
             document.getElementById('seg').addEventListener('click', function (e) {
@@ -3952,6 +4235,17 @@
                 renderBoardChart();
             });
 
+            document.getElementById('boardList').addEventListener('click', function (e) {
+                const row = e.target.closest('.board-row');
+                if (!row) return;
+                const item = (state.boardItems || [])[+row.dataset.idx];
+                if (!item) return;
+                const p = state.period || 'month';
+                openModal(`${item.prof} · ${PERIOD_LABELS[p]}消缺清单`, state.rows.filter(r =>
+                    r.status === '已消缺项' && getProfession(r) === item.prof && inSelectedPeriod(getCompleteDate(r), p)
+                ));
+            });
+
             // ===== 弹窗交互 =====
             document.getElementById('modalClose').addEventListener('click', closeModal);
             document.getElementById('modalMask').addEventListener('click', function (e) {
@@ -3965,7 +4259,7 @@
 
             document.getElementById('kpiTabs').addEventListener('click', function (e) {
                 const btn = e.target.closest('.pbtn');
-                if (!btn || !KPI_GROUP_DEFS[btn.dataset.group]) return;
+                if (!btn || KPI_GROUPS.indexOf(btn.dataset.group) < 0) return;
                 state.kpiGroup = btn.dataset.group;
                 document.querySelectorAll('#kpiTabs .pbtn').forEach(b => {
                     b.classList.toggle('active', b === btn);
