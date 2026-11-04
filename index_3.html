@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.25.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.26.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -13,6 +13,7 @@
             box-sizing: border-box;
         }
 
+        /* 统一视觉令牌：圆角 / 文本色阶 / 面板与卡片共用底 / 按钮三态 */
         :root {
             --bg: #040b18;
             --panel: rgba(7, 25, 47, 0.62);
@@ -22,10 +23,37 @@
             --amber: #ffc658;
             --red: #ff5f6d;
             --green: #3ddc97;
-            --purple: #a78bfa;
+            --silver: #bccfe0;
             --text: #d8f2ff;
             --muted: #86b3cc;
             --num-font: 'Bahnschrift', 'DIN Alternate', 'Microsoft YaHei', sans-serif;
+
+            /* 圆角：面板/卡片/图标/按钮/胶囊，各只取一个值 */
+            --radius-panel: 4px;
+            --radius-card: 8px;
+            --radius-icon: 5px;
+            --radius-btn: 3px;
+            --radius-chip: 999px;
+
+            /* 文案色阶：主标题与数值 → 标签 → 辅助提示 → 图例与坐标轴 */
+            --text-1: #eafcff;
+            --text-2: #9cc8e2;
+            --text-3: #86b3cc;
+            --text-4: #6f9cb5;
+
+            /* 面板 / 卡片共用底与描边 */
+            --panel-line: rgba(64, 196, 255, 0.55);
+            --head-line: rgba(59, 210, 255, 0.22);
+            --panel-bg: linear-gradient(180deg, rgba(8, 28, 52, 0.92), rgba(4, 14, 28, 0.95));
+            --card-line: rgba(59, 210, 255, 0.15);
+            --card-bg: linear-gradient(135deg, rgba(59, 210, 255, 0.07), rgba(59, 210, 255, 0.015) 58%), rgba(10, 28, 52, 0.55);
+
+            /* 按钮默认 / hover / 选中态 */
+            --btn-bg: rgba(59, 210, 255, 0.07);
+            --btn-bg-hover: rgba(59, 210, 255, 0.18);
+            --btn-line: rgba(59, 210, 255, 0.3);
+            --btn-line-hover: rgba(59, 210, 255, 0.55);
+            --btn-active: linear-gradient(180deg, #8feaff, #3bd2ff);
         }
 
         html,
@@ -196,8 +224,8 @@
             gap: 4px;
             padding: 4px;
             background: rgba(8, 30, 58, 0.78);
-            border: 1px solid rgba(59, 210, 255, 0.3);
-            border-radius: 5px;
+            border: 1px solid var(--btn-line);
+            border-radius: 6px;
             box-shadow: 0 0 18px rgba(59, 210, 255, 0.12), inset 0 0 14px rgba(59, 210, 255, 0.05);
             flex-shrink: 0;
         }
@@ -208,23 +236,23 @@
             font-family: inherit;
             font-size: 14px;
             letter-spacing: 1px;
-            color: #9cc8e2;
+            color: var(--text-2);
             background: transparent;
             border: 0;
-            border-radius: 3px;
+            border-radius: var(--radius-btn);
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
         .seg-btn:hover {
-            color: #eafcff;
-            background: rgba(59, 210, 255, 0.08);
+            color: var(--text-1);
+            background: var(--btn-bg-hover);
         }
 
         .seg-btn.active {
             color: #03121e;
             font-weight: 700;
-            background: linear-gradient(180deg, #8feaff, #3bd2ff);
+            background: var(--btn-active);
             box-shadow: 0 0 10px rgba(59, 210, 255, 0.35);
         }
 
@@ -258,11 +286,11 @@
 
         .sys-link {
             font-size: 12px;
-            color: #aee3f8;
+            color: var(--text-2);
             text-decoration: none;
-            border: 1px solid rgba(59, 210, 255, 0.42);
+            border: 1px solid var(--btn-line);
             box-shadow: inset 0 0 10px rgba(59, 210, 255, 0.06);
-            border-radius: 3px;
+            border-radius: var(--radius-btn);
             padding: 6px 10px;
             letter-spacing: 1px;
             white-space: nowrap;
@@ -271,8 +299,8 @@
 
         .sys-link:hover {
             color: #03121e;
-            background: #3bd2ff;
-            border-color: #3bd2ff;
+            background: var(--btn-active);
+            border-color: var(--cyan);
             box-shadow: 0 0 16px rgba(59, 210, 255, 0.55);
         }
 
@@ -325,9 +353,9 @@
             min-height: 0;
             min-width: 0;
             padding: 0 12px 10px;
-            border: 1px solid rgba(64, 196, 255, 0.55);
-            border-radius: 3px;
-            background: linear-gradient(180deg, rgba(8, 28, 52, 0.92), rgba(4, 14, 28, 0.95));
+            border: 1px solid var(--panel-line);
+            border-radius: var(--radius-panel);
+            background: var(--panel-bg);
             box-shadow:
                 inset 0 0 40px rgba(59, 210, 255, 0.06),
                 0 0 16px rgba(2, 8, 16, 0.6);
@@ -373,7 +401,7 @@
             gap: 8px;
             min-width: 0;
             overflow: hidden;
-            border-bottom: 1px solid rgba(59, 210, 255, 0.22);
+            border-bottom: 1px solid var(--head-line);
             background: linear-gradient(90deg, rgba(59, 210, 255, 0.1), rgba(59, 210, 255, 0.02) 60%, transparent);
             margin: 0 -12px;
             padding: 0 12px;
@@ -391,14 +419,14 @@
             font-size: 15px;
             font-weight: 600;
             letter-spacing: 2px;
-            color: #eafcff;
+            color: var(--text-1);
             white-space: nowrap;
         }
 
         .panel-head .hint {
             margin-left: auto;
             font-size: 11px;
-            color: var(--muted);
+            color: var(--text-3);
             letter-spacing: 1px;
             white-space: nowrap;
         }
@@ -538,7 +566,7 @@
             padding: 0 6px 0 5px;
             font-family: inherit;
             text-align: left;
-            color: #bfe3f5;
+            color: var(--text-2);
             background: transparent;
             border: 1px solid transparent;
             border-radius: 2px;
@@ -649,7 +677,7 @@
             display: block;
             width: 14px;
             height: 14px;
-            color: #aee3f8;
+            color: var(--text-2);
             transition: color 0.2s ease;
         }
 
@@ -1221,27 +1249,25 @@
             display: flex;
             flex-direction: column;
             padding: 14px 14px 12px;
-            border-radius: 8px;
+            border-radius: var(--radius-card);
             overflow: hidden;
             cursor: pointer;
             transition: transform 0.15s ease, box-shadow 0.2s ease;
-            /* 玻璃质感：深色底 + 半透明叠层 */
-            background:
-                linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01) 60%),
-                rgba(10, 28, 52, 0.55);
-            border: 1px solid rgba(59, 210, 255, 0.15);
+            /* 玻璃质感：深色底 + 青蓝高光叠层（与面板同色温，不用灰白） */
+            background: var(--card-bg);
+            border: 1px solid var(--card-line);
         }
 
         .s-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(59, 210, 255, 0.25);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(59, 210, 255, 0.28);
         }
 
         /* 卡片左上的彩色小 icon（参考图为浅色描边小图标，改用半透明色块 + 同色描边） */
         .s-card .s-icon {
             width: 20px;
             height: 20px;
-            border-radius: 5px;
+            border-radius: var(--radius-icon);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1271,10 +1297,11 @@
             color: #74e8b6;
         }
 
-        .s-card.purple .s-icon {
-            background: rgba(167, 139, 250, 0.12);
-            border-color: rgba(167, 139, 250, 0.34);
-            color: #c7b9ff;
+        /* 银色：与饼环/领奖台的「金银铜 + 青蓝」同源，替代原来突兀的紫色 */
+        .s-card.silver .s-icon {
+            background: rgba(188, 207, 224, 0.12);
+            border-color: rgba(188, 207, 224, 0.34);
+            color: #dbe9f5;
         }
 
         /* 标签行 */
@@ -1288,7 +1315,7 @@
         .s-card .s-lbl {
             font-size: 12px;
             line-height: 1.2;
-            color: #9cc8e2;
+            color: var(--text-2);
             letter-spacing: 0.3px;
             font-weight: 500;
             white-space: nowrap;
@@ -1312,7 +1339,7 @@
             font-size: 42px;
             font-weight: 700;
             line-height: 1;
-            color: #eafcff;
+            color: var(--text-1);
             font-variant-numeric: tabular-nums;
             letter-spacing: -0.5px;
             white-space: nowrap;
@@ -1331,8 +1358,8 @@
             color: #3ddc97;
         }
 
-        .s-card.purple .s-val {
-            color: #a78bfa;
+        .s-card.silver .s-val {
+            color: #bccfe0;
         }
 
         /* sparkline 折线区域（与对比胶囊同排，右对齐） */
@@ -1385,7 +1412,7 @@
             gap: 4px;
             height: 22px;
             padding: 0 8px;
-            border-radius: 999px;
+            border-radius: var(--radius-chip);
             border: 1px solid transparent;
             font-size: 11px;
             line-height: 1;
@@ -1463,8 +1490,8 @@
             background: linear-gradient(90deg, #3ddc97, transparent);
         }
 
-        .s-card.purple::before {
-            background: linear-gradient(90deg, #a78bfa, transparent);
+        .s-card.silver::before {
+            background: linear-gradient(90deg, #bccfe0, transparent);
         }
 
         /* ================= Center ================= */
@@ -1477,7 +1504,7 @@
             padding: 0 14px 0 16px;
             overflow: hidden;
             border: 1px solid rgba(255, 198, 88, 0.38);
-            border-radius: 3px;
+            border-radius: var(--radius-panel);
             background: linear-gradient(90deg, rgba(255, 198, 88, 0.14), rgba(255, 198, 88, 0.03));
             box-shadow: 0 0 18px rgba(255, 198, 88, 0.12), inset 0 0 20px rgba(255, 198, 88, 0.05);
         }
@@ -1847,8 +1874,8 @@
             padding: 0 4px;
             font-size: 11px;
             letter-spacing: 1px;
-            color: #7fb3d1;
-            border-bottom: 1px solid rgba(59, 210, 255, 0.2);
+            color: var(--text-3);
+            border-bottom: 1px solid var(--head-line);
         }
 
         .list-viewport {
@@ -1883,7 +1910,7 @@
         .c-id {
             font-family: var(--num-font);
             letter-spacing: 0.5px;
-            color: #9fd6ea;
+            color: var(--text-2);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -1896,7 +1923,7 @@
         }
 
         .c-desc {
-            color: #9cc8e2;
+            color: var(--text-2);
             white-space: normal;
             word-break: break-word;
             overflow-wrap: break-word;
@@ -1910,7 +1937,7 @@
 
         .c-date {
             font-family: var(--num-font);
-            color: #86b3cc;
+            color: var(--text-3);
             font-variant-numeric: tabular-nums;
         }
 
@@ -1918,7 +1945,7 @@
             display: inline-block;
             padding: 1px 6px;
             font-size: 11px;
-            border-radius: 2px;
+            border-radius: var(--radius-btn);
         }
 
         .badge.pending {
@@ -1978,6 +2005,11 @@
             background-color: rgba(59, 210, 255, 0.04);
         }
 
+        /* hover 与缺陷滚动清单同一色值（选择器需压过斑马纹那条） */
+        .sp-list .sp-item:hover {
+            background-color: rgba(59, 210, 255, 0.07);
+        }
+
         .sp-main {
             flex: 1;
             min-width: 0;
@@ -1986,7 +2018,7 @@
         .sp-id {
             font-family: var(--num-font);
             font-size: 11px;
-            color: #9fd6ea;
+            color: var(--text-2);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -2099,28 +2131,30 @@
             gap: 4px;
         }
 
+        /* 周期 / KPI 分组：与站点切换、全屏、点位按钮共用同一套底色、描边、圆角与选中态 */
         .pbtn {
             padding: 3px 9px;
             font-family: inherit;
             font-size: 11px;
             letter-spacing: 0.5px;
-            color: #9cc8e2;
-            background: rgba(59, 210, 255, 0.06);
-            border: 1px solid rgba(59, 210, 255, 0.28);
-            border-radius: 2px;
+            color: var(--text-2);
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-line);
+            border-radius: var(--radius-btn);
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
         .pbtn:hover {
-            color: #eafcff;
-            border-color: rgba(59, 210, 255, 0.4);
+            color: var(--text-1);
+            background: var(--btn-bg-hover);
+            border-color: var(--btn-line-hover);
         }
 
         .pbtn.active {
             color: #03121e;
             font-weight: 700;
-            background: var(--cyan);
+            background: var(--btn-active);
             border-color: var(--cyan);
             box-shadow: 0 0 12px rgba(59, 210, 255, 0.5);
         }
@@ -2189,9 +2223,10 @@
             max-height: 880px;
             display: flex;
             flex-direction: column;
-            background: linear-gradient(180deg, rgba(10, 35, 64, 0.97), rgba(4, 15, 30, 0.98));
-            border: 1px solid rgba(64, 196, 255, 0.55);
-            box-shadow: 0 0 40px rgba(30, 120, 220, 0.22);
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-line);
+            border-radius: var(--radius-panel);
+            box-shadow: 0 0 40px rgba(30, 120, 220, 0.22), inset 0 0 40px rgba(59, 210, 255, 0.05);
         }
 
         .modal-head {
@@ -2200,25 +2235,27 @@
             align-items: center;
             gap: 10px;
             padding: 0 16px;
-            border-bottom: 1px solid rgba(59, 210, 255, 0.18);
+            border-bottom: 1px solid var(--head-line);
+            background: linear-gradient(90deg, rgba(59, 210, 255, 0.08), transparent 70%);
         }
 
         .modal-head .bar {
             width: 3px;
             height: 16px;
             background: linear-gradient(180deg, #8feaff, #3bd2ff);
+            box-shadow: 0 0 6px rgba(59, 210, 255, 0.7);
         }
 
         .modal-head h3 {
             font-size: 17px;
             font-weight: 600;
             letter-spacing: 2px;
-            color: #eafcff;
+            color: var(--text-1);
         }
 
         .modal-count {
             font-size: 12px;
-            color: #86b3cc;
+            color: var(--text-3);
             letter-spacing: 1px;
         }
 
@@ -2228,16 +2265,17 @@
             height: 28px;
             font-size: 16px;
             line-height: 1;
-            color: #9cc8e2;
-            background: rgba(59, 210, 255, 0.08);
-            border: 1px solid rgba(59, 210, 255, 0.3);
-            border-radius: 2px;
+            color: var(--text-2);
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-line);
+            border-radius: var(--radius-btn);
             cursor: pointer;
         }
 
         .modal-close:hover {
-            color: #eafcff;
-            border-color: rgba(59, 210, 255, 0.6);
+            color: var(--text-1);
+            background: var(--btn-bg-hover);
+            border-color: var(--btn-line-hover);
         }
 
         .modal-body {
@@ -2272,7 +2310,7 @@
             z-index: 1;
             font-size: 12px;
             letter-spacing: 1px;
-            color: #7fc9e8;
+            color: var(--text-2);
             background: #071526;
             border-bottom: 1px solid rgba(59, 210, 255, 0.22);
         }
@@ -2328,8 +2366,9 @@
             width: 264px;
             display: none;
             flex-direction: column;
-            background: linear-gradient(180deg, rgba(10, 35, 64, 0.96), rgba(4, 15, 30, 0.97));
-            border: 1px solid rgba(64, 196, 255, 0.5);
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-line);
+            border-radius: var(--radius-panel);
             overflow-y: auto;
         }
 
@@ -2348,21 +2387,21 @@
         .ez-head {
             flex: 0 0 auto;
             padding: 10px 12px;
-            border-bottom: 1px solid rgba(59, 210, 255, 0.18);
+            border-bottom: 1px solid var(--head-line);
         }
 
         .ez-head b {
             display: block;
             font-size: 14px;
             letter-spacing: 2px;
-            color: #eafcff;
+            color: var(--text-1);
         }
 
         .ez-head span {
             display: block;
             margin: 4px 0 8px;
             font-size: 10.5px;
-            color: var(--muted);
+            color: var(--text-3);
         }
 
         .ez-head button {
@@ -2371,9 +2410,9 @@
             font-family: inherit;
             font-weight: 700;
             color: #03121e;
-            background: linear-gradient(180deg, #8feaff, #3bd2ff);
+            background: var(--btn-active);
             border: none;
-            border-radius: 2px;
+            border-radius: var(--radius-btn);
             cursor: pointer;
         }
 
@@ -2385,7 +2424,7 @@
             margin-bottom: 6px;
             font-size: 12px;
             letter-spacing: 2px;
-            color: #7fc9e8;
+            color: var(--text-2);
         }
 
         .ez-row {
@@ -2396,8 +2435,8 @@
             padding: 5px 8px;
             font-size: 12px;
             color: #cfe6f2;
-            border: 1px solid rgba(59, 210, 255, 0.14);
-            border-radius: 2px;
+            border: 1px solid var(--card-line);
+            border-radius: var(--radius-btn);
             cursor: pointer;
         }
 
@@ -2483,17 +2522,20 @@
         .mi-btn {
             flex: 0 0 auto;
             padding: 4px 10px;
+            font-family: inherit;
             font-size: 12px;
-            color: #eafcff;
-            background: rgba(59, 210, 255, 0.12);
-            border: 1px solid rgba(59, 210, 255, 0.45);
-            border-radius: 3px;
+            color: var(--text-2);
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-line);
+            border-radius: var(--radius-btn);
             cursor: pointer;
             transition: all 0.15s;
         }
 
         .mi-btn:hover {
-            background: rgba(59, 210, 255, 0.25);
+            color: var(--text-1);
+            background: var(--btn-bg-hover);
+            border-color: var(--btn-line-hover);
         }
 
         .mi-del {
@@ -2503,7 +2545,7 @@
             color: #ffb4b4;
             background: rgba(255, 95, 109, 0.1);
             border: 1px solid rgba(255, 95, 109, 0.35);
-            border-radius: 3px;
+            border-radius: var(--radius-btn);
             cursor: pointer;
         }
 
@@ -2605,7 +2647,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.25.0</span>
+                    <span class="ver">V5.26.0</span>
                 </div>
             </div>
 
@@ -3630,19 +3672,19 @@
                 { key: 'remainI', cls: 'cyan', icon: 'Ⅰ', lbl: '剩余Ⅰ类缺陷数' },
                 { key: 'remainCivil', cls: 'amber', icon: '土', lbl: '剩余土建类缺陷数' },
                 { key: 'remainII', cls: 'green', icon: 'Ⅱ', lbl: '剩余Ⅱ类缺陷数' },
-                { key: 'remainFire', cls: 'purple', icon: '火', lbl: '剩余消防类缺陷数' }
+                { key: 'remainFire', cls: 'silver', icon: '火', lbl: '剩余消防类缺陷数' }
             ],
             week: [
                 { key: 'yesterdayNew', cls: 'cyan', icon: '昨', lbl: '昨日新增缺陷数' },
                 { key: 'weekNew', cls: 'amber', icon: '周', lbl: '本周新增缺陷数' },
                 { key: 'yesterdayDone', cls: 'green', icon: '昨', lbl: '昨日消缺数' },
-                { key: 'weekDone', cls: 'purple', icon: '周', lbl: '本周消缺数' }
+                { key: 'weekDone', cls: 'silver', icon: '周', lbl: '本周消缺数' }
             ],
             month: [
                 { key: 'monthNew', cls: 'cyan', icon: '月', lbl: '本月新增缺陷数' },
                 { key: 'yearNew', cls: 'amber', icon: '年', lbl: '今年新增缺陷数' },
                 { key: 'monthDone', cls: 'green', icon: '月', lbl: '本月消缺数' },
-                { key: 'yearDone', cls: 'purple', icon: '年', lbl: '今年消缺数' }
+                { key: 'yearDone', cls: 'silver', icon: '年', lbl: '今年消缺数' }
             ]
         };
 
@@ -3853,7 +3895,7 @@
                 { key: 'total', cls: 'cyan', val: total, lbl: '缺陷总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: '较上月', spark: slTotal },
                 { key: 'pending', cls: 'amber', val: pending, lbl: '剩余缺陷', icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月', spark: slRemain },
                 { key: 'completed', cls: 'green', val: completed, lbl: '完成缺陷', icon: '✓', arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: '较上月', spark: slDone },
-                { key: 'rate', cls: 'purple', val: rate.toFixed(1) + '%', lbl: '消缺率', icon: '%', arrow: tRate.arrow, pct: tRate.pct, tone: tRate.tone, tip: '较上月', spark: slRate }
+                { key: 'rate', cls: 'silver', val: rate.toFixed(1) + '%', lbl: '消缺率', icon: '%', arrow: tRate.arrow, pct: tRate.pct, tone: tRate.tone, tip: '较上月', spark: slRate }
             ];
 
             document.getElementById('kpiGrid').innerHTML = cards.map(kpiCardHTML).join('');
@@ -3952,22 +3994,23 @@
             else renderKPIGroup(group);
         }
 
-        /* ===== 缺陷趋势 · 3D 立体柱（ECharts custom series 手绘，不新增依赖） ===== */
+        /* ===== 缺陷趋势 · 3D 立体柱（ECharts custom series 手绘，不新增依赖） =====
+           主次关系：柱体只做背景量感，柱顶数值弱化为次要色；「剩余」折线为主视觉。 */
         const TREND_COL3D = {
             新增: {
                 offset: -7,
-                face: ['#ffe9a8', 'rgba(255,158,44,.62)'],
-                side: 'rgba(150,90,18,.82)',
-                cap: 'rgba(255,232,170,.88)',
-                label: '#ffe8b0',
+                face: ['rgba(255,226,160,.70)', 'rgba(230,150,50,.44)'],
+                side: 'rgba(140,86,20,.62)',
+                cap: 'rgba(255,226,160,.62)',
+                label: 'rgba(255,214,150,.62)',
                 legend: '#ffc658'
             },
             消缺: {
                 offset: 7,
-                face: ['#c9f7ff', 'rgba(24,118,196,.62)'],
-                side: 'rgba(9,62,112,.82)',
-                cap: 'rgba(206,247,255,.88)',
-                label: '#c8f2ff',
+                face: ['rgba(185,240,255,.70)', 'rgba(28,120,190,.44)'],
+                side: 'rgba(10,58,106,.62)',
+                cap: 'rgba(196,240,255,.62)',
+                label: 'rgba(150,214,240,.62)',
                 legend: '#3bd2ff'
             }
         };
@@ -4029,10 +4072,10 @@
                                 y: capTop - 3,
                                 textAlign: 'center',
                                 textVerticalAlign: 'bottom',
-                                fill: zero ? 'rgba(134,179,204,.5)' : style.label,
-                                stroke: zero ? null : 'rgba(2,8,18,.95)',
-                                lineWidth: zero ? 0 : 3,
-                                font: `${value >= 100 ? '700 8px' : '700 10px'} "Bahnschrift", "Microsoft YaHei", sans-serif`
+                                fill: zero ? 'rgba(134,179,204,.34)' : style.label,
+                                stroke: zero ? null : 'rgba(2,8,18,.85)',
+                                lineWidth: zero ? 0 : 2,
+                                font: `${value >= 100 ? '600 8px' : '600 9px'} "Bahnschrift", "Microsoft YaHei", sans-serif`
                             }
                         }
                     ]
@@ -4053,6 +4096,22 @@
             const doneData = filteredMonths.map(m => monthlyStats[m].completed);
             const pendingData = filteredMonths.map(m => monthlyStats[m].pending);
 
+            /* 「剩余」是主视觉：线尾胶囊承载当前值 + 环比方向 */
+            const lastRemain = pendingData.length ? pendingData[pendingData.length - 1] : 0;
+            const prevRemain = pendingData.length > 1 ? pendingData[pendingData.length - 2] : lastRemain;
+            const remainDelta = lastRemain - prevRemain;
+            const deltaText = remainDelta === 0 ? '持平' : (remainDelta > 0 ? '▲' : '▼') + Math.abs(remainDelta);
+            const REMAIN_HERO = '#ff7b6d';
+            /* 纵轴：按全部系列的最大值取 15 的整数倍，保证刻度均匀（0/15/30/45…） */
+            const dataMax = Math.max(0, ...newData, ...doneData, ...pendingData);
+            const axisMax = dataMax > 0 ? Math.ceil(dataMax * 1.15 / 15) * 15 : 15;
+            const axisInterval = axisMax / 3;
+            const remainLineGrad = new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                { offset: 0, color: '#ffd76a' },
+                { offset: .5, color: '#ff9e6b' },
+                { offset: 1, color: '#ff6f61' }
+            ]);
+
             chart.setOption({
                 tooltip: {
                     ...CHART_TOOLTIP,
@@ -4063,39 +4122,46 @@
                         const i = items[0].dataIndex;
                         const month = filteredMonths[i] || '';
                         const dot = c => `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:6px;vertical-align:middle;"></span>`;
-                        const row = (name, color, v) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:20px;line-height:1.7;"><span style="color:#9cc8e2;">${dot(color)}${name}</span><b style="color:#eafcff;font-family:var(--num-font);">${v}</b></div>`;
-                        return `<div style="font-size:11px;letter-spacing:1px;color:#86b3cc;margin-bottom:3px;">${month.slice(0, 4)}年${Number(month.slice(5))}月 · Ⅰ类</div>`
+                        /* 剩余置顶并放大，新增/消缺退为次要行 */
+                        const heroRow = (v) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:24px;line-height:1.85;">
+                            <span style="color:#ffd0b5;font-weight:700;">${dot(REMAIN_HERO)}剩余</span>
+                            <b style="color:#ffeedd;font-family:var(--num-font);font-size:16px;font-weight:800;letter-spacing:.5px;">${v}</b></div>`;
+                        const row = (name, color, v) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:24px;line-height:1.6;opacity:.86;"><span style="color:#9cc8e2;">${dot(color)}${name}</span><b style="color:#d3ecf9;font-family:var(--num-font);font-size:12px;">${v}</b></div>`;
+                        return `<div style="font-size:11px;letter-spacing:1px;color:#86b3cc;margin-bottom:4px;">${month.slice(0, 4)}年${Number(month.slice(5))}月 · Ⅰ类</div>`
+                            + heroRow(pendingData[i])
+                            + `<div style="height:1px;background:rgba(59,210,255,.18);margin:5px 0 4px;"></div>`
                             + row('新增', TREND_COL3D.新增.legend, newData[i])
-                            + row('消缺', TREND_COL3D.消缺.legend, doneData[i])
-                            + row('剩余', '#ff7b6d', pendingData[i]);
+                            + row('消缺', TREND_COL3D.消缺.legend, doneData[i]);
                     }
                 },
+                /* 图例与坐标轴退居次要层，避免与「剩余」抢注意力 */
                 legend: {
                     top: 0,
                     right: 0,
-                    itemWidth: 9,
-                    itemHeight: 9,
-                    itemGap: 12,
-                    data: ['新增', '消缺', '剩余'],
-                    textStyle: { color: '#9cc8e2', fontSize: 11 },
+                    itemWidth: 8,
+                    itemHeight: 8,
+                    itemGap: 10,
+                    data: ['剩余', '新增', '消缺'],
+                    textStyle: { color: '#6f9cb5', fontSize: 10 },
                     inactiveColor: '#41647a'
                 },
-                grid: { left: 30, right: 52, top: 30, bottom: 24 },
+                grid: { left: 30, right: 82, top: 28, bottom: 24 },
                 xAxis: {
                     type: 'category',
                     data: labels,
-                    axisLine: { lineStyle: { color: 'rgba(59,210,255,.22)' } },
+                    axisLine: { lineStyle: { color: 'rgba(59,210,255,.16)' } },
                     axisTick: { show: false },
-                    axisLabel: { color: '#86b3cc', fontSize: 10, interval: 0, margin: 9 }
+                    axisLabel: { color: '#6f9cb5', fontSize: 9, interval: 0, margin: 9 }
                 },
                 yAxis: {
                     type: 'value',
                     splitNumber: 3,
                     axisLine: { show: false },
                     axisTick: { show: false },
-                    axisLabel: { color: '#6f9cb5', fontSize: 9 },
-                    splitLine: { lineStyle: { color: 'rgba(59,210,255,.08)' } },
-                    max: function (v) { return v.max > 0 ? Math.ceil(v.max * 1.15) : 1; }
+                    axisLabel: { color: '#5b87a0', fontSize: 9 },
+                    splitLine: { lineStyle: { color: 'rgba(59,210,255,.06)' } },
+                    max: axisMax,
+                    interval: axisInterval
                 },
                 series: [
                     {
@@ -4127,7 +4193,7 @@
                         z: 5,
                         tooltip: { show: false },
                         legendHoverLink: false,
-                        lineStyle: { color: 'rgba(2,8,18,.9)', width: 6, opacity: .95 }
+                        lineStyle: { color: 'rgba(2,8,18,.92)', width: 7, opacity: .95 }
                     },
                     {
                         name: '剩余',
@@ -4135,22 +4201,41 @@
                         data: pendingData,
                         smooth: true,
                         symbol: 'circle',
-                        symbolSize: 5,
+                        symbolSize: 7,
                         z: 6,
-                        lineStyle: { color: '#ff7b6d', width: 2, shadowColor: 'rgba(255,123,109,.55)', shadowBlur: 6 },
-                        itemStyle: { color: '#ff8b7d', borderColor: 'rgba(2,8,18,.9)', borderWidth: 1 },
+                        lineStyle: {
+                            color: remainLineGrad,
+                            width: 3,
+                            shadowColor: 'rgba(255,150,96,.6)',
+                            shadowBlur: 12,
+                            shadowOffsetY: 2
+                        },
+                        itemStyle: {
+                            color: new echarts.graphic.RadialGradient(.5, .5, .7, [
+                                { offset: 0, color: '#fff3cd' },
+                                { offset: .55, color: '#ff9e6b' },
+                                { offset: 1, color: '#ff6f61' }
+                            ]),
+                            borderColor: 'rgba(2,8,18,.92)',
+                            borderWidth: 1.5,
+                            shadowColor: 'rgba(255,150,96,.6)',
+                            shadowBlur: 6
+                        },
                         endLabel: {
                             show: true,
-                            distance: 6,
-                            formatter: p => '剩余 ' + p.value,
-                            color: '#ffb0a6',
-                            fontSize: 9,
-                            fontWeight: 700,
-                            backgroundColor: 'rgba(6,18,32,.9)',
-                            borderColor: 'rgba(255,123,109,.5)',
+                            distance: 7,
+                            formatter: () => `剩余 ${lastRemain}  ${deltaText}`,
+                            color: '#fff0d2',
+                            fontSize: 12,
+                            fontWeight: 800,
+                            fontFamily: 'Bahnschrift, Microsoft YaHei, sans-serif',
+                            backgroundColor: 'rgba(42,16,10,.92)',
+                            borderColor: 'rgba(255,168,110,.85)',
                             borderWidth: 1,
-                            borderRadius: 3,
-                            padding: [2, 4]
+                            borderRadius: 9,
+                            padding: [3, 8],
+                            shadowColor: 'rgba(255,123,109,.45)',
+                            shadowBlur: 10
                         }
                     }
                 ]
@@ -4246,7 +4331,7 @@
                 { key: 'total', cls: 'cyan', val: total, lbl: '督办总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: '较上月', spark: slTotal, sparkW: 62, sparkH: 26 },
                 { key: 'remain', cls: 'amber', val: remain, lbl: '督办剩余', icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月', spark: slRemain, sparkW: 62, sparkH: 26 },
                 { key: 'done', cls: 'green', val: done, lbl: '督办完成', icon: '✓', arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: '较上月', spark: slDone, sparkW: 62, sparkH: 26 },
-                { key: 'rate', cls: 'purple', val: rate.toFixed(1) + '%', lbl: '督办完成率', icon: '%', arrow: tRate.arrow, pct: tRate.pct, tone: tRate.tone, tip: '较上月', spark: slRate, sparkW: 62, sparkH: 26 }
+                { key: 'rate', cls: 'silver', val: rate.toFixed(1) + '%', lbl: '督办完成率', icon: '%', arrow: tRate.arrow, pct: tRate.pct, tone: tRate.tone, tip: '较上月', spark: slRate, sparkW: 62, sparkH: 26 }
             ];
 
             const grid = document.getElementById('superviseGrid');
@@ -4266,7 +4351,7 @@
         }
 
         /* ---- 专业分布：纯 SVG 立体饼环（挤出侧壁 + 底座椭圆投影 + 渐变顶面），零第三方依赖 ---- */
-        const PROF_SLICE_COLORS = ['#d8b174', '#bccfe0', '#c58c66', '#4fc3e8', '#3f95cf', '#5a7fc0', '#48b3a9', '#8f9fd6'];
+        const PROF_SLICE_COLORS = ['#d8b174', '#bccfe0', '#c58c66', '#4fc3e8', '#3f95cf', '#5a7fc0', '#48b3a9', '#8fa8bf'];
 
         function shadeHex(hex, p) {
             const num = parseInt(hex.slice(1), 16);
