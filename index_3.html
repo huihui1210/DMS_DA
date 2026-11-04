@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.15.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.16.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -420,46 +420,187 @@
             min-width: 0;
         }
 
-        /* ================= 消缺龙虎榜（榜单化 DOM，替代原柱状图） ================= */
+        /* ================= 消缺龙虎榜（领奖台 + 榜单，参考图：名次徽章 / 柱台 / 行式列表） ================= */
         .board-list {
             flex: 1;
             min-height: 0;
             min-width: 0;
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            gap: 7px;
             overflow: hidden;
         }
 
-        .board-caption {
+        /* 领奖台：2-1-3 站位，1 号居中最高，柱台高度即名次层级 */
+        .board-podium {
+            flex: 0 0 auto;
             display: grid;
-            grid-template-columns: 22px 100px minmax(0, 1fr) 56px;
-            column-gap: 8px;
-            align-items: center;
-            flex: 0 0 15px;
-            padding: 0 7px;
-            font-size: 9px;
-            letter-spacing: 2px;
-            color: #5f8aa8;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            align-items: end;
+            gap: 7px;
+            padding: 0 2px;
         }
 
-        .board-caption .bc-val {
-            text-align: right;
+        .podium-item {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: 4px;
+            min-width: 0;
+            cursor: pointer;
+        }
+
+        .podium-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            min-width: 0;
+        }
+
+        .po-name {
+            max-width: 100%;
+            font-size: 11.5px;
+            color: #bfe3f5;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .po-count {
+            font-family: Bahnschrift, "Microsoft YaHei", sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.1;
+            color: #eafcff;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .po-count em {
+            font-style: normal;
+            font-size: 9px;
+            font-weight: 400;
+            color: #6d97b4;
+            margin-left: 2px;
+        }
+
+        /* 柱台：半透明玻璃 + 顶缘高光线 + 大号名次数字 */
+        .podium-block {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(59, 210, 255, 0.16);
+            border-bottom: 0;
+            border-radius: 4px 4px 0 0;
+            background: linear-gradient(180deg, rgba(59, 210, 255, 0.14), rgba(10, 28, 52, 0.5) 78%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            overflow: hidden;
+            transition: border-color 0.18s ease, background 0.18s ease;
+        }
+
+        .podium-block::after {
+            content: '';
+            position: absolute;
+            left: 12%;
+            right: 12%;
+            top: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(59, 210, 255, 0.75), transparent);
+        }
+
+        .po-rank {
+            font-family: Bahnschrift, "Microsoft YaHei", sans-serif;
+            font-size: 26px;
+            font-weight: 700;
+            line-height: 1;
+            color: rgba(216, 242, 255, 0.5);
+            text-shadow: 0 0 12px rgba(59, 210, 255, 0.25);
+        }
+
+        .podium-item:hover .podium-block {
+            border-color: rgba(59, 210, 255, 0.4);
+        }
+
+        /* 冠军：金色柱台 */
+        .podium-item.p1 .podium-block {
+            height: 86px;
+            border-color: rgba(255, 198, 88, 0.42);
+            background: linear-gradient(180deg, rgba(255, 198, 88, 0.2), rgba(10, 28, 52, 0.52) 78%);
+        }
+
+        .podium-item.p1 .podium-block::after {
+            background: linear-gradient(90deg, transparent, rgba(255, 217, 122, 0.9), transparent);
+        }
+
+        .podium-item.p1 .po-rank {
+            font-size: 34px;
+            color: #ffd97a;
+            text-shadow: 0 0 16px rgba(255, 198, 88, 0.55);
+        }
+
+        .podium-item.p1 .po-count {
+            color: #ffd97a;
+        }
+
+        /* 亚军：银白柱台 */
+        .podium-item.p2 .podium-block {
+            height: 62px;
+            border-color: rgba(210, 231, 246, 0.28);
+            background: linear-gradient(180deg, rgba(210, 231, 246, 0.14), rgba(10, 28, 52, 0.5) 78%);
+        }
+
+        .podium-item.p2 .podium-block::after {
+            background: linear-gradient(90deg, transparent, rgba(230, 245, 255, 0.75), transparent);
+        }
+
+        .podium-item.p2 .po-rank {
+            color: #dceefb;
+        }
+
+        /* 季军：铜色柱台 */
+        .podium-item.p3 .podium-block {
+            height: 46px;
+            border-color: rgba(224, 165, 118, 0.3);
+            background: linear-gradient(180deg, rgba(224, 165, 118, 0.15), rgba(10, 28, 52, 0.5) 78%);
+        }
+
+        .podium-item.p3 .podium-block::after {
+            background: linear-gradient(90deg, transparent, rgba(238, 190, 150, 0.7), transparent);
+        }
+
+        .podium-item.p3 .po-rank {
+            color: #e6b58f;
+        }
+
+        .podium-slot {
+            min-width: 0;
+        }
+
+        /* 第 4 名及以后：行式榜单（圆形名次 + 专业 + 右侧数值 + 底部比例条） */
+        .board-rest {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         .board-row {
+            position: relative;
             flex: 1;
             min-height: 0;
             display: grid;
-            grid-template-columns: 22px 100px minmax(0, 1fr) 56px;
-            column-gap: 8px;
+            grid-template-columns: 22px minmax(0, 1fr) auto;
+            column-gap: 9px;
             align-items: center;
-            padding: 0 7px;
+            padding: 0 9px 1px;
             border-radius: 4px;
             border: 1px solid rgba(59, 210, 255, 0.09);
             background: rgba(10, 28, 52, 0.34);
             cursor: pointer;
-            transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+            overflow: hidden;
+            transition: background 0.18s ease, border-color 0.18s ease;
         }
 
         .board-row:hover {
@@ -467,13 +608,24 @@
             border-color: rgba(59, 210, 255, 0.34);
         }
 
+        /* 底部比例条：低透明度，只做量级提示，不抢数值 */
+        .board-bar {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            height: 2px;
+            border-radius: 2px;
+            background: linear-gradient(90deg, rgba(59, 210, 255, 0.45), rgba(59, 210, 255, 0.85));
+            transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
         .board-rank {
-            width: 20px;
-            height: 20px;
+            width: 22px;
+            height: 22px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 3px;
+            border-radius: 50%;
             font-family: Bahnschrift, "Microsoft YaHei", sans-serif;
             font-size: 11px;
             font-weight: 600;
@@ -490,24 +642,6 @@
             text-overflow: ellipsis;
         }
 
-        .board-track {
-            position: relative;
-            height: 7px;
-            border-radius: 4px;
-            background: rgba(59, 210, 255, 0.07);
-            overflow: hidden;
-        }
-
-        .board-fill {
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            border-radius: 4px;
-            background: linear-gradient(90deg, rgba(59, 210, 255, 0.35), rgba(59, 210, 255, 0.85));
-            transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-
         .board-val {
             font-family: Bahnschrift, "Microsoft YaHei", sans-serif;
             font-size: 14px;
@@ -515,6 +649,7 @@
             text-align: right;
             line-height: 1;
             white-space: nowrap;
+            font-variant-numeric: tabular-nums;
         }
 
         .board-val em {
@@ -522,54 +657,6 @@
             font-size: 9px;
             color: #6d97b4;
             margin-left: 2px;
-        }
-
-        /* 前三名：领奖台强调 */
-        .board-row.top1 {
-            border-color: rgba(255, 198, 88, 0.45);
-            background: linear-gradient(90deg, rgba(255, 198, 88, 0.16), rgba(255, 198, 88, 0.03) 62%, rgba(10, 28, 52, 0.34));
-            box-shadow: inset 2px 0 0 #ffc658, 0 0 10px rgba(255, 198, 88, 0.14);
-        }
-
-        .board-row.top1:hover {
-            border-color: rgba(255, 217, 122, 0.7);
-        }
-
-        .board-row.top1 .board-rank {
-            color: #22160a;
-            background: linear-gradient(160deg, #ffe7b0, #ffc658);
-            border-color: rgba(255, 217, 122, 0.85);
-            box-shadow: 0 0 8px rgba(255, 198, 88, 0.5);
-        }
-
-        .board-row.top1 .board-name {
-            color: #ffd97a;
-            font-weight: 600;
-        }
-
-        .board-row.top1 .board-val {
-            color: #ffd97a;
-        }
-
-        .board-row.top1 .board-fill {
-            background: linear-gradient(90deg, rgba(255, 198, 88, 0.55), #ffd97a);
-            box-shadow: 0 0 6px rgba(255, 198, 88, 0.45);
-        }
-
-        .board-row.top2 .board-rank {
-            color: #0b1c30;
-            background: linear-gradient(160deg, #eef7ff, #a9c6dc);
-            border-color: rgba(210, 231, 246, 0.7);
-        }
-
-        .board-row.top2 .board-name {
-            color: #d9ecf8;
-        }
-
-        .board-row.top3 .board-rank {
-            color: #2a1409;
-            background: linear-gradient(160deg, #f0c9a8, #cd8b57);
-            border-color: rgba(224, 165, 118, 0.7);
         }
 
         .board-empty {
@@ -767,38 +854,46 @@
             min-width: 0;
         }
 
-        /* 对比胶囊：▲ 升=绿，▼ 降=红，— 持平=灰；颜色只跟方向，不看指标好坏 */
+        /* 对比胶囊：↗ 升=绿，↘ 降=红，— 持平=灰；颜色只跟方向，不看指标好坏 */
         .s-card .s-trend {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            padding: 2px 8px;
+            height: 22px;
+            padding: 0 8px;
             border-radius: 999px;
             border: 1px solid transparent;
             font-size: 11px;
-            line-height: 1.35;
+            line-height: 1;
             font-weight: 600;
             font-variant-numeric: tabular-nums;
             white-space: nowrap;
             max-width: 100%;
+            min-width: 0;
+            flex: 0 1 auto;
             overflow: hidden;
         }
 
         .s-card .s-trend .s-arrow {
-            font-size: 10px;
-            line-height: 1;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 16px;
+            height: 16px;
             flex-shrink: 0;
         }
 
         .s-card .s-trend .s-pct {
             flex-shrink: 0;
+            line-height: 1;
         }
 
         .s-card .s-trend em {
             font-style: normal;
             font-size: 10px;
             font-weight: 400;
+            line-height: 1;
             opacity: 0.8;
+            min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
         }
@@ -1977,7 +2072,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.15.0</span>
+                    <span class="ver">V5.16.0</span>
                 </div>
             </div>
 
@@ -3026,28 +3121,53 @@
         }
 
         /* ===== 趋势 / sparkline / 卡片渲染（总览、分组、督办三处共用） ===== */
-        /* 方向即颜色：▲ 上升=绿、▼ 下降=红、— 持平=灰，不再按指标语义反转 */
+        /* 方向即颜色：↗ 上升=绿、↘ 下降=红、— 持平=灰，不再按指标语义反转 */
         function kpiTrend(cur, prev) {
             if (cur === prev) return { arrow: '—', pct: '0%', tone: 'flat' };
             const base = prev > 0 ? prev : Math.max(1, cur);
             const pct = Math.abs(cur - prev) / base * 100;
             const pctStr = pct < 1 ? pct.toFixed(2) + '%' : pct.toFixed(1) + '%';
-            // 负值一律视为下降，避免出现「▲ + 负数」的矛盾
+            // 负值一律视为下降，避免出现「↗ + 负数」的矛盾
             const up = cur > prev && cur >= 0;
-            return { arrow: up ? '▲' : '▼', pct: pctStr, tone: up ? 'up' : 'down' };
+            return { arrow: up ? '↗' : '↘', pct: pctStr, tone: up ? 'up' : 'down' };
+        }
+
+        /* 曲线单调化：按方向做包络（上行取历史最大值、下行取历史最小值），
+           消除「整体上升但中间下跌」的锯齿；若首尾无净变化则补一个微小斜率，保证形态与箭头一致 */
+        function monotoneSpark(data, tone) {
+            let arr = (data && data.length) ? data.map(v => Number(v) || 0) : [0];
+            if (arr.length < 2) arr = [arr[0], arr[0]];
+            if (tone === 'flat') {
+                const last = arr[arr.length - 1];
+                return arr.map(() => last);
+            }
+            const dir = tone === 'up' ? 1 : -1;
+            const out = [];
+            let run = tone === 'up' ? -Infinity : Infinity;
+            arr.forEach(v => {
+                run = tone === 'up' ? Math.max(run, v) : Math.min(run, v);
+                out.push(run);
+            });
+            if ((out[out.length - 1] - out[0]) * dir <= 0) {
+                const span = Math.max(...out) - Math.min(...out);
+                const step = Math.max(1, span) / (arr.length - 1);
+                for (let i = 0; i < out.length; i++) out[i] += dir * step * i;
+            }
+            return out;
         }
 
         function sparklineSVG(data, w, h, tone) {
             w = w || 56;
             h = h || 28;
-            const arr = (data && data.length) ? data : [0];
+            const arr = monotoneSpark(data, tone);
             const max = Math.max(...arr, 1);
             const min = Math.min(...arr, 0);
             const range = max - min || 1;
             const step = arr.length > 1 ? w / (arr.length - 1) : 0;
+            const flat = tone === 'flat';
             const pts = arr.map((v, i) => {
                 const x = arr.length > 1 ? i * step : w / 2;
-                const y = h - ((v - min) / range * (h - 4)) - 2;
+                const y = flat ? h * 0.55 : h - ((v - min) / range * (h - 4)) - 2;
                 return [x, y];
             });
             const dLine = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
@@ -3116,7 +3236,7 @@
             const rd = curR - lastR;
             const tRate = Math.abs(rd) < 0.01 ? { arrow: '—', pct: '0%', tone: 'flat' }
                 : {
-                    arrow: rd > 0 ? '▲' : '▼',
+                    arrow: rd > 0 ? '↗' : '↘',
                     pct: (Math.abs(rd) < 1 ? Math.abs(rd).toFixed(2) : Math.abs(rd).toFixed(1)) + '%',
                     tone: rd > 0 ? 'up' : 'down'
                 };
@@ -3393,7 +3513,7 @@
             const rd = curR - lastR;
             const tRate = Math.abs(rd) < 0.01 ? { arrow: '—', pct: '0%', tone: 'flat' }
                 : {
-                    arrow: rd > 0 ? '▲' : '▼',
+                    arrow: rd > 0 ? '↗' : '↘',
                     pct: (Math.abs(rd) < 1 ? Math.abs(rd).toFixed(2) : Math.abs(rd).toFixed(1)) + '%',
                     tone: rd > 0 ? 'up' : 'down'
                 };
@@ -3533,26 +3653,39 @@
             }
 
             const max = Math.max(...items.map(i => i.count), 1);
-            const rankCls = ['top1', 'top2', 'top3'];
+
+            // 领奖台：2-1-3 站位，1 号居中最高
+            const podiumSlot = (idx) => {
+                const item = items[idx];
+                if (!item) return `<div class="podium-slot"></div>`;
+                const prof = displayProfession(item.prof);
+                return `<div class="podium-item p${idx + 1}" data-idx="${idx}"
+                            title="${prof} · ${periodLabel}消缺 ${item.count} 条">
+                            <div class="podium-meta">
+                                <span class="po-name">${prof}</span>
+                                <span class="po-count">${item.count}<em>条</em></span>
+                            </div>
+                            <div class="podium-block"><span class="po-rank">${idx + 1}</span></div>
+                        </div>`;
+            };
+
+            // 4 名及以后：行式榜单
+            const restRows = items.slice(3).map((item, i) => {
+                const idx = i + 3;
+                const prof = displayProfession(item.prof);
+                const pct = max > 0 ? (item.count / max * 100) : 0;
+                return `<div class="board-row" data-idx="${idx}"
+                            title="${prof} · ${periodLabel}消缺 ${item.count} 条">
+                            <span class="board-rank">${idx + 1}</span>
+                            <span class="board-name">${prof}</span>
+                            <span class="board-val">${item.count}<em>条</em></span>
+                            <i class="board-bar" style="width:${pct.toFixed(1)}%"></i>
+                        </div>`;
+            }).join('');
 
             box.innerHTML = `
-                <div class="board-caption">
-                    <span class="bc-rank">名次</span>
-                    <span class="bc-name">专业</span>
-                    <span>消缺量占比</span>
-                    <span class="bc-val">消缺</span>
-                </div>
-                ${items.map((item, idx) => {
-                const pct = max > 0 ? (item.count / max * 100) : 0;
-                const prof = displayProfession(item.prof);
-                return `<div class="board-row ${rankCls[idx] || ''}" data-idx="${idx}"
-                        title="${prof} · ${periodLabel}消缺 ${item.count} 条">
-                        <span class="board-rank">${idx + 1}</span>
-                        <span class="board-name">${prof}</span>
-                        <span class="board-track"><i class="board-fill" style="width:${pct.toFixed(1)}%"></i></span>
-                        <span class="board-val">${item.count}<em>条</em></span>
-                    </div>`;
-            }).join('')}
+                <div class="board-podium">${podiumSlot(1)}${podiumSlot(0)}${podiumSlot(2)}</div>
+                ${restRows ? `<div class="board-rest">${restRows}</div>` : ''}
             `;
         }
 
@@ -4178,7 +4311,7 @@
             });
 
             document.getElementById('boardList').addEventListener('click', function (e) {
-                const row = e.target.closest('.board-row');
+                const row = e.target.closest('.board-row, .podium-item');
                 if (!row) return;
                 const item = (state.boardItems || [])[+row.dataset.idx];
                 if (!item) return;
