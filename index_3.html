@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.19.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.20.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -2002,16 +2002,24 @@
 
         .sp-side {
             flex-shrink: 0;
+            max-width: 92px;
+            min-width: 0;
             text-align: right;
             font-size: 10px;
             color: #86b3cc;
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .sp-side b {
             display: block;
+            max-width: 100%;
             font-size: 11px;
             color: var(--amber);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .sp-item.red .sp-side b {
@@ -2596,7 +2604,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.19.0</span>
+                    <span class="ver">V5.20.0</span>
                 </div>
             </div>
 
@@ -2732,7 +2740,7 @@
                 <div class="panel">
                     <div class="panel-head">
                         <span class="bar"></span>
-                        <h2>督办清单</h2>
+                        <h2>专业清单</h2>
                         <span class="hint" id="superviseHint"></span>
                     </div>
                     <div class="panel-body">
@@ -4493,14 +4501,15 @@
             const rowsHTML = items.map(row => {
                 const supervised = isFlag(row, '是否督办');
                 const isOverdue = isFlag(row, '是否逾期') && !supervised;
-                const tag = supervised ? '督办' : (isOverdue ? '逾期' : '待消缺');
+                const profRaw = getProfession(row);
+                const prof = displayProfession(profRaw) || profRaw || '—';
                 const cls = isOverdue ? ' red' : (supervised ? '' : ' normal');
                 return `<div class="sp-item${cls}" data-id="${getId(row) || ''}">
                     <div class="sp-main">
                         <div class="sp-id">${getId(row) || '无编号'}</div>
                         <div class="sp-desc">${getDesc(row, '未填写缺陷描述')}</div>
                     </div>
-                    <div class="sp-side"><b>${tag}</b>${getZone(row)}</div>
+                    <div class="sp-side"><b title="${escHtml(prof)}">${escHtml(prof)}</b>${getZone(row)}</div>
                 </div>`;
             }).join('');
             const needScroll = items.length > 6;
