@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.27.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.28.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -531,22 +531,22 @@
             filter: blur(9px);
         }
 
+        /* 图例改成与「缺陷滚动清单」同款的滚动列表：表头固定，行在内部循环滚动 */
         .prof-legend {
             flex: 0 0 138px;
             min-width: 0;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            gap: 2px;
             padding-right: 2px;
+            overflow: hidden;
         }
 
         .prof-legend-head {
+            flex: 0 0 auto;
             display: flex;
             align-items: center;
             gap: 6px;
             padding: 0 6px 5px;
-            margin-bottom: 2px;
             border-bottom: 1px solid rgba(59, 210, 255, 0.16);
             font-size: 10px;
             letter-spacing: 2px;
@@ -557,28 +557,52 @@
             flex: 1;
         }
 
+        .prof-legend-body {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            margin-top: 2px;
+        }
+
+        .prof-legend-track {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* hover 时暂停滚动，方便逐条查看/点击（与缺陷滚动清单同一行为） */
+        .prof-legend-body:hover .prof-legend-track {
+            animation-play-state: paused;
+        }
+
         .prof-leg {
+            flex: 0 0 auto;
             display: flex;
             align-items: center;
             gap: 7px;
             width: 100%;
-            height: 22px;
+            height: 24px;
             padding: 0 6px 0 5px;
             font-family: inherit;
             text-align: left;
             color: var(--text-2);
             background: transparent;
-            border: 1px solid transparent;
-            border-radius: 2px;
+            border: 0;
+            border-bottom: 1px solid rgba(59, 210, 255, 0.08);
+            border-radius: 0;
             cursor: pointer;
-            transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+            transition: background 0.16s ease, color 0.16s ease;
+        }
+
+        /* 斑马纹：类名由渲染时按全局行号写入，复制第二份也不在接缝处断纹 */
+        .prof-leg.alt {
+            background: rgba(59, 210, 255, 0.04);
         }
 
         .prof-leg:hover,
         .prof-leg.hot {
             color: #eafcff;
             background: rgba(59, 210, 255, 0.08);
-            border-color: rgba(59, 210, 255, 0.28);
         }
 
         .prof-leg i {
@@ -2251,16 +2275,34 @@
             font-weight: 600;
             letter-spacing: 2px;
             color: var(--text-1);
+            white-space: nowrap;
         }
 
-        .modal-count {
+        .modal-sub {
             font-size: 12px;
             color: var(--text-3);
             letter-spacing: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .modal-count {
+            margin-left: auto;
+            font-size: 12px;
+            color: var(--text-3);
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        .modal-count b {
+            font-family: var(--num-font);
+            color: var(--cyan);
+            font-weight: 700;
         }
 
         .modal-close {
-            margin-left: auto;
+            margin-left: 4px;
             width: 28px;
             height: 28px;
             font-size: 16px;
@@ -2281,8 +2323,257 @@
         .modal-body {
             flex: 1;
             min-height: 0;
+            max-height: 700px;
             overflow-y: auto;
             padding: 6px 16px 14px;
+        }
+
+        /* ===== 弹窗工具栏：搜索 + 字段筛选（沿用全局按钮/输入框令牌） ===== */
+        .modal-tools {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 16px;
+            border-bottom: 1px solid var(--head-line);
+            background: rgba(4, 16, 32, 0.5);
+        }
+
+        .mt-search {
+            flex: 0 0 360px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            height: 30px;
+            padding: 0 8px;
+            background: rgba(8, 30, 58, 0.78);
+            border: 1px solid var(--btn-line);
+            border-radius: var(--radius-btn);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .mt-search:focus-within {
+            border-color: var(--btn-line-hover);
+            box-shadow: 0 0 0 1px rgba(59, 210, 255, 0.16), 0 0 12px rgba(59, 210, 255, 0.16);
+        }
+
+        .mt-icon {
+            font-size: 13px;
+            color: var(--text-4);
+            flex-shrink: 0;
+        }
+
+        .mt-search input {
+            flex: 1;
+            min-width: 0;
+            height: 100%;
+            padding: 0;
+            background: transparent;
+            border: 0;
+            outline: none;
+            font-family: inherit;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            color: var(--text-1);
+        }
+
+        .mt-search input::placeholder {
+            color: var(--text-4);
+            letter-spacing: 0.5px;
+        }
+
+        .mt-clear {
+            display: none;
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+            padding: 0;
+            font-size: 12px;
+            line-height: 1;
+            color: var(--text-2);
+            background: rgba(59, 210, 255, 0.12);
+            border: 1px solid var(--btn-line);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .mt-clear.show {
+            display: block;
+        }
+
+        .mt-clear:hover {
+            color: var(--text-1);
+            background: var(--btn-bg-hover);
+        }
+
+        .mt-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 30px;
+            padding: 0 10px;
+            font-family: inherit;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            color: var(--text-2);
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-line);
+            border-radius: var(--radius-btn);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mt-btn:hover {
+            color: var(--text-1);
+            background: var(--btn-bg-hover);
+            border-color: var(--btn-line-hover);
+        }
+
+        .mt-btn.active {
+            color: #03121e;
+            font-weight: 700;
+            background: var(--btn-active);
+            border-color: var(--cyan);
+        }
+
+        .mt-badge {
+            display: none;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: #03121e;
+            background: var(--cyan);
+            border-radius: var(--radius-chip);
+        }
+
+        .mt-badge.show {
+            display: inline-flex;
+        }
+
+        .mt-sum {
+            font-size: 11.5px;
+            letter-spacing: 1px;
+            color: var(--text-3);
+            white-space: nowrap;
+        }
+
+        .mt-filter {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .mt-pop {
+            display: none;
+            position: absolute;
+            top: 38px;
+            right: 0;
+            z-index: 8;
+            width: 660px;
+            max-height: 430px;
+            overflow-y: auto;
+            padding: 10px 12px 8px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-line);
+            border-radius: var(--radius-panel);
+            box-shadow: 0 14px 44px rgba(2, 8, 16, 0.65);
+        }
+
+        .mt-pop.show {
+            display: block;
+        }
+
+        .mtf-group {
+            margin-bottom: 10px;
+        }
+
+        .mtf-title {
+            margin-bottom: 6px;
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: var(--text-3);
+        }
+
+        .mtf-opts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .mtf-opt {
+            padding: 3px 9px;
+            font-family: inherit;
+            font-size: 11.5px;
+            color: var(--text-2);
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-line);
+            border-radius: var(--radius-chip);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .mtf-opt:hover {
+            color: var(--text-1);
+            background: var(--btn-bg-hover);
+            border-color: var(--btn-line-hover);
+        }
+
+        .mtf-opt.on {
+            color: #03121e;
+            font-weight: 700;
+            background: var(--btn-active);
+            border-color: var(--cyan);
+        }
+
+        .mtf-dates {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mtf-dates input {
+            height: 28px;
+            padding: 0 8px;
+            background: rgba(8, 30, 58, 0.78);
+            border: 1px solid var(--btn-line);
+            border-radius: var(--radius-btn);
+            color: var(--text-1);
+            font-family: inherit;
+            font-size: 11.5px;
+            color-scheme: dark;
+        }
+
+        .mtf-dates input:focus {
+            outline: none;
+            border-color: var(--btn-line-hover);
+        }
+
+        .mtf-dates span {
+            font-size: 11px;
+            color: var(--text-4);
+        }
+
+        .mtf-foot {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--head-line);
+        }
+
+        .mtf-foot .mt-btn {
+            height: 26px;
+            font-size: 11.5px;
+        }
+
+        .m-hl {
+            padding: 0 1px;
+            color: #fff1cf;
+            background: rgba(255, 198, 88, 0.26);
+            border-radius: 2px;
         }
 
         .modal-body::-webkit-scrollbar {
@@ -2346,6 +2637,14 @@
             color: #6d97b4;
             font-size: 13px;
             letter-spacing: 2px;
+        }
+
+        .m-empty span {
+            display: block;
+            margin-top: 7px;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            color: var(--text-4);
         }
 
         /* ================= 点位编辑 ================= */
@@ -2647,7 +2946,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.27.0</span>
+                    <span class="ver">V5.28.0</span>
                 </div>
             </div>
 
@@ -2798,9 +3097,26 @@
             <div class="modal">
                 <div class="modal-head">
                     <span class="bar"></span>
-                    <h3 id="modalTitle">缺陷清单</h3>
+                    <h3 id="modalTitle">缺陷滚动清单</h3>
+                    <span class="modal-sub" id="modalSub"></span>
                     <span class="modal-count" id="modalCount"></span>
                     <button class="modal-close" id="modalClose" title="关闭">×</button>
+                </div>
+                <div class="modal-tools">
+                    <div class="mt-search">
+                        <span class="mt-icon">⌕</span>
+                        <input id="modalSearch" type="text" autocomplete="off"
+                            placeholder="搜索缺陷编号 / 描述 / 专业 / 责任人">
+                        <button class="mt-clear" id="modalSearchClear" title="清除搜索">×</button>
+                    </div>
+                    <div class="mt-filter" id="modalFilterWrap">
+                        <button class="mt-btn" id="modalFilterBtn">
+                            字段筛选<span class="mt-badge" id="modalFilterBadge">0</span>
+                        </button>
+                        <div class="mt-pop" id="modalFilterPop"></div>
+                    </div>
+                    <button class="mt-btn" id="modalFilterReset">重置</button>
+                    <span class="mt-sum" id="modalFilterSum"></span>
                 </div>
                 <div class="modal-body">
                     <div class="m-row m-head">
@@ -2835,6 +3151,8 @@
             '后勤': '综合管理部'
         };
         const PERIOD_LABELS = { yesterday: '昨日', week: '本周', month: '本月', year: '今年' };
+        // 厂区分布面板标题（随视图切换），弹窗主标题也复用它
+        const MAP_TITLES = { all: '厂区分布（全站）', recv: '接收站分布', fen: '分输站分布' };
 
         /* ================= 点位存储（localStorage 持久化，由点位编辑模式写入） ================= */
         function getMapSpots() {
@@ -3293,7 +3611,7 @@
             document.querySelectorAll('.seg-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.view === state.view);
             });
-            const titles = { all: '厂区分布（全站）', recv: '接收站分布', fen: '分输站分布' };
+            const titles = MAP_TITLES;
             const titleEl = document.getElementById('mapTitle');
             if (titleEl) titleEl.textContent = titles[state.view];
             if (pushHash) {
@@ -4250,7 +4568,9 @@
             chart.on('click', function (params) {
                 const month = (state.trendMonths || [])[params.dataIndex];
                 if (!month) return;
-                openModal(`${month.slice(0, 4)}年${Number(month.slice(5))}月 · ${params.seriesName}缺陷（Ⅰ类）`, trendRows(month, params.seriesName));
+                // 主标题与区块名一致，月份 / 系列 / 等级放进副标题
+                openModal('缺陷趋势', trendRows(month, params.seriesName),
+                    `${month.slice(0, 4)}年${Number(month.slice(5))}月 · ${params.seriesName}缺陷 · Ⅰ类`);
             });
         }
 
@@ -4342,21 +4662,32 @@
             const grid = document.getElementById('superviseGrid');
             grid.innerHTML = cards.map(kpiCardHTML).join('');
 
-            // 点击卡片弹出对应明细
+            // 点击卡片弹出对应明细：主标题沿用卡片标题，副标题补口径
+            const SP_CARD_META = {
+                total: ['督办总数', sp => sp, '督办标记 · 全部'],
+                remain: ['督办剩余', sp => sp.filter(r => r.status === '待消缺项目'), '督办标记 · 待消缺'],
+                done: ['督办完成', sp => sp.filter(r => r.status === '已消缺项'), '督办标记 · 已消缺'],
+                rate: ['督办完成率', sp => sp, '完成率明细']
+            };
             grid.querySelectorAll('.s-card').forEach(card => {
                 card.addEventListener('click', () => {
                     const allSp = rows.filter(r => isFlag(r, '是否督办'));
-                    const k = card.dataset.key;
-                    if (k === 'total') openModal('督办 · 全部清单', allSp);
-                    else if (k === 'remain') openModal('督办剩余 · 待消缺', allSp.filter(r => r.status === '待消缺项目'));
-                    else if (k === 'done') openModal('督办已完成 · 已消缺', allSp.filter(r => r.status === '已消缺项'));
-                    else if (k === 'rate') openModal('督办清单（完成率明细）', allSp);
+                    const meta = SP_CARD_META[card.dataset.key];
+                    if (!meta) return;
+                    openModal(meta[0], meta[1](allSp), meta[2]);
                 });
             });
         }
 
         /* ---- 专业分布：纯 SVG 立体饼环（挤出侧壁 + 底座椭圆投影 + 渐变顶面），零第三方依赖 ---- */
-        const PROF_SLICE_COLORS = ['#d8b174', '#bccfe0', '#c58c66', '#4fc3e8', '#3f95cf', '#5a7fc0', '#48b3a9', '#8fa8bf'];
+        /* 同源色板：青蓝主色系 + 金 / 银 / 铜，少量靛、青绿、钢蓝；顺序按「暖-冷」交替排列，
+           保证相邻扇区色相拉开，超过 16 个专业时循环取色也不会与相邻项重合 */
+        const PROF_SLICE_COLORS = [
+            '#d8b174', '#4fc3e8', '#c58c66', '#48b3a9',
+            '#f0c878', '#3f95cf', '#bccfe0', '#2fd6c4',
+            '#5a7fc0', '#e0a45c', '#7fe0f2', '#7b78c8',
+            '#9fb6c9', '#4a9db8', '#c99a6a', '#2a7fa8'
+        ];
 
         function shadeHex(hex, p) {
             const num = parseInt(hex.slice(1), 16);
@@ -4381,7 +4712,8 @@
                 const prof = getProfession(row);
                 return item.members ? item.members.indexOf(prof) >= 0 : prof === item.prof;
             });
-            openModal(`${item.disp} · Ⅰ类剩余缺陷`, rows);
+            // 主标题与区块名一致，专业与条数放进副标题
+            openModal('专业分布', rows, `${item.disp} · Ⅰ类剩余 ${item.count} 条`);
         }
 
         // 底部读数：默认显示最大扇区，hover 扇区/图例时跟随切换
@@ -4413,19 +4745,9 @@
                 .sort((a, b) => b.count - a.count);
             const total = all.reduce((sum, item) => sum + item.count, 0);
 
-            // 扇区过多会挤成细缝：保留前 5 名，尾部合并为「其他 N 类」。
-            // 仅做展示层合并，取数与过滤口径完全沿用 getClassIProfessionStats（合计仍为全量）。
-            const MAX_SLICES = 6;
-            let items = all;
-            if (all.length > MAX_SLICES) {
-                const rest = all.slice(MAX_SLICES - 1);
-                items = all.slice(0, MAX_SLICES - 1).concat([{
-                    prof: '__other__',
-                    disp: `其他 ${rest.length} 类`,
-                    count: rest.reduce((sum, item) => sum + item.count, 0),
-                    members: rest.map(item => item.prof)
-                }]);
-            }
+            // 不再把尾部专业合并成「其他 N 类」：所有专业都作为独立扇区，
+            // 取数与过滤口径沿用 getClassIProfessionStats，合计仍为全量。
+            const items = all;
             state.profItems = items;
             state.profTotal = total;
 
@@ -4507,12 +4829,13 @@
                     `fill="url(#pfT${s.idx})" stroke="rgba(4,14,26,.5)" stroke-width="1"/>${label}</g>`);
             });
 
-            const legend = slices.map(s =>
-                `<button type="button" class="prof-leg" data-idx="${s.idx}" title="${escHtml(s.disp)} · 剩余 ${s.count} 条">` +
+            // 图例与「缺陷滚动清单」同款：斑马纹按全局第 N 行取奇偶，复制第二份时接缝不断纹
+            const legRow = (s, alt) =>
+                `<button type="button" class="prof-leg${alt ? ' alt' : ''}" data-idx="${s.idx}" title="${escHtml(s.disp)} · 剩余 ${s.count} 条">` +
                 `<i style="background:${s.color};box-shadow:0 0 8px ${s.color}"></i>` +
                 `<span class="pl-name">${escHtml(s.disp)}</span>` +
-                `<span class="pl-cnt">${s.count}</span></button>`
-            ).join('');
+                `<span class="pl-cnt">${s.count}</span></button>`;
+            const legend = slices.map((s, i) => legRow(s, i % 2 === 1)).join('');
 
             box.innerHTML = `
                 <div class="prof-plot">
@@ -4546,8 +4869,23 @@
                 </div>
                 <div class="prof-legend">
                     <div class="prof-legend-head"><span>专业</span><span>剩余</span></div>
-                    ${legend}
+                    <div class="prof-legend-body" id="profLegendBody">
+                        <div class="prof-legend-track" id="profLegendTrack">${legend}</div>
+                    </div>
                 </div>`;
+
+            // 图例超出可视高度才启动循环滚动；不足一屏保持静态，避免少量条目空转
+            const legBody = document.getElementById('profLegendBody');
+            const legTrack = document.getElementById('profLegendTrack');
+            if (legBody && legTrack && legBody.clientHeight > 0 && legTrack.scrollHeight > legBody.clientHeight) {
+                const oneCopy = legTrack.scrollHeight;
+                // 第二份沿用原始索引（data-idx 不变），奇偶按全局行号续接，滚动接缝不跳纹
+                const copy = slices.map((s, i) => legRow(s, (slices.length + i) % 2 === 1)).join('');
+                legTrack.innerHTML = legend + copy;
+                legTrack.classList.add('scroll-track');
+                legTrack.style.animationName = 'scrollUp';
+                legTrack.style.animationDuration = listScrollDuration(oneCopy);
+            }
         }
 
         function renderBoardChart() {
@@ -5136,41 +5474,233 @@
         }
 
         /* ================= 弹窗与交互 ================= */
-        function openModal(title, rows) {
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalCount').textContent = `共 ${rows.length} 条`;
-            const box = document.getElementById('modalRows');
-            if (!rows.length) {
-                box.innerHTML = '<div class="m-empty">暂无匹配记录</div>';
-            } else {
-                box.innerHTML = rows.map(row => {
-                    const done = row.status === '已消缺项';
-                    const cd = done ? getCompleteDate(row) : null;
-                    const cdText = cd
-                        ? `${cd.getFullYear()}-${String(cd.getMonth() + 1).padStart(2, '0')}-${String(cd.getDate()).padStart(2, '0')}`
-                        : '—';
-                    return `<div class="m-row">
-                        <span class="m-id">${getId(row) || '—'}</span>
-                        <span>${getZone(row)}</span>
-                        <span>${displayProfession(getProfession(row))}</span>
-                        <span>${getLevelRaw(row) || '—'}</span>
-                        <span class="m-desc">${getDesc(row)}</span>
-                        <span class="${done ? 'm-done' : 'm-pending'}">${done ? '已消缺' : '待消缺'}</span>
-                        <span>${getFieldValue(row, '消缺人') || '—'}</span>
-                        <span>${cdText}</span>
-                    </div>`;
-                }).join('');
+        const MODAL_FILTER_KEYS = ['prof', 'status', 'level', 'sup', 'zone'];
+        const modalState = {
+            rows: [],
+            meta: [],
+            index: [],
+            query: '',
+            filters: {
+                prof: new Set(), status: new Set(), level: new Set(),
+                sup: new Set(), zone: new Set(), from: '', to: ''
             }
+        };
+        let modalSearchTimer = null;
+
+        function pad2(n) {
+            return String(n).padStart(2, '0');
+        }
+
+        function fmtDay(d) {
+            return d ? `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` : '';
+        }
+
+        /* 行元数据只算一次：筛选、搜索、渲染都复用它，避免每次按键重复取值 */
+        function modalRowMeta(row) {
+            const done = row.status === '已消缺项';
+            const cd = done ? getCompleteDate(row) : null;
+            const reg = getDateFromDefectId(getId(row));
+            return {
+                id: getId(row) || '',
+                zone: getZone(row) || '',
+                prof: displayProfession(getProfession(row)) || '未分类',
+                level: String(getLevelRaw(row) || '').trim(),
+                desc: getDesc(row) || '',
+                done: done,
+                cdText: fmtDay(cd),
+                regText: fmtDay(reg),
+                sup: isFlag(row, '是否督办') ? '督办' : '非督办'
+            };
+        }
+
+        function modalSearchText(row, m) {
+            return [
+                m.id, m.zone, m.prof, m.level, m.desc,
+                getFieldValue(row, '消缺人') || '',
+                getFieldValue(row, '责任人') || '',
+                getFieldValue(row, '缺陷责任人') || '',
+                getFieldValue(row, '负责人') || '',
+                m.done ? '已消缺' : '待消缺', m.sup
+            ].join(' ').toLowerCase();
+        }
+
+        /* 转义后按匹配区间切分，命中片段用 mark 高亮 */
+        function hl(raw, q) {
+            const s = String(raw == null ? '' : raw);
+            if (!q) return escHtml(s);
+            const lower = s.toLowerCase();
+            const ql = q.toLowerCase();
+            let out = '';
+            let i = 0;
+            while (true) {
+                const p = lower.indexOf(ql, i);
+                if (p < 0) { out += escHtml(s.slice(i)); break; }
+                out += escHtml(s.slice(i, p))
+                    + '<mark class="m-hl">' + escHtml(s.slice(p, p + q.length)) + '</mark>';
+                i = p + q.length;
+            }
+            return out;
+        }
+
+        function modalRowHtml(i, q) {
+            const row = modalState.rows[i];
+            const m = modalState.meta[i];
+            const worker = getFieldValue(row, '消缺人') || '—';
+            const cdText = m.done ? (m.cdText || '—') : '—';
+            return `<div class="m-row">
+                <span class="m-id" title="${escHtml(m.id)}">${hl(m.id || '—', q)}</span>
+                <span title="${escHtml(m.zone)}">${hl(m.zone, q)}</span>
+                <span title="${escHtml(m.prof)}">${hl(m.prof, q)}</span>
+                <span title="${escHtml(m.level)}">${hl(m.level || '—', q)}</span>
+                <span class="m-desc">${hl(m.desc, q)}</span>
+                <span class="${m.done ? 'm-done' : 'm-pending'}">${m.done ? '已消缺' : '待消缺'}</span>
+                <span title="${escHtml(worker)}">${hl(worker, q)}</span>
+                <span>${hl(cdText, q)}</span>
+            </div>`;
+        }
+
+        function renderModalRows() {
+            const box = document.getElementById('modalRows');
+            const q = modalState.query;
+            const ql = q.toLowerCase();
+            const f = modalState.filters;
+            const keep = [];
+            for (let i = 0; i < modalState.rows.length; i++) {
+                const m = modalState.meta[i];
+                if (ql && modalState.index[i].indexOf(ql) < 0) continue;
+                if (f.prof.size && !f.prof.has(m.prof)) continue;
+                if (f.status.size && !f.status.has(m.done ? '已消缺' : '待消缺')) continue;
+                if (f.level.size && !f.level.has(m.level)) continue;
+                if (f.sup.size && !f.sup.has(m.sup)) continue;
+                if (f.zone.size && !f.zone.has(m.zone)) continue;
+                if (f.from && (!m.regText || m.regText < f.from)) continue;
+                if (f.to && (!m.regText || m.regText > f.to)) continue;
+                keep.push(i);
+            }
+            if (keep.length) {
+                box.innerHTML = keep.map(i => modalRowHtml(i, q)).join('');
+            } else {
+                box.innerHTML = '<div class="m-empty">没有符合条件的记录'
+                    + '<span>试试清除搜索词，或点击「重置」还原筛选条件</span></div>';
+            }
+            document.getElementById('modalCount').innerHTML =
+                `共 <b>${modalState.rows.length}</b> 条 / 当前 <b>${keep.length}</b> 条`;
+        }
+
+        function buildModalFilterPop() {
+            const rows = modalState.rows;
+            const meta = modalState.meta;
+            const uniq = fn => Array.from(new Set(
+                rows.map((r, i) => fn(r, meta[i]).trim()).filter(Boolean)
+            )).sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+            const groups = [
+                ['prof', '专业', uniq((r, m) => m.prof)],
+                ['status', '状态', ['待消缺', '已消缺'].filter(s => rows.some((r, i) => (meta[i].done ? '已消缺' : '待消缺') === s))],
+                ['level', '分类定级', uniq((r, m) => m.level)],
+                ['sup', '是否督办', ['督办', '非督办'].filter(s => rows.some((r, i) => meta[i].sup === s))],
+                ['zone', '岗位 / 站场', uniq((r, m) => m.zone)]
+            ];
+            let html = groups.map(([key, title, vals]) => {
+                if (!vals.length) return '';
+                return `<div class="mtf-group"><div class="mtf-title">${title}</div><div class="mtf-opts">`
+                    + vals.map(v => `<button type="button" class="mtf-opt" data-f="${key}" data-v="${escHtml(v)}">${escHtml(v)}</button>`).join('')
+                    + '</div></div>';
+            }).join('');
+            html += `<div class="mtf-group"><div class="mtf-title">登记日期区间</div><div class="mtf-dates">
+                    <input type="date" id="mtfFrom" value="${escHtml(modalState.filters.from)}">
+                    <span>至</span>
+                    <input type="date" id="mtfTo" value="${escHtml(modalState.filters.to)}">
+                    <span>按缺陷编号中的登记日期</span>
+                </div></div>`;
+            html += `<div class="mtf-foot">
+                    <button type="button" class="mt-btn" id="mtfReset">重置</button>
+                    <button type="button" class="mt-btn" id="mtfDone">完成</button>
+                </div>`;
+            document.getElementById('modalFilterPop').innerHTML = html;
+            document.getElementById('mtfFrom').addEventListener('change', function (e) {
+                modalState.filters.from = e.target.value;
+                updateModalFilterUI();
+                renderModalRows();
+            });
+            document.getElementById('mtfTo').addEventListener('change', function (e) {
+                modalState.filters.to = e.target.value;
+                updateModalFilterUI();
+                renderModalRows();
+            });
+            syncModalFilterChips();
+        }
+
+        function syncModalFilterChips() {
+            document.querySelectorAll('#modalFilterPop .mtf-opt').forEach(btn => {
+                const set = modalState.filters[btn.dataset.f];
+                btn.classList.toggle('on', !!set && set.has(btn.dataset.v));
+            });
+        }
+
+        function modalFilterCount() {
+            let n = MODAL_FILTER_KEYS.reduce((acc, k) => acc + modalState.filters[k].size, 0);
+            if (modalState.filters.from || modalState.filters.to) n += 1;
+            return n;
+        }
+
+        function updateModalFilterUI() {
+            const n = modalFilterCount();
+            const badge = document.getElementById('modalFilterBadge');
+            badge.textContent = n;
+            badge.classList.toggle('show', n > 0);
+            document.getElementById('modalFilterSum').textContent = n > 0 ? `已选 ${n} 个条件` : '';
+            const open = document.getElementById('modalFilterPop').classList.contains('show');
+            document.getElementById('modalFilterBtn').classList.toggle('active', open || n > 0);
+            syncModalFilterChips();
+        }
+
+        function toggleModalFilterPop(force) {
+            const pop = document.getElementById('modalFilterPop');
+            const show = typeof force === 'boolean' ? force : !pop.classList.contains('show');
+            pop.classList.toggle('show', show);
+            updateModalFilterUI();
+        }
+
+        function resetModalFilters() {
+            MODAL_FILTER_KEYS.forEach(k => modalState.filters[k].clear());
+            modalState.filters.from = '';
+            modalState.filters.to = '';
+            const from = document.getElementById('mtfFrom');
+            const to = document.getElementById('mtfTo');
+            if (from) from.value = '';
+            if (to) to.value = '';
+            updateModalFilterUI();
+            renderModalRows();
+        }
+
+        function openModal(title, rows, sub) {
+            modalState.rows = rows.slice();
+            modalState.meta = modalState.rows.map(modalRowMeta);
+            modalState.index = modalState.rows.map((r, i) => modalSearchText(r, modalState.meta[i]));
+            modalState.query = '';
+            MODAL_FILTER_KEYS.forEach(k => modalState.filters[k].clear());
+            modalState.filters.from = '';
+            modalState.filters.to = '';
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalSub').textContent = sub || '';
+            const search = document.getElementById('modalSearch');
+            search.value = '';
+            document.getElementById('modalSearchClear').classList.remove('show');
+            toggleModalFilterPop(false);
+            buildModalFilterPop();
+            updateModalFilterUI();
+            renderModalRows();
             document.getElementById('modalMask').classList.add('show');
         }
 
         function closeModal() {
+            toggleModalFilterPop(false);
             document.getElementById('modalMask').classList.remove('show');
         }
 
-        function openRowDetail(id) {
+        function openRowDetail(id, section) {
             const row = state.rows.find(r => getId(r) === id);
-            if (row) openModal(`缺陷详情 · ${id}`, [row]);
+            if (row) openModal(section || '缺陷滚动清单', [row], `缺陷编号 ${id}`);
         }
 
         // 专业分布口径：与 getClassIProfessionStats 的剩余统计一致
@@ -5221,24 +5751,28 @@
             return dayDate >= new Date(now.getFullYear(), 0, 1);
         }
 
-        // 关键指标 12 项 → 弹窗标题与明细（口径与卡片完全一致）
-        const KPI_TITLES = {
-            remainI: '剩余Ⅰ类缺陷', remainCivil: '剩余土建类缺陷', remainII: '剩余Ⅱ类缺陷', remainFire: '剩余消防类缺陷',
-            yesterdayNew: '昨日新增缺陷', weekNew: '本周新增缺陷', monthNew: '本月新增缺陷', yearNew: '今年新增缺陷',
-            yesterdayDone: '昨日消缺记录', weekDone: '本周消缺记录', monthDone: '本月消缺记录', yearDone: '今年消缺记录'
+        // 关键指标 12 项：弹窗主标题直接取卡片标题（KPI_GROUP_DEFS.lbl），保证与界面一致
+        const KPI_TITLES = {};
+        KPI_GROUPS.forEach(g => {
+            (KPI_GROUP_DEFS[g] || []).forEach(def => { KPI_TITLES[def.key] = def.lbl; });
+        });
+        const KPI_SUBS = {
+            remainI: 'Ⅰ类 · 待消缺', remainCivil: '土建类 · 待消缺', remainII: 'Ⅱ类 · 待消缺', remainFire: '消防类 · 待消缺',
+            yesterdayNew: '登记日期 · 昨日', weekNew: '登记日期 · 本周', monthNew: '登记日期 · 本月', yearNew: '登记日期 · 今年',
+            yesterdayDone: '消缺日期 · 昨日', weekDone: '消缺日期 · 本周', monthDone: '消缺日期 · 本月', yearDone: '消缺日期 · 今年'
         };
 
         const KPI_ACTIONS = Object.keys(KPI_TITLES).reduce((acc, key) => {
-            acc[key] = [KPI_TITLES[key], rows => kpiRows(rows, key)];
+            acc[key] = [KPI_TITLES[key], rows => kpiRows(rows, key), KPI_SUBS[key] || ''];
             return acc;
         }, {});
 
-        // 总览四卡：标题与明细口径与原 V5.12.5 完全一致
+        // 总览四卡：主标题取卡片标题（缺陷总数 / 剩余缺陷 / 完成缺陷 / 消缺率）
         Object.assign(KPI_ACTIONS, {
-            total: ['缺陷 · 全部清单', rows => rows],
-            pending: ['剩余缺陷 · 待消缺', rows => rows.filter(r => r.status === '待消缺项目')],
-            completed: ['完成缺陷 · 已消缺', rows => rows.filter(r => r.status === '已消缺项')],
-            rate: ['缺陷清单（消缺率明细）', rows => rows]
+            total: ['缺陷总数', rows => rows, '全部缺陷记录'],
+            pending: ['剩余缺陷', rows => rows.filter(r => r.status === '待消缺项目'), '当前待消缺'],
+            completed: ['完成缺陷', rows => rows.filter(r => r.status === '已消缺项'), '已完成消缺'],
+            rate: ['消缺率', rows => rows, '完成 / 总数']
         });
 
         /* ================= 事件 / 初始化 ================= */
@@ -5264,9 +5798,12 @@
                 const item = (state.boardItems || [])[+row.dataset.idx];
                 if (!item) return;
                 const p = state.period || 'month';
-                openModal(`${item.prof} · ${PERIOD_LABELS[p]}消缺清单`, state.rows.filter(r =>
+                const rows = state.rows.filter(r =>
                     r.status === '已消缺项' && getProfession(r) === item.prof && inSelectedPeriod(getCompleteDate(r), p)
-                ));
+                );
+                // 主标题与区块名一致，专业 / 周期 / 条数放进副标题
+                openModal('消缺龙虎榜', rows,
+                    `${displayProfession(item.prof)} · ${PERIOD_LABELS[p]} · 消缺 ${rows.length} 条`);
             });
 
             // ===== 专业分布（饼环）交互：扇区 / 图例共用一套高亮与弹清单逻辑 =====
@@ -5323,6 +5860,49 @@
                 if (mapEdit.active) toggleMapEdit();
             });
 
+            // ===== 弹窗工具栏：搜索（防抖）+ 字段筛选（事件委托） =====
+            const modalSearch = document.getElementById('modalSearch');
+            modalSearch.addEventListener('input', function () {
+                const v = this.value;
+                document.getElementById('modalSearchClear').classList.toggle('show', !!v.trim());
+                clearTimeout(modalSearchTimer);
+                modalSearchTimer = setTimeout(function () {
+                    modalState.query = v.trim();
+                    renderModalRows();
+                }, 180);
+            });
+            document.getElementById('modalSearchClear').addEventListener('click', function () {
+                modalSearch.value = '';
+                this.classList.remove('show');
+                modalState.query = '';
+                renderModalRows();
+                modalSearch.focus();
+            });
+            document.getElementById('modalFilterBtn').addEventListener('click', function (e) {
+                e.stopPropagation();
+                toggleModalFilterPop();
+            });
+            document.getElementById('modalFilterPop').addEventListener('click', function (e) {
+                const chip = e.target.closest('.mtf-opt');
+                if (chip) {
+                    const set = modalState.filters[chip.dataset.f];
+                    const v = chip.dataset.v;
+                    if (set.has(v)) set.delete(v); else set.add(v);
+                    updateModalFilterUI();
+                    renderModalRows();
+                    return;
+                }
+                if (e.target.closest('#mtfReset')) {
+                    resetModalFilters();
+                    return;
+                }
+                if (e.target.closest('#mtfDone')) toggleModalFilterPop(false);
+            });
+            document.getElementById('modalFilterReset').addEventListener('click', resetModalFilters);
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('#modalFilterWrap')) toggleModalFilterPop(false);
+            });
+
             document.getElementById('kpiTabs').addEventListener('click', function (e) {
                 const btn = e.target.closest('.pbtn');
                 if (!btn || KPI_GROUPS.indexOf(btn.dataset.group) < 0) return;
@@ -5337,21 +5917,21 @@
                 const card = e.target.closest('.s-card');
                 if (!card || !card.dataset.key) return;
                 const action = KPI_ACTIONS[card.dataset.key];
-                if (action) openModal(action[0], action[1](state.rows));
+                if (action) openModal(action[0], action[1](state.rows), action[2]);
             });
 
             document.getElementById('listViewport').addEventListener('click', function (e) {
                 const row = e.target.closest('.list-row');
-                if (row && row.dataset.id) openRowDetail(row.dataset.id);
+                if (row && row.dataset.id) openRowDetail(row.dataset.id, '缺陷滚动清单');
             });
 
             document.getElementById('superviseViewport').addEventListener('click', function (e) {
                 const item = e.target.closest('.sp-item');
-                if (item && item.dataset.id) openRowDetail(item.dataset.id);
+                if (item && item.dataset.id) openRowDetail(item.dataset.id, '督办滚动清单');
             });
 
             document.getElementById('alertBar').addEventListener('click', function () {
-                openModal('督办 / 逾期预警清单', getAlertCandidates());
+                openModal('督办预警', getAlertCandidates(), '督办 / 逾期 · 当前视图');
             });
 
             document.getElementById('mapDots').addEventListener('click', function (e) {
@@ -5371,7 +5951,9 @@
                     getZone(r) === marker.dataset.zone &&
                     (!type || getStationType(getId(r)) === type)
                 );
-                openModal(`${label}${label ? ' · ' : ''}${marker.dataset.zone}`, rows);
+                // 主标题沿用「厂区分布」面板标题（随视图变化），站点 / 岗位放进副标题
+                openModal(MAP_TITLES[state.view] || MAP_TITLES.all, rows,
+                    `${label} · ${marker.dataset.zone} · 待消缺`);
             });
 
             document.getElementById('mapEditBtn').addEventListener('click', toggleMapEdit);
