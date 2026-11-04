@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.22.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.24.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -1528,14 +1528,6 @@
             transform: translateY(6px);
         }
 
-        .alert-count {
-            flex-shrink: 0;
-            font-family: var(--num-font);
-            font-size: 12px;
-            color: var(--amber);
-            letter-spacing: 1px;
-        }
-
         .map-panel {
             padding-bottom: 10px;
             background: linear-gradient(180deg, rgba(5, 18, 34, 0.96), rgba(2, 8, 18, 0.98));
@@ -1974,6 +1966,16 @@
 
         .sp-item.normal .sp-side b {
             color: #7fd4e8;
+        }
+
+        /* 斑马底纹：仅叠加半透明白色，保留督办/逾期状态底色；
+           使用 nth-child 全局序号，复制第二份后奇偶仍连续，接缝不出现同色相邻 */
+        .sp-list .sp-item:nth-child(odd) {
+            background-image: linear-gradient(rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.018));
+        }
+
+        .sp-list .sp-item:nth-child(even) {
+            background-image: linear-gradient(rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.055));
         }
 
         .sp-main {
@@ -2603,7 +2605,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.22.0</span>
+                    <span class="ver">V5.24.0</span>
                 </div>
             </div>
 
@@ -2674,7 +2676,6 @@
                 <div class="alert-bar" id="alertBar">
                     <span class="alert-tag"><i></i>督办预警</span>
                     <span class="alert-text" id="alertText">加载中…</span>
-                    <span class="alert-count" id="alertCount"></span>
                 </div>
 
                 <div class="panel map-panel">
@@ -2693,6 +2694,7 @@
                     <div class="panel-head">
                         <span class="bar"></span>
                         <h2>缺陷滚动清单</h2>
+                        <span class="hint" id="listHint"></span>
                     </div>
                     <div class="panel-body">
                         <div class="list-head">
@@ -2737,7 +2739,8 @@
                 <div class="panel">
                     <div class="panel-head">
                         <span class="bar"></span>
-                        <h2>督办清单</h2>
+                        <h2>督办滚动清单</h2>
+                        <span class="hint" id="superviseHint"></span>
                     </div>
                     <div class="panel-body">
                         <div class="list-viewport" id="superviseViewport"></div>
@@ -4419,7 +4422,9 @@
 
         function renderList() {
             const viewport = document.getElementById('listViewport');
+            const hint = document.getElementById('listHint');
             const pending = state.rows.filter(row => row.status === '待消缺项目');
+            if (hint) hint.textContent = pending.length ? `待消缺 ${pending.length} 项` : '';
 
             if (pending.length === 0) {
                 viewport.innerHTML = '<div class="empty-row">当前视图暂无待消缺缺陷</div>';
@@ -4449,7 +4454,6 @@
         function renderAlerts() {
             const candidates = getAlertCandidates();
             const textEl = document.getElementById('alertText');
-            const countEl = document.getElementById('alertCount');
 
             state.alertItems = candidates.slice(0, 12).map(row => {
                 // 条目前缀改用所属专业，避免再出现作为标签的「督办」字样
@@ -4458,9 +4462,6 @@
                 const desc = getDesc(row, '未填写缺陷描述');
                 return `【${prof}】${getId(row) || '无编号'} · ${getZone(row)} · ${desc}`;
             });
-
-            const total = candidates.length;
-            if (countEl) countEl.textContent = total ? `${total} 条` : '';
 
             if (!state.alertItems.length) {
                 if (textEl) textEl.textContent = '当前视图暂无督办或逾期缺陷';
@@ -4484,9 +4485,11 @@
 
         function renderSuperviseList() {
             const viewport = document.getElementById('superviseViewport');
+            const hint = document.getElementById('superviseHint');
             const pending = state.rows.filter(row => row.status === '待消缺项目');
             const supervised = pending.filter(row => isFlag(row, '是否督办'));
             const overdue = pending.filter(row => isFlag(row, '是否逾期'));
+            if (hint) hint.textContent = `督办 ${supervised.length} 项`;
 
             const items = (supervised.length || overdue.length)
                 ? pending.filter(row => isFlag(row, '是否督办') || isFlag(row, '是否逾期'))
