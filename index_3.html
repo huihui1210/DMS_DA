@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.14.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.15.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -590,46 +590,9 @@
             gap: 8px;
         }
 
-        /* 复用督办 .s-card 的结构和样式，覆盖只做微调 */
+        /* 与督办卡片共用同一套结构，这里只统一圆角 */
         .kpi-grid .s-card {
-            padding: 14px 12px 12px;
             border-radius: 8px;
-            gap: 4px;
-        }
-
-        .kpi-grid .s-card .s-head {
-            gap: 6px;
-            margin-bottom: 8px;
-        }
-
-        .kpi-grid .s-card .s-icon {
-            width: 22px;
-            height: 22px;
-            font-size: 11px;
-        }
-
-        .kpi-grid .s-card .s-lbl {
-            font-size: 12px;
-        }
-
-        .kpi-grid .s-card .s-body {
-            gap: 8px;
-            flex: 1;
-        }
-
-        .kpi-grid .s-card .s-val {
-            font-size: 42px;
-            letter-spacing: -0.5px;
-        }
-
-        .kpi-grid .s-card .s-spark {
-            width: 60px;
-            height: 30px;
-        }
-
-        .kpi-grid .s-card .s-foot {
-            margin-top: 6px;
-            font-size: 11px;
         }
 
         /* ================= 督办统计卡片（重新设计 · 参考图风格） ================= */
@@ -646,7 +609,7 @@
             position: relative;
             display: flex;
             flex-direction: column;
-            padding: 14px 16px 12px;
+            padding: 14px 14px 12px;
             border-radius: 8px;
             overflow: hidden;
             cursor: pointer;
@@ -663,74 +626,86 @@
             box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(59, 210, 255, 0.25);
         }
 
-        /* 卡片左上的彩色小 icon 圆标（参考图的小图标） */
+        /* 卡片左上的彩色小 icon（参考图为浅色描边小图标，改用半透明色块 + 同色描边） */
         .s-card .s-icon {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            border-radius: 5px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
-            color: #fff;
+            font-size: 10px;
+            font-weight: 600;
             flex-shrink: 0;
+            background: rgba(59, 210, 255, 0.12);
+            border: 1px solid rgba(59, 210, 255, 0.34);
+            color: #7fe3ff;
         }
 
         .s-card.cyan .s-icon {
-            background: linear-gradient(135deg, #3bd2ff, #0e7490);
+            background: rgba(59, 210, 255, 0.12);
+            border-color: rgba(59, 210, 255, 0.34);
+            color: #7fe3ff;
         }
 
         .s-card.amber .s-icon {
-            background: linear-gradient(135deg, #ffc658, #c9881c);
+            background: rgba(255, 198, 88, 0.12);
+            border-color: rgba(255, 198, 88, 0.34);
+            color: #ffd685;
         }
 
         .s-card.green .s-icon {
-            background: linear-gradient(135deg, #3ddc97, #0e7a52);
+            background: rgba(61, 220, 151, 0.12);
+            border-color: rgba(61, 220, 151, 0.34);
+            color: #74e8b6;
         }
 
-        .s-card.purple.s-icon,
         .s-card.purple .s-icon {
-            background: linear-gradient(135deg, #a78bfa, #6a4bc4);
+            background: rgba(167, 139, 250, 0.12);
+            border-color: rgba(167, 139, 250, 0.34);
+            color: #c7b9ff;
         }
 
         /* 标签行 */
         .s-card .s-head {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: 7px;
+            margin-bottom: 6px;
         }
 
         .s-card .s-lbl {
             font-size: 12px;
+            line-height: 1.2;
             color: #9cc8e2;
             letter-spacing: 0.3px;
             font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* 数字行：左边大数字 + 右边 sparkline */
+        /* 数值 + 对比行：数值单独一行占据视觉重心，对比胶囊与 sparkline 同排贴底 */
         .s-card .s-body {
             display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            gap: 10px;
-            flex: 1;
-        }
-
-        .s-card .s-main {
-            display: flex;
             flex-direction: column;
-            gap: 2px;
+            justify-content: space-between;
+            gap: 6px;
+            flex: 1;
+            min-height: 0;
+            min-width: 0;
         }
 
         .s-card .s-val {
             font-family: var(--num-font);
-            font-size: 44px;
+            font-size: 42px;
             font-weight: 700;
             line-height: 1;
             color: #eafcff;
             font-variant-numeric: tabular-nums;
             letter-spacing: -0.5px;
+            white-space: nowrap;
+            overflow: hidden;
         }
 
         .s-card.cyan .s-val {
@@ -749,12 +724,12 @@
             color: #a78bfa;
         }
 
-        /* sparkline 折线区域 */
+        /* sparkline 折线区域（与对比胶囊同排，右对齐） */
         .s-card .s-spark {
             flex-shrink: 0;
-            width: 72px;
-            height: 32px;
-            opacity: 0.85;
+            width: 62px;
+            height: 26px;
+            opacity: 0.9;
         }
 
         .s-card .s-spark path.line {
@@ -762,60 +737,88 @@
             stroke-width: 1.5;
             stroke-linecap: round;
             stroke-linejoin: round;
+            stroke: currentColor;
         }
 
         .s-card .s-spark path.area {
-            fill: url(#sparkGrad);
-            opacity: 0.25;
+            fill: currentColor;
+            opacity: 0.12;
         }
 
-        .s-card.cyan .s-spark path.line {
-            stroke: #3bd2ff;
+        /* 折线颜色与对比胶囊同源：只跟方向，升绿 / 降红 / 持平灰 */
+        .s-card .s-spark.s-spark-up {
+            color: #3ddc97;
         }
 
-        .s-card.amber .s-spark path.line {
-            stroke: #ffc658;
+        .s-card .s-spark.s-spark-down {
+            color: #ff5f6d;
         }
 
-        .s-card.green .s-spark path.line {
-            stroke: #3ddc97;
+        .s-card .s-spark.s-spark-flat {
+            color: #86b3cc;
         }
 
-        .s-card.purple .s-spark path.line {
-            stroke: #a78bfa;
-        }
-
-        /* 趋势行：底部 */
+        /* 对比行：左侧方向胶囊 + 右侧 sparkline，两者贴底对齐 */
         .s-card .s-foot {
             display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            margin-top: 6px;
-            font-size: 11px;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 8px;
+            min-width: 0;
         }
 
+        /* 对比胶囊：▲ 升=绿，▼ 降=红，— 持平=灰；颜色只跟方向，不看指标好坏 */
         .s-card .s-trend {
             display: inline-flex;
             align-items: center;
-            gap: 3px;
-            padding: 1px 6px;
-            border-radius: 10px;
-            font-weight: 500;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            font-size: 11px;
+            line-height: 1.35;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            max-width: 100%;
+            overflow: hidden;
         }
 
-        .s-card .s-trend.s-good {
+        .s-card .s-trend .s-arrow {
+            font-size: 10px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .s-card .s-trend .s-pct {
+            flex-shrink: 0;
+        }
+
+        .s-card .s-trend em {
+            font-style: normal;
+            font-size: 10px;
+            font-weight: 400;
+            opacity: 0.8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .s-card .s-trend.s-up {
             color: #3ddc97;
-            background: rgba(61, 220, 151, 0.1);
+            background: rgba(61, 220, 151, 0.12);
+            border-color: rgba(61, 220, 151, 0.26);
         }
 
-        .s-card .s-trend.s-bad {
+        .s-card .s-trend.s-down {
             color: #ff5f6d;
-            background: rgba(255, 95, 109, 0.1);
+            background: rgba(255, 95, 109, 0.12);
+            border-color: rgba(255, 95, 109, 0.26);
         }
 
         .s-card .s-trend.s-flat {
             color: #86b3cc;
             background: rgba(134, 179, 204, 0.1);
+            border-color: rgba(134, 179, 204, 0.22);
         }
 
         /* 顶部一条渐变高光线（Grafana 风格小点缀） */
@@ -1974,7 +1977,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.14.0</span>
+                    <span class="ver">V5.15.0</span>
                 </div>
             </div>
 
@@ -2000,8 +2003,8 @@
                         <div class="period-tabs" id="kpiTabs">
                             <button class="pbtn active" data-group="overview">总览</button>
                             <button class="pbtn" data-group="remain">剩余</button>
-                            <button class="pbtn" data-group="week">较上日·较上周</button>
-                            <button class="pbtn" data-group="month">较上月·较上年</button>
+                            <button class="pbtn" data-group="week">日·周</button>
+                            <button class="pbtn" data-group="month">月·年</button>
                         </div>
                     </div>
                     <div class="panel-body">
@@ -3022,18 +3025,19 @@
             return buildKpiMeta(rows).filter(m => kpiMatches(m, key)).map(m => m.row);
         }
 
-        /* ===== 趋势 / sparkline / 卡片渲染（总览与分组共用） ===== */
-        function kpiTrend(cur, prev, goodDir) {
+        /* ===== 趋势 / sparkline / 卡片渲染（总览、分组、督办三处共用） ===== */
+        /* 方向即颜色：▲ 上升=绿、▼ 下降=红、— 持平=灰，不再按指标语义反转 */
+        function kpiTrend(cur, prev) {
             if (cur === prev) return { arrow: '—', pct: '0%', tone: 'flat' };
             const base = prev > 0 ? prev : Math.max(1, cur);
             const pct = Math.abs(cur - prev) / base * 100;
             const pctStr = pct < 1 ? pct.toFixed(2) + '%' : pct.toFixed(1) + '%';
-            const up = cur > prev;
-            const better = (up ? 1 : -1) * goodDir > 0;
-            return { arrow: up ? '▲' : '▼', pct: pctStr, tone: better ? 'good' : 'bad' };
+            // 负值一律视为下降，避免出现「▲ + 负数」的矛盾
+            const up = cur > prev && cur >= 0;
+            return { arrow: up ? '▲' : '▼', pct: pctStr, tone: up ? 'up' : 'down' };
         }
 
-        function sparklineSVG(data, w, h) {
+        function sparklineSVG(data, w, h, tone) {
             w = w || 56;
             h = h || 28;
             const arr = (data && data.length) ? data : [0];
@@ -3048,7 +3052,7 @@
             });
             const dLine = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
             const dArea = dLine + ` L${pts[pts.length - 1][0].toFixed(1)} ${h} L${pts[0][0].toFixed(1)} ${h} Z`;
-            return `<svg class="s-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+            return `<svg class="s-spark s-spark-${tone || 'flat'}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
                 <path class="area" d="${dArea}" />
                 <path class="line" d="${dLine}" />
                 <circle cx="${pts[pts.length - 1][0].toFixed(1)}" cy="${pts[pts.length - 1][1].toFixed(1)}" r="1.5" fill="currentColor" opacity="0.9"/>
@@ -3060,19 +3064,16 @@
                 <div class="s-card ${c.cls}" data-key="${c.key}">
                     <div class="s-head">
                         <div class="s-icon">${c.icon}</div>
-                        <div class="s-lbl">${c.lbl}</div>
+                        <div class="s-lbl" title="${c.lbl}">${c.lbl}</div>
                     </div>
                     <div class="s-body">
-                        <div class="s-main">
-                            <div class="s-val">${c.val}</div>
+                        <div class="s-val">${c.val}</div>
+                        <div class="s-foot">
+                            <span class="s-trend s-${c.tone}" title="${c.lbl} ${c.tip} ${c.arrow} ${c.pct}">
+                                <i class="s-arrow">${c.arrow}</i><span class="s-pct">${c.pct}</span><em>${c.tip}</em>
+                            </span>
+                            ${sparklineSVG(c.spark, c.sparkW, c.sparkH, c.tone)}
                         </div>
-                        ${sparklineSVG(c.spark, c.sparkW, c.sparkH)}
-                    </div>
-                    <div class="s-foot">
-                        <span class="s-trend s-${c.tone}" title="${c.tip} ${c.arrow} ${c.pct}">
-                            ${c.arrow} ${c.pct}
-                        </span>
-                        <span style="color:#86b3cc;font-size:10px;margin-left:5px;">${c.tip}</span>
                     </div>
                 </div>`;
         }
@@ -3117,7 +3118,7 @@
                 : {
                     arrow: rd > 0 ? '▲' : '▼',
                     pct: (Math.abs(rd) < 1 ? Math.abs(rd).toFixed(2) : Math.abs(rd).toFixed(1)) + '%',
-                    tone: rd > 0 ? 'good' : 'bad'
+                    tone: rd > 0 ? 'up' : 'down'
                 };
 
             // 最近 6 个月 sparkline 数据
@@ -3146,9 +3147,9 @@
                 return cumT ? +(cumD / cumT * 100).toFixed(1) : 0;
             });
 
-            const tTotal = kpiTrend(mTotal, lmTotal, -1);
-            const tRemain = kpiTrend(pending, pending - mDone + lmDone, -1);
-            const tDone = kpiTrend(mDone, lmDone, +1);
+            const tTotal = kpiTrend(mTotal, lmTotal);
+            const tRemain = kpiTrend(pending, pending - mDone + lmDone);
+            const tDone = kpiTrend(mDone, lmDone);
 
             const cards = [
                 { key: 'total', cls: 'cyan', val: total, lbl: '缺陷总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: '较上月', spark: slTotal },
@@ -3215,20 +3216,18 @@
             const cards = KPI_GROUP_DEFS[group].map(def => {
                 const val = meta.filter(m => kpiMatches(m, def.key)).length;
                 const isRemain = def.key.indexOf('remain') === 0;
-                let prev, label, goodDir;
+                let prev, label;
                 if (isRemain) {
                     // 与上月末同类剩余量对比
                     prev = meta.filter(m => m.cat === def.key && m.mk && m.mk <= lastMonthKey
                         && !(m.done && (!m.ck || m.ck <= lastMonthKey))).length;
                     label = '较上月';
-                    goodDir = -1;
                 } else {
                     const w = PREV_WIN[def.key];
                     prev = rangeCount(meta, w[0], w[1], w[2]);
                     label = TREND_LABEL[def.key];
-                    goodDir = def.key.slice(-3) === 'New' ? -1 : 1;
                 }
-                const t = kpiTrend(val, prev, goodDir);
+                const t = kpiTrend(val, prev);
 
                 const spark = monthKeys.map(mk => {
                     if (isRemain) {
@@ -3241,7 +3240,7 @@
                 });
 
                 return {
-                    ...def, val, spark, sparkW: 60, sparkH: 30,
+                    ...def, val, spark, sparkW: 62, sparkH: 26,
                     arrow: t.arrow, pct: t.pct, tone: t.tone, tip: label
                 };
             });
@@ -3385,20 +3384,9 @@
                 else if (dd.getFullYear() === lastY && dd.getMonth() === lastM) lmNew++;
             });
 
-            /** 友好趋势计算 */
-            function trend(cur, prev, goodDir) {
-                if (cur === prev) return { arrow: '—', pct: '0%', tone: 'flat' };
-                const base = prev > 0 ? prev : Math.max(1, cur);
-                const pct = Math.abs(cur - prev) / base * 100;
-                const pctStr = pct < 1 ? pct.toFixed(2) + '%' : pct.toFixed(1) + '%';
-                const up = cur > prev;
-                const better = (up ? 1 : -1) * goodDir > 0;
-                return { arrow: up ? '▲' : '▼', pct: pctStr, tone: better ? 'good' : 'bad' };
-            }
-
-            const tTotal = trend(mNew, lmNew, -1);
-            const tRemain = trend(remain, remain - mDone + lmDone, -1);
-            const tDone = trend(mDone, lmDone, +1);
+            const tTotal = kpiTrend(mNew, lmNew);
+            const tRemain = kpiTrend(remain, remain - mDone + lmDone);
+            const tDone = kpiTrend(mDone, lmDone);
             // 完成率趋势
             const curR = mDone + mNew > 0 ? mDone / (mDone + mNew) * 100 : 0;
             const lastR = lmDone + lmNew > 0 ? lmDone / (lmDone + lmNew) * 100 : 0;
@@ -3407,35 +3395,8 @@
                 : {
                     arrow: rd > 0 ? '▲' : '▼',
                     pct: (Math.abs(rd) < 1 ? Math.abs(rd).toFixed(2) : Math.abs(rd).toFixed(1)) + '%',
-                    tone: rd > 0 ? 'good' : 'bad'
+                    tone: rd > 0 ? 'up' : 'down'
                 };
-
-            /**
-             * 生成 sparkline SVG 折线
-             * @param {number[]} data  数据点数组（通常最近6个月）
-             * @param {number} w       画布宽
-             * @param {number} h       画布高
-             */
-            function sparkline(data, w = 72, h = 32) {
-                if (!data || data.length === 0) data = [0];
-                const max = Math.max(...data, 1);
-                const min = Math.min(...data, 0);
-                const range = max - min || 1;
-                const step = data.length > 1 ? w / (data.length - 1) : 0;
-                const pts = data.map((v, i) => {
-                    const x = data.length > 1 ? i * step : w / 2;
-                    const y = h - ((v - min) / range * (h - 4)) - 2;
-                    return [x, y];
-                });
-                const dLine = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
-                // 闭合区域：从折线最后一点拉到底部，再拉回起点
-                const dArea = dLine + ` L${pts[pts.length - 1][0].toFixed(1)} ${h} L${pts[0][0].toFixed(1)} ${h} Z`;
-                return `<svg class="s-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-                    <path class="area" d="${dArea}" />
-                    <path class="line" d="${dLine}" />
-                    <circle cx="${pts[pts.length - 1][0].toFixed(1)}" cy="${pts[pts.length - 1][1].toFixed(1)}" r="1.5" class="dot" fill="currentColor" opacity="0.9"/>
-                </svg>`;
-            }
 
             // 生成最近 N 个月的督办数据（用于 sparkline）
             const MONTHS = 6;
@@ -3466,33 +3427,14 @@
             });
 
             const cards = [
-                { key: 'total', cls: 'cyan', val: total, lbl: '督办总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: '较上月', spark: slTotal },
-                { key: 'remain', cls: 'amber', val: remain, lbl: '督办剩余', icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月', spark: slRemain },
-                { key: 'done', cls: 'green', val: done, lbl: '督办完成', icon: '✓', arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: '较上月', spark: slDone },
-                { key: 'rate', cls: 'purple', val: rate.toFixed(1) + '%', lbl: '督办完成率', icon: '%', arrow: tRate.arrow, pct: tRate.pct, tone: tRate.tone, tip: '较上月', spark: slRate }
+                { key: 'total', cls: 'cyan', val: total, lbl: '督办总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: '较上月', spark: slTotal, sparkW: 62, sparkH: 26 },
+                { key: 'remain', cls: 'amber', val: remain, lbl: '督办剩余', icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月', spark: slRemain, sparkW: 62, sparkH: 26 },
+                { key: 'done', cls: 'green', val: done, lbl: '督办完成', icon: '✓', arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: '较上月', spark: slDone, sparkW: 62, sparkH: 26 },
+                { key: 'rate', cls: 'purple', val: rate.toFixed(1) + '%', lbl: '督办完成率', icon: '%', arrow: tRate.arrow, pct: tRate.pct, tone: tRate.tone, tip: '较上月', spark: slRate, sparkW: 62, sparkH: 26 }
             ];
 
             const grid = document.getElementById('superviseGrid');
-            grid.innerHTML = cards.map(c => `
-                <div class="s-card ${c.cls}" data-key="${c.key}">
-                    <div class="s-head">
-                        <div class="s-icon">${c.icon}</div>
-                        <div class="s-lbl">${c.lbl}</div>
-                    </div>
-                    <div class="s-body">
-                        <div class="s-main">
-                            <div class="s-val">${c.val}</div>
-                        </div>
-                        ${sparkline(c.spark)}
-                    </div>
-                    <div class="s-foot">
-                        <span class="s-trend s-${c.tone}" title="${c.tip} ${c.arrow} ${c.pct}">
-                            ${c.arrow} ${c.pct}
-                        </span>
-                        <span style="color:#86b3cc;font-size:11px;margin-left:5px;">${c.tip}</span>
-                    </div>
-                </div>
-            `).join('');
+            grid.innerHTML = cards.map(kpiCardHTML).join('');
 
             // 点击卡片弹出对应明细
             grid.querySelectorAll('.s-card').forEach(card => {
@@ -3601,16 +3543,16 @@
                     <span class="bc-val">消缺</span>
                 </div>
                 ${items.map((item, idx) => {
-                    const pct = max > 0 ? (item.count / max * 100) : 0;
-                    const prof = displayProfession(item.prof);
-                    return `<div class="board-row ${rankCls[idx] || ''}" data-idx="${idx}"
+                const pct = max > 0 ? (item.count / max * 100) : 0;
+                const prof = displayProfession(item.prof);
+                return `<div class="board-row ${rankCls[idx] || ''}" data-idx="${idx}"
                         title="${prof} · ${periodLabel}消缺 ${item.count} 条">
                         <span class="board-rank">${idx + 1}</span>
                         <span class="board-name">${prof}</span>
                         <span class="board-track"><i class="board-fill" style="width:${pct.toFixed(1)}%"></i></span>
                         <span class="board-val">${item.count}<em>条</em></span>
                     </div>`;
-                }).join('')}
+            }).join('')}
             `;
         }
 
