@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.20.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.21.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -1942,12 +1942,10 @@
         }
 
         .sp-list {
-            height: 100%;
+            height: auto;
             display: flex;
             flex-direction: column;
-            gap: 6px;
             overflow: hidden;
-            padding-top: 2px;
         }
 
         .sp-item {
@@ -1956,6 +1954,7 @@
             align-items: center;
             gap: 8px;
             min-height: 44px;
+            margin-bottom: 6px;
             padding: 4px 8px;
             overflow: hidden;
             border-left: 2px solid var(--amber);
@@ -2604,7 +2603,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.20.0</span>
+                    <span class="ver">V5.21.0</span>
                 </div>
             </div>
 
@@ -2740,8 +2739,7 @@
                 <div class="panel">
                     <div class="panel-head">
                         <span class="bar"></span>
-                        <h2>专业清单</h2>
-                        <span class="hint" id="superviseHint"></span>
+                        <h2>督办清单</h2>
                     </div>
                     <div class="panel-body">
                         <div class="list-viewport" id="superviseViewport"></div>
@@ -3197,30 +3195,38 @@
             return copy;
         }
 
-        function loadData() {
-            let raw = null;
+        function readStorageRows(key) {
             try {
-                raw = localStorage.getItem(STORAGE_KEY);
-            } catch (e) {
-                raw = null;
-            }
-            if (!raw) {
-                state.allRows = [];
-                return;
-            }
-            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) return [];
                 const parsed = JSON.parse(raw);
-                if (!Array.isArray(parsed)) {
-                    state.allRows = [];
-                    return;
-                }
-                state.allRows = parsed
-                    .filter(row => row && Object.values(row).some(v => !isEmpty(v)))
-                    .map(normalizeRow);
+                return Array.isArray(parsed) ? parsed : [];
             } catch (e) {
-                console.error('[index_3] 数据解析失败:', e);
-                state.allRows = [];
+                return [];
             }
+        }
+
+        function loadData() {
+            // 总键 defectData_all 由接收站/分输站页面合并写入，正常情况下已包含两类站点数据
+            const rows = readStorageRows(STORAGE_KEY);
+            const seen = new Set(rows.map(getId).filter(Boolean));
+            const hasRecv = rows.some(row => getStationType(getId(row)) === 'recv');
+            const hasFen = rows.some(row => getStationType(getId(row)) === 'fen');
+
+            // 兜底：总键缺少某一类站点时，从站点独立键补全，避免清单与统计只覆盖单一站点
+            [['defectData_recv', hasRecv], ['defectData_fen', hasFen]].forEach(pair => {
+                if (pair[1]) return;
+                readStorageRows(pair[0]).forEach(row => {
+                    const id = getId(row);
+                    if (id && seen.has(id)) return;
+                    if (id) seen.add(id);
+                    rows.push(row);
+                });
+            });
+
+            state.allRows = rows
+                .filter(row => row && Object.values(row).some(v => !isEmpty(v)))
+                .map(normalizeRow);
         }
 
         function applyView() {
@@ -4450,12 +4456,11 @@
             const countEl = document.getElementById('alertCount');
 
             state.alertItems = candidates.slice(0, 12).map(row => {
-                const tags = [];
-                if (isFlag(row, '是否督办')) tags.push('督办');
-                if (isFlag(row, '是否逾期')) tags.push('逾期');
-                const prefix = tags.length ? `【${tags.join('/')}】` : '【待消缺】';
+                // 条目前缀改用所属专业，避免再出现作为标签的「督办」字样
+                const profRaw = getProfession(row);
+                const prof = displayProfession(profRaw) || profRaw || '—';
                 const desc = getDesc(row, '未填写缺陷描述');
-                return `${prefix}${getId(row) || '无编号'} · ${getZone(row)} · ${desc}`;
+                return `【${prof}】${getId(row) || '无编号'} · ${getZone(row)} · ${desc}`;
             });
 
             const total = candidates.length;
@@ -4483,11 +4488,9 @@
 
         function renderSuperviseList() {
             const viewport = document.getElementById('superviseViewport');
-            const hint = document.getElementById('superviseHint');
             const pending = state.rows.filter(row => row.status === '待消缺项目');
             const supervised = pending.filter(row => isFlag(row, '是否督办'));
             const overdue = pending.filter(row => isFlag(row, '是否逾期'));
-            if (hint) hint.textContent = `督办 ${supervised.length} · 逾期 ${overdue.length}`;
 
             const items = (supervised.length || overdue.length)
                 ? pending.filter(row => isFlag(row, '是否督办') || isFlag(row, '是否逾期'))
@@ -4512,9 +4515,19 @@
                     <div class="sp-side"><b title="${escHtml(prof)}">${escHtml(prof)}</b>${getZone(row)}</div>
                 </div>`;
             }).join('');
-            const needScroll = items.length > 6;
-            const dur = Math.max(16, items.length * 2.2);
-            viewport.innerHTML = `<div class="sp-list scroll-track" style="animation-name:${needScroll ? 'scrollUp' : 'none'};animation-duration:${dur}s;">${rowsHTML}${needScroll ? rowsHTML : ''}</div>`;
+
+            // 先按单份渲染并实测高度：内容不足一屏时静态显示，避免少量条目高速空转
+            viewport.innerHTML = `<div class="sp-list">${rowsHTML}</div>`;
+            const track = viewport.querySelector('.sp-list');
+            if (!track) return;
+            const copyH = track.scrollHeight;
+            if (copyH <= viewport.clientHeight) return;
+
+            // 内容超出一屏：复制一份并按 -50%（正好一份高度）匀速平移，实现无缝循环
+            track.innerHTML = rowsHTML + rowsHTML;
+            track.classList.add('scroll-track');
+            track.style.animationName = 'scrollUp';
+            track.style.animationDuration = Math.max(18, Math.round(copyH / 22)) + 's';
         }
 
         /* ================= 卫星底图 + 点位 ================= */
