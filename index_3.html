@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.1 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.2 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -302,6 +302,126 @@
             background: var(--btn-active);
             border-color: var(--cyan);
             box-shadow: 0 0 16px rgba(59, 210, 255, 0.55);
+        }
+
+        /* ===== 数据核对面板（默认折叠，绝对定位不参与三栏布局） ===== */
+        .dbg-panel {
+            position: absolute;
+            right: 18px;
+            top: 84px;
+            z-index: 65;
+            display: none;
+            width: min(680px, calc(100% - 36px));
+            max-height: 340px;
+            overflow: auto;
+            padding: 10px 12px 12px;
+            background: linear-gradient(180deg, rgba(6, 20, 38, 0.97), rgba(4, 12, 24, 0.98));
+            border: 1px solid var(--panel-line);
+            border-radius: var(--radius-card);
+            box-shadow: 0 12px 34px rgba(0, 0, 0, 0.6);
+            font-size: 12px;
+            color: var(--text-2);
+        }
+
+        .dbg-panel.open {
+            display: block;
+        }
+
+        .dbg-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--head-line);
+        }
+
+        .dbg-head b {
+            font-size: 13px;
+            letter-spacing: 1px;
+            color: var(--text-1);
+        }
+
+        .dbg-head .dbg-sp {
+            flex: 1;
+        }
+
+        .dbg-close {
+            font-family: inherit;
+            font-size: 11px;
+            color: var(--text-2);
+            background: transparent;
+            border: 1px solid var(--btn-line);
+            border-radius: var(--radius-btn);
+            padding: 3px 8px;
+            cursor: pointer;
+        }
+
+        .dbg-close:hover {
+            color: #03121e;
+            background: var(--btn-active);
+            border-color: var(--cyan);
+        }
+
+        .dbg-scroll {
+            overflow-x: auto;
+        }
+
+        .dbg-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .dbg-table th,
+        .dbg-table td {
+            padding: 4px 12px 4px 0;
+            text-align: left;
+        }
+
+        .dbg-table th {
+            color: var(--text-3);
+            font-weight: 400;
+            letter-spacing: 0.5px;
+        }
+
+        .dbg-table td {
+            color: var(--text-1);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .dbg-warn {
+            color: var(--red);
+            font-weight: 700;
+        }
+
+        .dbg-ok {
+            color: var(--green);
+        }
+
+        .dbg-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .dbg-actions button {
+            font-family: inherit;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            color: var(--text-2);
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-line);
+            border-radius: var(--radius-btn);
+            padding: 4px 10px;
+            cursor: pointer;
+        }
+
+        .dbg-actions button:hover {
+            color: #03121e;
+            background: var(--btn-active);
+            border-color: var(--cyan);
         }
 
         /* ================= Layout ================= */
@@ -2958,11 +3078,12 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.30.1</span>
+                    <span class="ver">V5.30.2</span>
                 </div>
             </div>
 
             <div class="top-right">
+                <button class="sys-link as-btn" id="dbgBtn" type="button" title="数据核对（?debug=1 默认展开）">数据核对</button>
                 <button class="sys-link as-btn" id="mapImgBtn" type="button">底图</button>
                 <button class="sys-link as-btn" id="mapEditBtn" type="button">点位</button>
                 <button class="sys-link fs-btn" id="fsBtn" type="button" title="铺满全屏" aria-label="铺满全屏"
@@ -2981,6 +3102,19 @@
                     <b id="clockTime">00:00:00</b>
                     <span id="clockDate"></span>
                 </div>
+            </div>
+        </div>
+
+        <!-- ===== 数据核对面板（只读展示，不影响任何取数与统计） ===== -->
+        <div class="dbg-panel" id="dbgPanel">
+            <div class="dbg-head">
+                <b>数据核对</b>
+                <span class="dbg-sp"></span>
+                <button class="dbg-close" id="dbgClose" type="button">收起</button>
+            </div>
+            <div id="dbgBody"></div>
+            <div class="dbg-actions">
+                <button id="dbgExport" type="button">导出当前 all 为 JSON</button>
             </div>
         </div>
 
@@ -3615,6 +3749,105 @@
             }
         }
 
+        /* ================= 数据核对面板（只读展示，不参与取数与统计） ================= */
+        const dbgPanel = document.getElementById('dbgPanel');
+        const dbgBtn = document.getElementById('dbgBtn');
+
+        function readSourceInfo(key) {
+            const raw = localStorage.getItem(key);
+            if (raw === null) return { exists: false, broken: false, rows: [], raw: '' };
+            try {
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) return { exists: true, broken: true, rows: [], raw };
+                return { exists: true, broken: false, rows: parsed, raw };
+            } catch (e) {
+                return { exists: true, broken: true, rows: [], raw };
+            }
+        }
+
+        function sourceCountText(info) {
+            if (!info.exists) return '键不存在';
+            if (info.broken) return '解析失败（键存在）';
+            return info.rows.length + ' 条';
+        }
+
+        function uniqueIdCount(rows) {
+            const set = new Set();
+            rows.forEach(row => {
+                if (!row || typeof row !== 'object') return;
+                const id = getId(row);
+                if (id) set.add(id);
+            });
+            return set.size;
+        }
+
+        function debugSourceRow(name, info) {
+            const cells = !info.exists || info.broken
+                ? '<td>—</td><td>—</td>'
+                : '<td>' + info.rows.length + '</td><td>' + uniqueIdCount(info.rows) + '</td><td>'
+                + (info.rows.length - uniqueIdCount(info.rows)) + '</td>';
+            return '<tr><th>' + name + '</th><td>' + sourceCountText(info) + '</td>' + cells + '</tr>';
+        }
+
+        function renderDebugPanel() {
+            if (!dbgPanel) return;
+            const src = {
+                all: readSourceInfo('defectData_all'),
+                recv: readSourceInfo('defectData_recv'),
+                fen: readSourceInfo('defectData_fen')
+            };
+            const viewName = { all: '全部', recv: '接收站', fen: '分输站' }[state.view] || state.view;
+            const judgment = state.dataFallback
+                ? '<span class="dbg-warn">兜底 recv+fen（异常）</span>'
+                : '<span class="dbg-ok">仅 all</span>';
+            const html =
+                '<div class="dbg-scroll"><table class="dbg-table">' +
+                '<tr><th>来源键</th><th>原始行数</th><th>编号唯一数</th><th>行数−唯一数</th></tr>' +
+                debugSourceRow('defectData_all', src.all) +
+                debugSourceRow('defectData_recv', src.recv) +
+                debugSourceRow('defectData_fen', src.fen) +
+                '<tr><th>看板实际使用（state.allRows）</th><td>' + state.allRows.length + ' 行</td><td colspan="2">' + judgment + '</td></tr>' +
+                '<tr><th>当前视图</th><td>' + viewName + '</td><td colspan="2">' + state.rows.length + ' 行</td></tr>' +
+                '</table></div>' +
+                '<div class="dbg-muted" style="margin-top:6px;font-size:11px;color:var(--text-3);">' +
+                '编号为空的行计入行数、不计入唯一数；本面板只读，不做任何过滤或去重。</div>';
+            document.getElementById('dbgBody').innerHTML = html;
+        }
+
+        function exportAllJson() {
+            const info = readSourceInfo('defectData_all');
+            const text = info.exists && !info.broken ? info.raw : '[]';
+            const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            const blob = new Blob([text], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'defectData_all_' + stamp + '.json';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+        }
+
+        function toggleDebugPanel(force) {
+            if (!dbgPanel) return;
+            const open = typeof force === 'boolean' ? force : !dbgPanel.classList.contains('open');
+            dbgPanel.classList.toggle('open', open);
+            if (dbgBtn) dbgBtn.classList.toggle('on', open);
+            if (open) renderDebugPanel();
+        }
+
+        function initDebugPanel() {
+            if (dbgBtn) dbgBtn.addEventListener('click', () => toggleDebugPanel());
+            const closeBtn = document.getElementById('dbgClose');
+            if (closeBtn) closeBtn.addEventListener('click', () => toggleDebugPanel(false));
+            const exportBtn = document.getElementById('dbgExport');
+            if (exportBtn) exportBtn.addEventListener('click', exportAllJson);
+            let openByUrl = false;
+            try {
+                openByUrl = new URLSearchParams(location.search).get('debug') === '1';
+            } catch (e) { openByUrl = false; }
+            if (openByUrl) toggleDebugPanel(true);
+        }
+
         /* ================= 视图 / 时钟 / 同步 ================= */
         function parseHashView() {
             const h = (location.hash || '').replace('#', '').trim();
@@ -4018,6 +4251,7 @@
             renderSuperviseList();
             renderMaps();
             document.getElementById('emptyState').classList.toggle('show', state.allRows.length === 0);
+            if (dbgPanel && dbgPanel.classList.contains('open')) renderDebugPanel();
         }
 
         /* ================= 关键指标 ================= */
@@ -6150,6 +6384,7 @@
             startClock();
             loadData();
             startAutoSync();
+            initDebugPanel();
             setView(parseHashView(), false);
             setInterval(rotateAlert, 4000);
         }
