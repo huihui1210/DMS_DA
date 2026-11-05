@@ -180,9 +180,8 @@
         <h1>重复编号检查</h1>
         <div class="sub">
             读取本机 localStorage 的 <code>defectData_all</code>、<code>defectData_recv</code>、<code>defectData_fen</code>，
-            列出所有出现 2 次及以上的缺陷编号，并对比「按编号去重」与「按整行指纹去重」的差额。<br>
-            本页面只读，不会修改任何数据。
-        </div>
+            列出所有出现 2 次及以上的缺陷编号，并对比「三键原始条数 / all 原始条数 / 去重后条数」。<br>
+            <code>defectData_all</code> 是当前数据的唯一权威来源，recv/fen 仅为分站存储；本页面只读，不会修改任何数据。</div>
 
         <div class="notice" id="notice"></div>
 
@@ -404,11 +403,11 @@
             }
 
             var cards = [
-                { k: 'defectData_all 条数', v: report.sources.all },
-                { k: 'defectData_recv 条数', v: report.sources.recv },
-                { k: 'defectData_fen 条数', v: report.sources.fen },
-                { k: '合并后条数', v: report.merged },
-                { k: '按编号去重后', v: report.idDedup },
+                { k: 'all 原始条数', v: report.sources.all },
+                { k: 'recv 原始条数', v: report.sources.recv },
+                { k: 'fen 原始条数', v: report.sources.fen },
+                { k: '三键合并后条数', v: report.merged },
+                { k: '按编号去重后（参考）', v: report.idDedup },
                 { k: '按整行指纹去重后', v: report.fpDedup },
                 { k: '重复编号组数', v: report.totalDupGroups },
                 { k: '完全重复行数', v: report.identicalRows },

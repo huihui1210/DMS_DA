@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.29.9</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.0</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -891,7 +891,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.29.9</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
+            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.0</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#all'">数据看板</button>
                 <label for="fileInput" class="btn btn-upload">
@@ -2253,20 +2253,6 @@
             return idKey ? String(row[idKey] || '').trim() : '';
         }
 
-        // 整行指纹：除内部临时字段（下划线开头）外，所有业务字段按名称排序后拼接
-        function rowFingerprint(row) {
-            const obj = row || {};
-            return Object.keys(obj)
-                .filter(k => !String(k).startsWith('_'))
-                .sort()
-                .map(k => {
-                    const v = obj[k];
-                    const s = v === undefined || v === null ? '' : String(v).trim();
-                    return k + '=' + s;
-                })
-                .join('\u0001');
-        }
-
         function saveToLocalStorage() {
             // 同步共享键，供 report.html 读取
             localStorage.setItem('defectData', JSON.stringify(processedData));
@@ -2306,32 +2292,15 @@
         }
 
         function loadFromLocalStorage() {
-            // 从 defectData_all 读取（接收站/分输站保存时已合并写入）
-            const saved = localStorage.getItem('defectData_all') || localStorage.getItem(STORAGE_KEY);
+            // 只读 defectData_all：唯一权威来源，原样加载
+            const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
                 try {
                     processedData = JSON.parse(saved);
-                    // 三个来源统一合并：defectData_all 优先，其次 recv，再次 fen
-                    // 仅折叠「整行指纹完全相同」的重复行；同编号不同内容全部保留
-                    const readKey = key => {
-                        try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return []; }
-                    };
-                    const seen = new Set();
-                    processedData = [
-                        JSON.parse(saved),
-                        ...readKey('defectData_recv'),
-                        ...readKey('defectData_fen')
-                    ].filter(row => {
-                        if (!row) return false;
-                        const fingerprint = rowFingerprint(row);
-                        if (seen.has(fingerprint)) return false;
-                        seen.add(fingerprint);
-                        return true;
-                    }).map(row => ({ ...row, status: determineStatus(row) }));
-                    // 如果总界面有保存但 defectData_all 没数据，用自己的键
-                    if (!localStorage.getItem('defectData_all')) {
-                        localStorage.setItem('defectData_all', saved);
-                    }
+                    // 覆盖语义：只以 defectData_all 为当前数据，不补读 recv/fen，也不做编号去重
+                    processedData = processedData
+                        .filter(row => row && typeof row === 'object')
+                        .map(row => ({ ...row, status: determineStatus(row) }));
                     // 总界面：清理残留的"其他"值，按编号长度转换
                     let changed = false;
                     processedData.forEach(row => {

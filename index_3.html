@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.29.9 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -2958,7 +2958,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.29.9</span>
+                    <span class="ver">V5.30.0</span>
                 </div>
             </div>
 
@@ -3597,25 +3597,46 @@
         }
 
         function loadData() {
-            // 三个来源统一合并：defectData_all 优先，其次 recv，再次 fen
-            // 仅折叠「整行指纹完全相同」的重复行；同编号不同内容全部保留
-            const rowsAll = readStorageRows(STORAGE_KEY);
-            const rowsRecv = readStorageRows('defectData_recv');
-            const rowsFen = readStorageRows('defectData_fen');
-            const merged = [];
-            const seenFingerprints = new Set();
+            // defectData_all 是当前数据的唯一权威来源：原样读取，不做任何去重或过滤
+            // 仅当总键缺失/解析失败时，才用 recv + fen 并集兜底（并折叠整行完全相同的记录）
+            let mainRows = [];
+            let mainOk = false;
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) {
+                        mainRows = parsed;
+                        mainOk = true;
+                    }
+                }
+            } catch (e) {
+                mainOk = false;
+            }
 
-            [rowsAll, rowsRecv, rowsFen].forEach(rows => {
-                rows.forEach(row => {
-                    if (!row || !Object.values(row).some(v => !isEmpty(v))) return;
-                    const fingerprint = rowFingerprint(row);
-                    if (seenFingerprints.has(fingerprint)) return;
-                    seenFingerprints.add(fingerprint);
-                    merged.push(row);
+            let rows;
+            if (mainOk) {
+                rows = mainRows;
+            } else {
+                const merged = [];
+                const seen = new Set();
+                ['defectData_recv', 'defectData_fen'].forEach(key => {
+                    readStorageRows(key).forEach(row => {
+                        if (!row || typeof row !== 'object') return;
+                        const fingerprint = rowFingerprint(row);
+                        if (seen.has(fingerprint)) return;
+                        seen.add(fingerprint);
+                        merged.push(row);
+                    });
                 });
-            });
+                rows = merged;
+                console.warn('[数据] defectData_all 缺失或解析失败，已用接收站/分输站数据兜底，共 ' + rows.length + ' 条');
+            }
 
-            state.allRows = merged.map(normalizeRow);
+            state.allRows = rows
+                .filter(row => row && typeof row === 'object')
+                .map(normalizeRow);
+            state.dataFallback = !mainOk;
         }
 
         function applyView() {
