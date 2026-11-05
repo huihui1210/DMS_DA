@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.13 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.14 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -3076,7 +3076,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.30.13</span>
+                    <span class="ver">V5.30.14</span>
                 </div>
             </div>
 
@@ -3218,8 +3218,6 @@
                         <span class="bar"></span>
                         <h2>消缺龙虎榜</h2>
                         <div class="period-tabs" id="periodTabs">
-                            <button class="pbtn" data-period="yesterday">日度</button>
-                            <button class="pbtn" data-period="week">周度</button>
                             <button class="pbtn active" data-period="month">月度</button>
                             <button class="pbtn" data-period="year">年度</button>
                         </div>
@@ -3301,7 +3299,7 @@
             '安全': 'QHSE部',
             '后勤': '综合管理部'
         };
-        const PERIOD_LABELS = { yesterday: '日度', week: '周度', month: '月度', year: '年度' };
+        const PERIOD_LABELS = { month: '月度', year: '年度' };
         // 厂区分布面板标题（随视图切换），弹窗主标题也复用它
         const MAP_TITLES = { all: '厂区分布（全站）', recv: '接收站分布', fen: '分输站分布' };
 
@@ -4488,8 +4486,6 @@
             const now = new Date();
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
             const yearStart = new Date(now.getFullYear(), 0, 1);
-            const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-            const yesterdayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
             const map = {};
             rows.forEach(row => {
@@ -4497,11 +4493,8 @@
                 const d = getCompleteDate(row);
                 if (!d) return;
                 const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                let matched = false;
-                if (period === 'yesterday') matched = dayDate >= yesterdayStart && dayDate < yesterdayEnd;
-                else if (period === 'week') matched = isSameWeek(dayDate, now);
-                else if (period === 'month') matched = dayDate >= monthStart;
-                else matched = dayDate >= yearStart;
+                // 龙虎榜只保留月度（当月）/年度（当年）两档
+                const matched = period === 'year' ? dayDate >= yearStart : dayDate >= monthStart;
                 if (!matched) return;
                 const prof = getProfession(row);
                 if (prof === '未分类') return;
@@ -5527,8 +5520,10 @@
         }
 
         function renderBoardChart() {
-            const period = state.period || 'month';
-            const periodLabel = PERIOD_LABELS[period] || '月度';
+            // 兜底：state.period 或历史缓存中的日/周等非法值统一回落 month，避免首屏空白
+            const period = (state.period === 'month' || state.period === 'year') ? state.period : 'month';
+            state.period = period;
+            const periodLabel = PERIOD_LABELS[period];
             const boardRate = getBoardRateStats(state.rows, null, period);
             const rateOf = prof => {
                 const hit = boardRate.hits[prof] || 0;
@@ -6408,22 +6403,13 @@
             });
         }
 
-        // 龙虎榜周期口径：与 getLeaderboard 一致
+        // 龙虎榜周期口径：与 getLeaderboard 一致（仅月度/年度）
         function inSelectedPeriod(d, period) {
             if (!d) return false;
             const now = new Date();
             const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-            if (period === 'yesterday') {
-                const ys = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-                const ye = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                return dayDate >= ys && dayDate < ye;
-            }
-            if (period === 'week') {
-                const day = now.getDay() || 7;
-                return dayDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
-            }
-            if (period === 'month') return dayDate >= new Date(now.getFullYear(), now.getMonth(), 1);
-            return dayDate >= new Date(now.getFullYear(), 0, 1);
+            if (period === 'year') return dayDate >= new Date(now.getFullYear(), 0, 1);
+            return dayDate >= new Date(now.getFullYear(), now.getMonth(), 1);
         }
 
         // 关键指标 12 项：弹窗主标题直接取卡片标题（KPI_GROUP_DEFS.lbl），保证与界面一致
@@ -6472,7 +6458,7 @@
                 if (!row) return;
                 const item = (state.boardItems || [])[+row.dataset.idx];
                 if (!item) return;
-                const p = state.period || 'month';
+                const p = (state.period === 'month' || state.period === 'year') ? state.period : 'month';
                 const rows = state.rows.filter(r =>
                     r.status === '已消缺项' && getProfession(r) === item.prof && inSelectedPeriod(getCompleteDate(r), p)
                 );
