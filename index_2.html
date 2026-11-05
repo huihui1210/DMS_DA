@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG分输站设备缺陷管理系统 V5.30.3</title>
+    <title>福建LNG分输站设备缺陷管理系统 V5.30.4</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -893,7 +893,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG分输站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.3</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
+            <h1>福建LNG分输站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.4</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#fen'">数据看板</button>
                 <label for="fileInput" class="btn btn-upload">
@@ -2242,6 +2242,32 @@
         }
 
         // ======= localStorage 持久化 =======
+        // 整行指纹：字段名排序，值 trim，null/undefined 视空串，排除内部临时字段（_ 开头）
+        function rowFingerprint(row) {
+            const obj = row || {};
+            return Object.keys(obj)
+                .filter(k => !String(k).startsWith('_'))
+                .sort()
+                .map(k => {
+                    const v = obj[k];
+                    return k + '=' + (v === undefined || v === null ? '' : String(v).trim());
+                })
+                .join('\u0001');
+        }
+
+        // 只折叠「整行完全相同」的行：保留先出现的一条，同编号不同内容不折叠
+        function foldExactDuplicates(rows) {
+            const seen = new Set();
+            const kept = [];
+            rows.forEach(row => {
+                const fp = rowFingerprint(row);
+                if (seen.has(fp)) return;
+                seen.add(fp);
+                kept.push(row);
+            });
+            return kept;
+        }
+
         function saveToLocalStorage() {
             // 导入即整表覆盖本站键：不追加历史、不按编号替换
             localStorage.setItem(STORAGE_KEY, JSON.stringify(processedData));
@@ -2258,7 +2284,7 @@
                     return Array.isArray(parsed) ? parsed : [];
                 } catch (e) { return []; }
             };
-            const allData = readRows('defectData_recv').concat(readRows('defectData_fen'));
+            const allData = foldExactDuplicates(readRows('defectData_recv').concat(readRows('defectData_fen')));
             localStorage.setItem('defectData_all', JSON.stringify(allData));
             // 版本号时间戳：供总界面(index_1)可靠感知每次同步
             localStorage.setItem('defectData_all_ver', String(Date.now()));

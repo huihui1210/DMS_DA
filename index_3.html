@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.3 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.4 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -3078,7 +3078,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.30.3</span>
+                    <span class="ver">V5.30.4</span>
                 </div>
             </div>
 
@@ -3116,6 +3116,8 @@
             <div class="dbg-actions">
                 <button id="dbgExport" type="button">导出当前 all 为 JSON</button>
                 <button id="dbgExportBad" type="button">导出被排除行 JSON</button>
+                <button id="dbgExportDup" type="button">导出被折叠行 JSON</button>
+                <button id="dbgCleanDup" type="button">清理完全重复行</button>
             </div>
         </div>
 
@@ -3440,6 +3442,7 @@
             allRows: [],
             rows: [],
             invalidRows: [],
+            dupRows: [],
             dataFallback: false,
             charts: {},
             alertIndex: 0,
@@ -3520,6 +3523,33 @@
         function isValidIdLength(id) {
             const len = String(id || '').trim().length;
             return len === 11 || len === 14;
+        }
+
+        // 整行指纹：字段名排序，值 trim，null/undefined 视空串，排除内部临时字段（_ 开头）
+        function rowFingerprint(row) {
+            const obj = row || {};
+            return Object.keys(obj)
+                .filter(k => !String(k).startsWith('_'))
+                .sort()
+                .map(k => {
+                    const v = obj[k];
+                    return k + '=' + (v === undefined || v === null ? '' : String(v).trim());
+                })
+                .join('\u0001');
+        }
+
+        // 只折叠「整行完全相同」的行：保留先出现的一条，同编号不同内容不折叠
+        function foldExactDuplicates(rows) {
+            const seen = new Set();
+            const kept = [];
+            const folded = [];
+            rows.forEach(row => {
+                const fp = rowFingerprint(row);
+                if (seen.has(fp)) { folded.push(row); return; }
+                seen.add(fp);
+                kept.push(row);
+            });
+            return { kept, folded };
         }
 
         function getStationType(id) {
@@ -3752,9 +3782,15 @@
                 console.warn('[数据] 编号长度不合法 ' + state.invalidRows.length + ' 条，已排除统计；前 10 条编号：',
                     state.invalidRows.slice(0, 10).map(getId));
             }
-            state.allRows = rawRows
-                .filter(row => isValidIdLength(getId(row)))
-                .map(normalizeRow);
+            // 再折叠「整行完全相同」的行（同编号不同内容全部保留）
+            const validRows = rawRows.filter(row => isValidIdLength(getId(row)));
+            const folded = foldExactDuplicates(validRows);
+            state.dupRows = folded.folded;
+            if (state.dupRows.length) {
+                console.warn('[数据] 完全重复行 ' + state.dupRows.length + ' 条，已折叠；前 10 条编号：',
+                    state.dupRows.slice(0, 10).map(getId));
+            }
+            state.allRows = folded.kept.map(normalizeRow);
         }
 
         function applyView() {
@@ -3817,6 +3853,7 @@
                 ? '<span class="dbg-warn">兜底 recv+fen（异常）</span>'
                 : '<span class="dbg-ok">仅 all</span>';
             const bad = state.invalidRows || [];
+            const dup = state.dupRows || [];
             const distMap = {};
             bad.forEach(row => {
                 const len = getId(row).length;
@@ -3834,11 +3871,12 @@
                 debugSourceRow('defectData_recv', src.recv) +
                 debugSourceRow('defectData_fen', src.fen) +
                 '<tr><th>编号长度不合法（已排除统计）</th><td' + (bad.length ? ' class="dbg-warn"' : '') + '>' + bad.length + ' 条</td><td colspan="2">' + distText + '</td></tr>' +
+                '<tr><th>完全重复行（已折叠）</th><td' + (dup.length ? ' class="dbg-warn"' : '') + '>' + dup.length + ' 条</td><td colspan="2">整行完全相同，仅保留先出现的一条</td></tr>' +
                 '<tr><th>看板实际使用（state.allRows）</th><td>' + state.allRows.length + ' 行</td><td colspan="2">' + judgment + '</td></tr>' +
                 '<tr><th>当前视图</th><td>' + viewName + '</td><td colspan="2">' + state.rows.length + ' 行</td></tr>' +
                 '</table></div>' +
                 '<div class="dbg-muted" style="margin-top:6px;font-size:11px;color:var(--text-3);">' +
-                '仅 11/14 位编号参与统计，其余为脏数据已排除；11/14 位内同编号多行仍全部保留，不做去重。</div>';
+                '统计顺序：原始行数 → 仅 11/14 位编号 → 整行完全相同折叠 → 实际统计；同编号不同内容全部保留，不做按编号去重。</div>';
             document.getElementById('dbgBody').innerHTML = html;
         }
 
@@ -3864,6 +3902,49 @@
             downloadJson(JSON.stringify(state.invalidRows || [], null, 2), 'defectData_invalid_ids_' + stamp + '.json');
         }
 
+        function exportDupJson() {
+            const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            downloadJson(JSON.stringify(state.dupRows || [], null, 2), 'defectData_exact_dups_' + stamp + '.json');
+        }
+
+        // 一次性手动清理：三个键各自独立折叠「整行完全相同」，不做按编号去重、不过滤编号
+        function cleanExactDuplicates() {
+            const keys = ['defectData_recv', 'defectData_fen', 'defectData_all'];
+            const plan = keys.map(key => {
+                const info = readSourceInfo(key);
+                if (!info.exists || info.broken) return { key, before: null, after: null, folded: 0, kept: null };
+                const res = foldExactDuplicates(info.rows);
+                return { key, before: info.rows.length, after: res.kept.length, folded: res.folded.length, kept: res.kept };
+            });
+            const removable = plan.reduce((sum, p) => sum + p.folded, 0);
+            if (!removable) {
+                alert('未发现整行完全相同的重复行，无需清理。');
+                return;
+            }
+            const detail = plan
+                .filter(p => p.before !== null)
+                .map(p => p.key + '：' + p.before + ' → ' + p.after + '（删除 ' + p.folded + ' 条）')
+                .join('\n');
+            if (!confirm('将删除整行完全相同的数据共 ' + removable + ' 条，无法恢复。\n\n' + detail +
+                '\n\n只删除整行完全相同的数据，同编号不同内容一律保留，也不过滤编号。是否继续？')) return;
+            if (!confirm('再次确认：将立即写回 localStorage 的 defectData_recv / defectData_fen / defectData_all，不可撤销。')) return;
+
+            const recvPlan = plan.find(p => p.key === 'defectData_recv');
+            const fenPlan = plan.find(p => p.key === 'defectData_fen');
+            const recv = recvPlan && recvPlan.kept ? recvPlan.kept : readStorageRows('defectData_recv');
+            const fen = fenPlan && fenPlan.kept ? fenPlan.kept : readStorageRows('defectData_fen');
+            if (recvPlan && recvPlan.kept) localStorage.setItem('defectData_recv', JSON.stringify(recvPlan.kept));
+            if (fenPlan && fenPlan.kept) localStorage.setItem('defectData_fen', JSON.stringify(fenPlan.kept));
+            // all 重建 = 当前 recv 全量 + 当前 fen 全量，再折叠整行完全相同
+            const rebuilt = foldExactDuplicates(recv.concat(fen));
+            localStorage.setItem('defectData_all', JSON.stringify(rebuilt.kept));
+            localStorage.setItem('defectData_all_ver', String(Date.now()));
+            alert('清理完成：\n' + detail + '\n\ndefectData_all 重建后 ' + rebuilt.kept.length + ' 条（本次折叠 ' + rebuilt.folded.length + ' 条）');
+            loadData();
+            renderAll();
+            if (dbgPanel && dbgPanel.classList.contains('open')) renderDebugPanel();
+        }
+
         function toggleDebugPanel(force) {
             if (!dbgPanel) return;
             const open = typeof force === 'boolean' ? force : !dbgPanel.classList.contains('open');
@@ -3880,6 +3961,10 @@
             if (exportBtn) exportBtn.addEventListener('click', exportAllJson);
             const exportBadBtn = document.getElementById('dbgExportBad');
             if (exportBadBtn) exportBadBtn.addEventListener('click', exportInvalidJson);
+            const exportDupBtn = document.getElementById('dbgExportDup');
+            if (exportDupBtn) exportDupBtn.addEventListener('click', exportDupJson);
+            const cleanDupBtn = document.getElementById('dbgCleanDup');
+            if (cleanDupBtn) cleanDupBtn.addEventListener('click', cleanExactDuplicates);
             let openByUrl = false;
             try {
                 openByUrl = new URLSearchParams(location.search).get('debug') === '1';
