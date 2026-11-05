@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷数据分析报告 V5.30.14</title>
+    <title>福建LNG设备缺陷数据分析报告 V5.30.15</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         /* ======= Reset & 全局 ======= */
@@ -1389,58 +1389,71 @@
             return { professions, remainingStats, newStats, completedStats };
         }
 
-        // ======= 消缺龙虎榜表：口径与看板 getBoardRateStats 完全一致 =======
-        // 唯一依据：状态=已消缺（isCompleted）且「消项时间」有值（getCompleteDate 优先级：
-        // 消项时间 → 消缺完成日期 → 完成日期 → 消缺时间）；缺时间记录不进榜、不计入「有消缺的天数」分母
-        // 仅月度（近30天）/年度（近365天）两档：逐日取消缺量第一名专业（并列取排序首位）记 1 次
+        // ======= 消缺龙虎榜表：日/周/月榜，各按对应周期的"第一"计榜，上榜率=拿第一次数/周期总数 =======
+        // 每行显示该周期上榜率第一的专业及其消缺量与上榜率；周榜从1日起每7天算一周，月窗口=当年1月~基准月
+        // 口径与主界面龙虎榜一致：Ⅰ/Ⅱ类均统计，土建/消防参与排名，未分类不计，仅统计已消缺且有消缺完成日期的数据
+        // 注意：本表沿用报告自身口径（日/周/月榜），与 index_3 看板的 30/365 天上榜率口径不同，二者不要求一致
         function buildLeaderboard(processedData, baseDate, asOfDay) {
             const refDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), asOfDay);
-            const windows = { month: 30, year: 365 };
-            const buckets = { month: {}, year: {} };
-            const volume = { month: {}, year: {} };
-            const add = (kind, key, prof) => {
-                buckets[kind][key] = buckets[kind][key] || {};
-                buckets[kind][key][prof] = (buckets[kind][key][prof] || 0) + 1;
-                volume[kind][prof] = (volume[kind][prof] || 0) + 1;
-            };
+
+            // 预提取：日/月两个粒度的各专业消缺数
+            const dailyCount = {}, monthCount = {};
             processedData.forEach(row => {
                 if (!isCompleted(row)) return;
                 const d = getCompleteDate(row);
                 if (!d) return;
-                const prof = getProfession(row);
-                if (!prof || prof === '未分类') return;
-                const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                if (dayDate > refDate) return;
-                const diffDays = Math.round((refDate - dayDate) / 86400000);
-                Object.keys(windows).forEach(kind => {
-                    if (diffDays < windows[kind]) add(kind, dayDate.getTime(), prof);
-                });
+                const profession = getProfession(row);
+                if (profession === '未分类') return;
+                const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+                (dailyCount[`${y}-${m}-${day}`] = dailyCount[`${y}-${m}-${day}`] || {})[profession] = (dailyCount[`${y}-${m}-${day}`][profession] || 0) + 1;
+                (monthCount[`${y}-${m}`] = monthCount[`${y}-${m}`] || {})[profession] = (monthCount[`${y}-${m}`][profession] || 0) + 1;
             });
-            const countHits = kind => {
-                const hits = {};
-                Object.values(buckets[kind]).forEach(map => {
-                    // 每日只认第一名（并列按排序后的稳定顺序取首位），仅记 1 次
-                    const top = Object.entries(map).sort((a, b) => b[1] - a[1])[0];
-                    if (top) hits[top[0]] = (hits[top[0]] || 0) + 1;
-                });
-                return hits;
+
+            const topOf = counts => {
+                const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+                return entries.length ? entries[0][0] : null;
             };
-            // 该窗口上榜率最高的专业（并列按消缺量）
-            const champInfo = (hits, vol, total) => {
-                const entries = Object.entries(hits).sort((a, b) => b[1] - a[1] || (vol[b[0]] || 0) - (vol[a[0]] || 0));
-                if (!entries.length || !total) return { prof: '—', vol: '—', rate: '—' };
+            // 某周期"第一"：拿第一次数最多（并列按消缺量），返回该专业的名称/消缺量/上榜率（仅百分比）
+            const champInfo = (onList, volume, total) => {
+                const entries = Object.entries(onList).sort((a, b) => b[1] - a[1] || (volume[b[0]] || 0) - (volume[a[0]] || 0));
+                if (!entries.length) return { prof: '—', vol: '—', rate: '无上榜专业' };
                 const [name, times] = entries[0];
                 return {
                     prof: displayProfession(name),
-                    vol: `${vol[name] || 0}项`,
-                    rate: `${Math.round(times / total * 100)}%`
+                    vol: `${volume[name] || 0}项`,
+                    rate: `${(times / total * 100).toFixed(0)}%`
                 };
             };
 
-            // === 组装表格（仅月度/年度两行；备注列预留为空） ===
+            // === 日榜 & 周榜：窗口=基准月1日~基准日；周榜从1日起每7天算一周（1-7、8-14、15-21...） ===
+            const periodDays = refDate.getDate();
+            const dayTop = {}, periodVolume = {}, weekTop = {}, weekCounts = {};
+            for (let i = 1; i <= periodDays; i++) {
+                const dk = `${refDate.getFullYear()}-${String(refDate.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                Object.entries(dailyCount[dk] || {}).forEach(([name, c]) => { periodVolume[name] = (periodVolume[name] || 0) + c; });
+                const t = topOf(dailyCount[dk]);
+                if (t) dayTop[t] = (dayTop[t] || 0) + 1;
+                const w = Math.floor((i - 1) / 7);
+                (weekCounts[w] = weekCounts[w] || {});
+                Object.entries(dailyCount[dk] || {}).forEach(([name, c]) => { weekCounts[w][name] = (weekCounts[w][name] || 0) + c; });
+            }
+            Object.values(weekCounts).forEach(counts => { const t = topOf(counts); if (t) weekTop[t] = (weekTop[t] || 0) + 1; });
+
+            // === 月榜：窗口=当年1月~基准月（分母=已过月数，10月即除10），每月消缺第一计入榜单 ===
+            const elapsedMonths = refDate.getMonth() + 1;
+            const monthTop = {}, yearVolume = {};
+            for (let m = 1; m <= elapsedMonths; m++) {
+                const mk = `${refDate.getFullYear()}-${String(m).padStart(2, '0')}`;
+                Object.entries(monthCount[mk] || {}).forEach(([name, c]) => { yearVolume[name] = (yearVolume[name] || 0) + c; });
+                const t = topOf(monthCount[mk]);
+                if (t) monthTop[t] = (monthTop[t] || 0) + 1;
+            }
+
+            // === 组装表格（备注列预留为空） ===
             const rows = [
-                { period: '月度', ...champInfo(countHits('month'), volume.month, Object.keys(buckets.month).length) },
-                { period: '年度', ...champInfo(countHits('year'), volume.year, Object.keys(buckets.year).length) }
+                { period: '日榜', ...champInfo(dayTop, periodVolume, periodDays) },
+                { period: '周榜', ...champInfo(weekTop, periodVolume, Object.keys(weekCounts).length) },
+                { period: '月榜', ...champInfo(monthTop, yearVolume, elapsedMonths) }
             ];
             const rowsHtml = rows.map(r => `<tr><td>${escHtml(r.period)}</td><td>${escHtml(r.prof)}</td><td>${escHtml(r.vol)}</td><td>${escHtml(r.rate)}</td><td></td></tr>`).join('');
 
@@ -1736,7 +1749,7 @@
             topCompleted.forEach(name => completedListEl.appendChild(buildProfessionCard(name, classIStats.completedStats[name] || 0)));
             topPending.forEach(name => pendingListEl.appendChild(buildProfessionCard(name, pendingByProfession[name] || 0)));
 
-            // 消缺龙虎榜表（月度/年度，每行显示窗口内上榜率最高的第一）
+            // 消缺龙虎榜表（日/周/月榜，沿用报告自身口径，与看板 30/365 天口径不同）
             document.getElementById('leaderboardTable').innerHTML = buildLeaderboard(processedData, baseDate, asOfDay);
 
             // 生产重点关注缺陷情况（是否督办=是）
