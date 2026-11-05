@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.4 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.5 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -394,6 +394,22 @@
         .dbg-warn {
             color: var(--red);
             font-weight: 700;
+        }
+
+        .dbg-grp td {
+            padding-top: 8px;
+            color: var(--cyan);
+            font-weight: 700;
+        }
+
+        .dbg-nofold {
+            margin-left: 6px;
+            padding: 0 5px 1px;
+            font-size: 10px;
+            font-weight: 400;
+            color: var(--amber);
+            border: 1px solid rgba(255, 198, 88, 0.45);
+            border-radius: var(--radius-btn);
         }
 
         .dbg-ok {
@@ -3078,7 +3094,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.30.4</span>
+                    <span class="ver">V5.30.5</span>
                 </div>
             </div>
 
@@ -3117,6 +3133,7 @@
                 <button id="dbgExport" type="button">导出当前 all 为 JSON</button>
                 <button id="dbgExportBad" type="button">导出被排除行 JSON</button>
                 <button id="dbgExportDup" type="button">导出被折叠行 JSON</button>
+                <button id="dbgExportSameId" type="button">导出同编号清单 JSON</button>
                 <button id="dbgCleanDup" type="button">清理完全重复行</button>
             </div>
         </div>
@@ -3841,6 +3858,63 @@
             return '<tr><th>' + name + '</th><td>' + sourceCountText(info) + '</td>' + cells + '</tr>';
         }
 
+        function escapeDbg(v) {
+            return String(v === undefined || v === null ? '' : v)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        // 同编号分组（仅用于展示/导出，绝不折叠、不删除）
+        function getSameIdGroups() {
+            const map = new Map();
+            state.allRows.forEach(row => {
+                const id = getId(row);
+                if (!id) return;
+                if (!map.has(id)) map.set(id, []);
+                map.get(id).push(row);
+            });
+            const groups = [];
+            map.forEach((rows, id) => { if (rows.length > 1) groups.push({ id, rows }); });
+            groups.sort((a, b) => b.rows.length - a.rows.length || a.id.localeCompare(b.id));
+            return groups;
+        }
+
+        function describeSameIdRow(row) {
+            const desc = String(getFieldValue(row, '缺陷描述') || '').replace(/\s+/g, ' ').trim();
+            return {
+                专业: getFieldValue(row, '专业') || '—',
+                分类定级: getFieldValue(row, '分类定级') || getFieldValue(row, '定级') || getFieldValue(row, '分类') || '—',
+                状态: getFieldValue(row, '状态') || determineStatus(row),
+                登记日期: getFieldValue(row, '登记日期') || getFieldValue(row, '编号日期') || getFieldValue(row, '登记时间') || '—',
+                消项时间: getFieldValue(row, '消项时间') || getFieldValue(row, '消缺完成日期') || getFieldValue(row, '完成日期') || '—',
+                缺陷描述: desc.length > 30 ? desc.slice(0, 30) + '…' : desc
+            };
+        }
+
+        function renderSameIdGroups() {
+            const groups = getSameIdGroups();
+            if (!groups.length) {
+                return '<div class="dbg-muted" style="margin-top:8px;">同编号不同内容：0 组</div>';
+            }
+            const head = '<tr><th>#</th><th>专业</th><th>分类定级</th><th>状态</th><th>登记日期</th><th>消项时间</th><th>缺陷描述（前30字）</th></tr>';
+            const body = groups.map(g => {
+                const rows = g.rows.map((row, idx) => {
+                    const f = describeSameIdRow(row);
+                    return '<tr><td>' + (idx + 1) + '</td><td>' + escapeDbg(f.专业) + '</td><td>' + escapeDbg(f.分类定级)
+                        + '</td><td>' + escapeDbg(f.状态) + '</td><td>' + escapeDbg(f.登记日期) + '</td><td>'
+                        + escapeDbg(f.消项时间) + '</td><td>' + escapeDbg(f.缺陷描述) + '</td></tr>';
+                }).join('');
+                return '<tr class="dbg-grp"><td colspan="7">编号 ' + escapeDbg(g.id) + ' · ' + g.rows.length
+                    + ' 条 <span class="dbg-nofold">不参与折叠、不删除</span></td></tr>' + rows;
+            }).join('');
+            return '<div style="margin-top:10px;"><div style="margin-bottom:4px;font-size:11px;">同编号不同内容：'
+                + groups.length + ' 组，共 ' + groups.reduce((n, g) => n + g.rows.length, 0)
+                + ' 条 <span class="dbg-nofold">不参与折叠、不删除</span></div>'
+                + '<div class="dbg-scroll"><table class="dbg-table">' + head + body + '</table></div></div>';
+        }
+
         function renderDebugPanel() {
             if (!dbgPanel) return;
             const src = {
@@ -3875,8 +3949,9 @@
                 '<tr><th>看板实际使用（state.allRows）</th><td>' + state.allRows.length + ' 行</td><td colspan="2">' + judgment + '</td></tr>' +
                 '<tr><th>当前视图</th><td>' + viewName + '</td><td colspan="2">' + state.rows.length + ' 行</td></tr>' +
                 '</table></div>' +
+                renderSameIdGroups() +
                 '<div class="dbg-muted" style="margin-top:6px;font-size:11px;color:var(--text-3);">' +
-                '统计顺序：原始行数 → 仅 11/14 位编号 → 整行完全相同折叠 → 实际统计；同编号不同内容全部保留，不做按编号去重。</div>';
+                '统计顺序：原始行数 → 11/14 位过滤 → 整行完全相同折叠 → 同编号不同内容（仅提示，不折叠）→ 实际统计；同编号不同内容全部保留，不做按编号去重。</div>';
             document.getElementById('dbgBody').innerHTML = html;
         }
 
@@ -3907,6 +3982,14 @@
             downloadJson(JSON.stringify(state.dupRows || [], null, 2), 'defectData_exact_dups_' + stamp + '.json');
         }
 
+        // 导出同编号分组内的全部行（仅导出，不改变任何数据）
+        function exportSameIdJson() {
+            const rows = [];
+            getSameIdGroups().forEach(group => group.rows.forEach(row => rows.push(row)));
+            const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            downloadJson(JSON.stringify(rows, null, 2), 'defectData_same_id_' + stamp + '.json');
+        }
+
         // 一次性手动清理：三个键各自独立折叠「整行完全相同」，不做按编号去重、不过滤编号
         function cleanExactDuplicates() {
             const keys = ['defectData_recv', 'defectData_fen', 'defectData_all'];
@@ -3926,7 +4009,7 @@
                 .map(p => p.key + '：' + p.before + ' → ' + p.after + '（删除 ' + p.folded + ' 条）')
                 .join('\n');
             if (!confirm('将删除整行完全相同的数据共 ' + removable + ' 条，无法恢复。\n\n' + detail +
-                '\n\n只删除整行完全相同的数据，同编号不同内容一律保留，也不过滤编号。是否继续？')) return;
+                '\n\n只删除整行完全相同的数据；「同编号不同内容」清单中的记录一律不动，也不过滤编号。是否继续？')) return;
             if (!confirm('再次确认：将立即写回 localStorage 的 defectData_recv / defectData_fen / defectData_all，不可撤销。')) return;
 
             const recvPlan = plan.find(p => p.key === 'defectData_recv');
@@ -3963,6 +4046,8 @@
             if (exportBadBtn) exportBadBtn.addEventListener('click', exportInvalidJson);
             const exportDupBtn = document.getElementById('dbgExportDup');
             if (exportDupBtn) exportDupBtn.addEventListener('click', exportDupJson);
+            const exportSameIdBtn = document.getElementById('dbgExportSameId');
+            if (exportSameIdBtn) exportSameIdBtn.addEventListener('click', exportSameIdJson);
             const cleanDupBtn = document.getElementById('dbgCleanDup');
             if (cleanDupBtn) cleanDupBtn.addEventListener('click', cleanExactDuplicates);
             let openByUrl = false;
