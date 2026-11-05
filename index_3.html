@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.9 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.10 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -3076,7 +3076,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.30.9</span>
+                    <span class="ver">V5.30.10</span>
                 </div>
             </div>
 
@@ -4436,30 +4436,58 @@
         /* 龙虎榜上榜率（试验版）：开关关闭即完全隐藏 UI 并短路计算 */
         const SHOW_BOARD_RATE = true;
 
-        /* 本年上榜率：月度榜口径，分子=进入当月前三的月数，分母=1 月至当前月 */
-        function getBoardRateStats(rows, now) {
-            if (!SHOW_BOARD_RATE) return { hits: {}, totalMonths: 0 };
+        /* 本年上榜率：随当前榜期计算，分子=进入各期前三的期数，分母=当年已过的自然期数 */
+        function getBoardRateStats(rows, now, period) {
+            const kind = period === 'yesterday' ? 'day' : (period === 'week' ? 'week' : (period === 'year' ? 'year' : 'month'));
+            const unitMap = { day: '日', week: '周', month: '月', year: '年' };
+            if (!SHOW_BOARD_RATE) return { hits: {}, total: 0, unit: unitMap[kind] };
             const ref = now || new Date();
             const curY = ref.getFullYear();
-            const totalMonths = ref.getMonth() + 1;
+            const today = new Date(curY, ref.getMonth(), ref.getDate());
+            const mondayOf = d => {
+                const m = new Date(d);
+                m.setDate(d.getDate() - (d.getDay() || 7) + 1);
+                m.setHours(0, 0, 0, 0);
+                return m;
+            };
+            // 与 getLeaderboard 相同的过滤：已消缺 + 有完成日期 + 排除未分类
+            const buckets = {};
+            rows.forEach(row => {
+                if (row.status !== '已消缺项') return;
+                const d = getCompleteDate(row);
+                if (!d || d.getFullYear() !== curY) return;
+                const prof = getProfession(row);
+                if (!prof || prof === '未分类') return;
+                const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                if (dayDate > today) return;
+                let key;
+                if (kind === 'day') key = dayDate.getTime();
+                else if (kind === 'week') key = mondayOf(dayDate).getTime();
+                else if (kind === 'year') key = 0;
+                else key = d.getMonth();
+                buckets[key] = buckets[key] || {};
+                buckets[key][prof] = (buckets[key][prof] || 0) + 1;
+            });
             const hits = {};
-            for (let m = 0; m < totalMonths; m++) {
-                const map = {};
-                rows.forEach(row => {
-                    if (row.status !== '已消缺项') return;
-                    const d = getCompleteDate(row);
-                    if (!d || d.getFullYear() !== curY || d.getMonth() !== m) return;
-                    const prof = getProfession(row);
-                    if (!prof || prof === '未分类') return;
-                    map[prof] = (map[prof] || 0) + 1;
-                });
+            Object.values(buckets).forEach(map => {
                 Object.entries(map)
                     .map(([prof, count]) => ({ prof, count }))
                     .sort((a, b) => b.count - a.count)
                     .slice(0, 3)
                     .forEach(item => { hits[item.prof] = (hits[item.prof] || 0) + 1; });
+            });
+            // 分母沿用月度口径：当年已过的自然期数（1 月至当前月 / 1 月 1 日至今天 / 1 月 1 日所在周至本周）
+            let total = 0;
+            if (kind === 'day') {
+                total = Math.round((today - new Date(curY, 0, 1)) / 86400000) + 1;
+            } else if (kind === 'week') {
+                total = Math.round((mondayOf(ref) - mondayOf(new Date(curY, 0, 1))) / (7 * 86400000)) + 1;
+            } else if (kind === 'year') {
+                total = 1;
+            } else {
+                total = ref.getMonth() + 1;
             }
-            return { hits, totalMonths };
+            return { hits, total: Math.max(0, total), unit: unitMap[kind] };
         }
 
         function getLeaderboard(rows, period) {
@@ -5509,7 +5537,7 @@
             const periodLabel = PERIOD_LABELS[period] || '本月';
             const items = getLeaderboard(state.rows, period).slice(0, 3);
             state.boardItems = items;
-            const boardRate = getBoardRateStats(state.rows);
+            const boardRate = getBoardRateStats(state.rows, null, period);
 
             const box = document.getElementById('boardList');
             if (!box) return;
@@ -5547,13 +5575,16 @@
                 const prof = displayProfession(item.prof);
                 const rank = idx + 1;
                 const rateHit = boardRate.hits[item.prof] || 0;
-                const ratePct = boardRate.totalMonths ? Math.round(rateHit / boardRate.totalMonths * 100) : 0;
+                const rateTotal = boardRate.total || 0;
+                const ratePct = rateTotal ? Math.round(rateHit / rateTotal * 100) : 0;
                 const showRate = SHOW_BOARD_RATE && prof && prof !== '未分类';
-                const rateShort = rateHit ? ratePct + '%' : '—';
+                const rateShort = (rateTotal && rateHit) ? ratePct + '%' : '—';
                 const plateText = showRate ? `上榜率 ${rateShort}` : `NO.${rank}`;
                 const plateCls = showRate ? 'pb-plate rate' : 'pb-plate';
                 const plateTitle = showRate
-                    ? ` title="本年上榜 ${rateHit}/${boardRate.totalMonths} 期 · 上榜率 ${ratePct}%"`
+                    ? (rateTotal
+                        ? ` title="本年上榜 ${rateHit}/${rateTotal} ${boardRate.unit} · 上榜率 ${ratePct}%"`
+                        : ` title="本年暂无${boardRate.unit}榜数据"`)
                     : '';
                 const plateShort = showRate ? ` data-short="${rateShort}"` : '';
                 return `<div class="podium-item p${rank}" data-idx="${idx}"
