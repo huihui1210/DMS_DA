@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.29.6 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.29.8 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -1062,35 +1062,24 @@
             opacity: 0.9;
         }
 
-        /* 上榜率铭牌：贴在前立面右上角，常驻只显示百分比，悬停由 title 展开明细 */
-        .pb-rate {
-            position: absolute;
-            right: calc(var(--side-w) + 6px);
-            top: calc(var(--top-h) + 6px);
-            z-index: 3;
+        /* 上榜率复用顶部铭牌位：文案变长时缩小字号，超宽时由脚本退化为纯百分比 */
+        .pb-plate.rate {
             padding: 1px 6px 2px;
-            font-family: var(--num-font);
-            font-size: 10px;
-            line-height: 1.3;
             letter-spacing: 0.5px;
-            color: var(--plate-txt);
-            white-space: nowrap;
-            border: 1px solid var(--edge);
-            border-radius: 3px;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.36));
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.16),
-                0 1px 3px rgba(0, 0, 0, 0.38);
-            cursor: default;
-            opacity: 0.86;
+            max-width: calc(100% - var(--side-w) - 12px);
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* 季军柱台最矮，铭牌略缩并贴近前立面顶缘 */
-        .podium-item.p3 .pb-rate {
-            top: calc(var(--top-h) + 4px);
+        .podium-item.p1 .pb-plate.rate {
             font-size: 9px;
-            padding: 0 5px 1px;
         }
+
+        .podium-item.p3 .pb-plate.rate {
+            font-size: 8px;
+            letter-spacing: 0.2px;
+        }
+
         /* 名次底衬：细金属环，把数字压为次层级 */
         .pb-medal {
             position: absolute;
@@ -2969,7 +2958,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.29.6</span>
+                    <span class="ver">V5.29.8</span>
                 </div>
             </div>
 
@@ -3593,26 +3582,33 @@
         }
 
         function loadData() {
-            // 总键 defectData_all 由接收站/分输站页面合并写入，正常情况下已包含两类站点数据
-            const rows = readStorageRows(STORAGE_KEY);
-            const seen = new Set(rows.map(getId).filter(Boolean));
-            const hasRecv = rows.some(row => getStationType(getId(row)) === 'recv');
-            const hasFen = rows.some(row => getStationType(getId(row)) === 'fen');
+            // 三个来源统一合并：defectData_all 优先，其次 recv，再次 fen
+            // 有编号按编号去重；无编号按整行 JSON 指纹去重（不合并不同记录）
+            const rowsAll = readStorageRows(STORAGE_KEY);
+            const rowsRecv = readStorageRows('defectData_recv');
+            const rowsFen = readStorageRows('defectData_fen');
+            const merged = [];
+            const seenIds = new Set();
+            const seenEmpty = new Set();
 
-            // 兜底：总键缺少某一类站点时，从站点独立键补全，避免清单与统计只覆盖单一站点
-            [['defectData_recv', hasRecv], ['defectData_fen', hasFen]].forEach(pair => {
-                if (pair[1]) return;
-                readStorageRows(pair[0]).forEach(row => {
+            [rowsAll, rowsRecv, rowsFen].forEach(rows => {
+                rows.forEach(row => {
+                    if (!row || !Object.values(row).some(v => !isEmpty(v))) return;
                     const id = getId(row);
-                    if (id && seen.has(id)) return;
-                    if (id) seen.add(id);
-                    rows.push(row);
+                    if (id) {
+                        if (seenIds.has(id)) return;
+                        seenIds.add(id);
+                    } else {
+                        let fingerprint;
+                        try { fingerprint = JSON.stringify(row); } catch (e) { fingerprint = String(row); }
+                        if (seenEmpty.has(fingerprint)) return;
+                        seenEmpty.add(fingerprint);
+                    }
+                    merged.push(row);
                 });
             });
 
-            state.allRows = rows
-                .filter(row => row && Object.values(row).some(v => !isEmpty(v)))
-                .map(normalizeRow);
+            state.allRows = merged.map(normalizeRow);
         }
 
         function applyView() {
@@ -4210,7 +4206,7 @@
             });
         }
 
-        /* 累计完成率环比：胶囊=箭头+百分点差+「较上个月」，箭头/颜色只跟百分点差走；条数与基数移到 tooltip */
+        /* 累计完成率环比：胶囊=箭头+百分点差+「较上月」，箭头/颜色只跟百分点差走；条数与基数移到 tooltip */
         function rateDeltaView(rows, curY, curM, lastY, lastM, curRate, label) {
             const prevEnd = monthEndDate(lastY, lastM);
             let prevT = 0, prevD = 0;
@@ -4242,7 +4238,7 @@
             const ppStr = `${pp >= 0 ? '+' : '-'}${ppAbs} 个百分点`;
             if (pp === 0) {
                 return {
-                    arrow: '—', pct: '0pp', tip: '较上个月', tone: 'flat',
+                    arrow: '—', pct: '0pp', tip: '较上月', tone: 'flat',
                     title: `${label} ${curStr}（较上月 0.0 个百分点）· ${deltaNote}`
                 };
             }
@@ -4250,7 +4246,7 @@
             return {
                 arrow: up ? '↗' : '↘',
                 pct: `${up ? '' : '-'}${ppAbs}pp`,
-                tip: '较上个月',
+                tip: '较上月',
                 tone: up ? 'up' : 'down',
                 title: `${label} ${curStr}（较上月 ${ppStr}）· ${deltaNote}`
             };
@@ -5049,9 +5045,13 @@
                 const rateHit = boardRate.hits[item.prof] || 0;
                 const ratePct = boardRate.totalMonths ? Math.round(rateHit / boardRate.totalMonths * 100) : 0;
                 const showRate = SHOW_BOARD_RATE && prof && prof !== '未分类';
-                const rateBadge = showRate
-                    ? `<span class="pb-rate" title="本年上榜 ${rateHit}/${boardRate.totalMonths} 期 · 上榜率 ${ratePct}%">${rateHit ? ratePct + '%' : '—'}</span>`
+                const rateShort = rateHit ? ratePct + '%' : '—';
+                const plateText = showRate ? `上榜率 ${rateShort}` : `NO.${rank}`;
+                const plateCls = showRate ? 'pb-plate rate' : 'pb-plate';
+                const plateTitle = showRate
+                    ? ` title="本年上榜 ${rateHit}/${boardRate.totalMonths} 期 · 上榜率 ${ratePct}%"`
                     : '';
+                const plateShort = showRate ? ` data-short="${rateShort}"` : '';
                 return `<div class="podium-item p${rank}" data-idx="${idx}"
                             title="${prof} · ${periodLabel}消缺 ${item.count} 条">
                             <div class="po-plaque">
@@ -5065,10 +5065,9 @@
                                 <i class="pb-front"></i>
                                 <i class="pb-side"></i>
                                 <i class="pb-floor"></i>
-                                <span class="pb-plate">NO.${rank}</span>
+                                <span class="${plateCls}"${plateTitle}${plateShort}>${plateText}</span>
                                 <span class="pb-medal"></span>
                                 <span class="po-rank">${rank}</span>
-                                ${rateBadge}
                             </div>
                         </div>`;
             };
@@ -5077,6 +5076,18 @@
                 <div class="board-podium${podiumCls}">${order.map(podiumSlot).join('')}</div>
                 <div class="board-foot"></div>
             `;
+
+            // 柱台宽度不足时，把「上榜率 XX%」收敛为纯百分比，避免溢出或遮挡柱内名次
+            requestAnimationFrame(() => {
+                box.querySelectorAll('.pb-plate.rate').forEach(plate => {
+                    const block = plate.parentElement;
+                    if (!block) return;
+                    const available = block.clientWidth - 18;
+                    if (plate.scrollWidth > available && plate.dataset.short) {
+                        plate.textContent = plate.dataset.short;
+                    }
+                });
+            });
         }
 
         /* ================= 滚动清单 / 预警 / 督办 ================= */
