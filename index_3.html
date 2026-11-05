@@ -1,10 +1,10 @@
-﻿﻿<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.29.3 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.29.4 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -862,7 +862,7 @@
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7), 0 0 8px rgba(var(--tint), 0.20);
         }
 
-        .po-name > span {
+        .po-name>span {
             min-width: 0;
             overflow: hidden;
             white-space: nowrap;
@@ -1992,7 +1992,7 @@
 
         /* 与「缺陷滚动清单」对齐：行间不留空隙，用 1px 分隔线；
            斑马纹走 background-color（同 .list-row:nth-child(even) 的色值），
-           督办/逾期状态色改为 background-image 叠加层，避免盖住或造成深浅跳变 */
+           督办状态色改为 background-image 叠加层，避免盖住或造成深浅跳变 */
         .sp-item {
             flex: 0 0 auto;
             display: flex;
@@ -2007,11 +2007,6 @@
             border-radius: 0;
             background-color: transparent;
             background-image: linear-gradient(rgba(255, 198, 88, 0.05), rgba(255, 198, 88, 0.05));
-        }
-
-        .sp-item.red {
-            border-left-color: var(--red);
-            background-image: linear-gradient(rgba(255, 95, 109, 0.06), rgba(255, 95, 109, 0.06));
         }
 
         .sp-item.normal {
@@ -2945,18 +2940,21 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.29.3</span>
+                    <span class="ver">V5.29.4</span>
                 </div>
             </div>
 
             <div class="top-right">
                 <button class="sys-link as-btn" id="mapImgBtn" type="button">底图</button>
                 <button class="sys-link as-btn" id="mapEditBtn" type="button">点位</button>
-                <button class="sys-link fs-btn" id="fsBtn" type="button" title="铺满全屏" aria-label="铺满全屏" aria-pressed="false">
-                    <svg class="fs-in" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+                <button class="sys-link fs-btn" id="fsBtn" type="button" title="铺满全屏" aria-label="铺满全屏"
+                    aria-pressed="false">
+                    <svg class="fs-in" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"
+                        aria-hidden="true">
                         <path d="M6 2H2v4M10 2h4v4M6 14H2v-4M10 14h4v-4" />
                     </svg>
-                    <svg class="fs-out" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+                    <svg class="fs-out" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"
+                        aria-hidden="true">
                         <path d="M2 6h4V2M14 6h-4V2M2 10h4v4M14 10h-4v4" />
                     </svg>
                 </button>
@@ -3104,8 +3102,7 @@
                 <div class="modal-tools">
                     <div class="mt-search">
                         <span class="mt-icon">⌕</span>
-                        <input id="modalSearch" type="text" autocomplete="off"
-                            placeholder="搜索缺陷编号 / 描述 / 专业 / 责任人">
+                        <input id="modalSearch" type="text" autocomplete="off" placeholder="搜索缺陷编号 / 描述 / 专业 / 责任人">
                         <button class="mt-clear" id="modalSearchClear" title="清除搜索">×</button>
                     </div>
                     <div class="mt-filter" id="modalFilterWrap">
@@ -4114,15 +4111,17 @@
             return { total, done, remain };
         }
 
-        /* 存量指标环比：当前累计 vs 上月末累计，同口径；累计值下降只可能是数据修订（剩余类不提示修订） */
-        function stockTrend(cur, prev, label, monotonic) {
-            const t = trendView(cur, prev, { emptyLabel: '无上月数据', invert: monotonic === false });
+        /* 存量指标环比：当前累计 vs 上月末累计，同口径
+           opts.invert=true → 下降为好（总数/剩余类）；opts.revision=true → 下降标注数据修订（完成类） */
+        function stockTrend(cur, prev, label, opts) {
+            const o = opts || {};
+            const t = trendView(cur, prev, { emptyLabel: '无上月数据', invert: !!o.invert });
             const diff = cur - prev;
             t.title = prev === 0
                 ? `${label} 当前累计 ${cur} 条 · 上月无数据`
                 : `${label} 当前累计 ${cur} 条 · 上月末累计 ${prev} 条（较上月 ${diff >= 0 ? '+' : ''}${diff} 条）`
-                  + (diff < 0 && monotonic !== false ? '（数据修订导致下降）' : '');
-            if (monotonic === false) t.title += '（剩余下降为好转）';
+                + (diff < 0 && o.revision ? '（数据修订导致下降）' : '');
+            if (o.note) t.title += `（${o.note}）`;
             return t;
         }
 
@@ -4309,9 +4308,9 @@
             const slRemain = slStock.map(s => s.remain);
             const slRate = cumulativeRateSeries(rows, months, curY, curM);
 
-            const tTotal = stockTrend(total, prevSnap.total, '缺陷总数');
-            const tRemain = stockTrend(pending, prevSnap.remain, '剩余缺陷', false);
-            const tDone = stockTrend(completed, prevSnap.done, '完成缺陷');
+            const tTotal = stockTrend(total, prevSnap.total, '缺陷总数', { invert: true, note: '总数减少说明问题存量下降，为好转' });
+            const tRemain = stockTrend(pending, prevSnap.remain, '剩余缺陷', { invert: true, note: '剩余下降为好转' });
+            const tDone = stockTrend(completed, prevSnap.done, '完成缺陷', { revision: true });
 
             const cards = [
                 { key: 'total', cls: 'cyan', val: total, lbl: '缺陷总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: tTotal.tip || '较上月', title: tTotal.title, spark: slTotal },
@@ -4402,15 +4401,20 @@
                     prev = rangeCount(meta, w[0], w[1], w[2]);
                     label = TREND_LABEL[def.key];
                 }
+                const isNewAdd = /New$/.test(def.key);
                 const t = trendView(val, prev, {
                     emptyLabel: isRemain ? '无上月数据' : '无上期数据',
-                    invert: isRemain
+                    invert: isRemain || isNewAdd
                 });
                 const title = isRemain
                     ? (prev === 0
                         ? `${def.lbl} 当前 ${val} · 上月无数据 · 剩余下降为好转`
                         : `${def.lbl} 当前 ${val} · 上月末 ${prev}（较上月 ${val - prev >= 0 ? '+' : ''}${val - prev}）· 剩余下降为好转`)
-                    : undefined;
+                    : (isNewAdd
+                        ? (prev === 0
+                            ? `${def.lbl} 当前 ${val} 条 · 上期无数据 · 新增减少为好转`
+                            : `${def.lbl} 当前 ${val} 条 · 上期 ${prev} 条（差 ${val - prev >= 0 ? '+' : ''}${val - prev}）· 新增减少为好转`)
+                        : undefined);
 
                 const spark = monthKeys.map(mk => {
                     if (isRemain) {
@@ -4718,9 +4722,9 @@
 
             // 存量环比：当前累计 vs 上月末累计（同口径，不用本月/上月新增流量）
             const prevSnap = stockSnapshot(spRows, monthEndDate(lastY, lastM));
-            const tTotal = stockTrend(total, prevSnap.total, '督办总数');
-            const tRemain = stockTrend(remain, prevSnap.remain, '督办剩余', false);
-            const tDone = stockTrend(done, prevSnap.done, '督办完成');
+            const tTotal = stockTrend(total, prevSnap.total, '督办总数', { invert: true, note: '总数减少说明问题存量下降，为好转' });
+            const tRemain = stockTrend(remain, prevSnap.remain, '督办剩余', { invert: true, note: '剩余下降为好转' });
+            const tDone = stockTrend(done, prevSnap.done, '督办完成', { revision: true });
             // 累计督办完成率环比：主显示累计完成绝对增量，百分比与百分点为次要信息
             const rateTrend = rateDeltaView(spRows, curY, curM, lastY, lastM, rate, '累计督办完成率');
 
@@ -5100,7 +5104,7 @@
 
         function getAlertCandidates() {
             const pending = state.rows.filter(row => row.status === '待消缺项目');
-            const flagged = pending.filter(row => isFlag(row, '是否督办') || isFlag(row, '是否逾期'));
+            const flagged = pending.filter(row => isFlag(row, '是否督办'));
             return flagged.length ? flagged : pending;
         }
 
@@ -5117,7 +5121,7 @@
             });
 
             if (!state.alertItems.length) {
-                if (textEl) textEl.textContent = '当前视图暂无督办或逾期缺陷';
+                if (textEl) textEl.textContent = '当前视图暂无督办缺陷';
                 return;
             }
             state.alertIndex = 0;
@@ -5141,12 +5145,9 @@
             const hint = document.getElementById('superviseHint');
             const pending = state.rows.filter(row => row.status === '待消缺项目');
             const supervised = pending.filter(row => isFlag(row, '是否督办'));
-            const overdue = pending.filter(row => isFlag(row, '是否逾期'));
             if (hint) hint.textContent = `督办 ${supervised.length} 项`;
 
-            const items = (supervised.length || overdue.length)
-                ? pending.filter(row => isFlag(row, '是否督办') || isFlag(row, '是否逾期'))
-                : pending;
+            const items = supervised.length ? supervised : pending;
 
             if (items.length === 0) {
                 viewport.innerHTML = '<div class="sp-empty">当前视图暂无督办记录</div>';
@@ -5155,10 +5156,9 @@
 
             const rowsHTML = items.map(row => {
                 const supervised = isFlag(row, '是否督办');
-                const isOverdue = isFlag(row, '是否逾期') && !supervised;
                 const profRaw = getProfession(row);
                 const prof = displayProfession(profRaw) || profRaw || '—';
-                const cls = isOverdue ? ' red' : (supervised ? '' : ' normal');
+                const cls = supervised ? '' : ' normal';
                 return `<div class="sp-item${cls}" data-id="${getId(row) || ''}">
                     <div class="sp-main">
                         <div class="sp-id">${getId(row) || '无编号'}</div>
@@ -6024,7 +6024,7 @@
             });
 
             document.getElementById('alertBar').addEventListener('click', function () {
-                openModal('督办预警', getAlertCandidates(), '督办 / 逾期 · 当前视图');
+                openModal('督办预警', getAlertCandidates(), '督办 · 当前视图');
             });
 
             document.getElementById('mapDots').addEventListener('click', function (e) {
