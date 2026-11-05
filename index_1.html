@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.6</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.7</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -891,7 +891,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.6</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
+            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.7</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#all'">数据看板</button>
                 <label for="fileInput" class="btn btn-upload">
@@ -2332,24 +2332,14 @@
             const loadedRows = rows
                 .filter(row => row && typeof row === 'object')
                 .map(row => ({ ...row, status: determineStatus(row) }));
-            // 统计层过滤：只接受 11/14 位合法编号；其余为脏数据不计入统计，存储保持完整、不做去重
-            const isValidId = row => {
-                const len = getRowId(row).length;
-                return len === 11 || len === 14;
-            };
-            const invalidRows = loadedRows.filter(row => !isValidId(row));
-            if (invalidRows.length) {
-                console.warn('[数据] 编号长度不合法 ' + invalidRows.length + ' 条，已排除统计；前 10 条编号：',
-                    invalidRows.slice(0, 10).map(getRowId));
-            }
-            processedData = loadedRows.filter(isValidId);
-            // 再折叠「整行完全相同」的行（同编号不同内容全部保留，不做按编号去重）
-            const dupFolded = foldExactDuplicates(processedData);
+            // 统计层不做编号长度过滤：所有行原样计入，仅折叠「整行完全相同」
+            const dupFolded = foldExactDuplicates(loadedRows);
+            processedData = dupFolded.kept;
             if (dupFolded.folded.length) {
                 console.warn('[数据] 完全重复行 ' + dupFolded.folded.length + ' 条，已折叠；前 10 条编号：',
                     dupFolded.folded.slice(0, 10).map(getRowId));
             }
-            processedData = dupFolded.kept;
+
             // 总界面：清理残留的"其他"值，按编号长度转换（仅内存展示，不回写存储）
             processedData.forEach(row => {
                 const profKey = Object.keys(row).find(k => {

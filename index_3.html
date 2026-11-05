@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.6 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.7 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -3094,7 +3094,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.30.6</span>
+                    <span class="ver">V5.30.7</span>
                 </div>
             </div>
 
@@ -3131,7 +3131,7 @@
             <div id="dbgBody"></div>
             <div class="dbg-actions">
                 <button id="dbgExport" type="button">导出当前 all 为 JSON</button>
-                <button id="dbgExportBad" type="button">导出被排除行 JSON</button>
+                <button id="dbgExportBad" type="button">导出非11/14位清单 JSON</button>
                 <button id="dbgExportDup" type="button">导出被折叠行 JSON</button>
                 <button id="dbgExportSameId" type="button">导出同编号清单 JSON</button>
                 <button id="dbgExportDiff" type="button">导出缺失行 JSON</button>
@@ -3793,16 +3793,14 @@
                 console.warn('[数据] defectData_all 缺失或解析失败，已用接收站/分输站数据兜底，共 ' + rows.length + ' 条');
             }
 
-            // 统计层过滤：只接受 11/14 位合法编号；其余列脏数据，存储保持完整、不做去重
+            // 统计层不做编号长度过滤：所有行原样计入，仅折叠「整行完全相同」
             const rawRows = rows.filter(row => row && typeof row === 'object');
             state.invalidRows = rawRows.filter(row => !isValidIdLength(getId(row)));
             if (state.invalidRows.length) {
-                console.warn('[数据] 编号长度不合法 ' + state.invalidRows.length + ' 条，已排除统计；前 10 条编号：',
+                console.warn('[数据] 编号非 11/14 位 ' + state.invalidRows.length + ' 条（仅提示，不参与过滤）；前 10 条编号：',
                     state.invalidRows.slice(0, 10).map(getId));
             }
-            // 再折叠「整行完全相同」的行（同编号不同内容全部保留）
-            const validRows = rawRows.filter(row => isValidIdLength(getId(row)));
-            const folded = foldExactDuplicates(validRows);
+            const folded = foldExactDuplicates(rawRows);
             state.dupRows = folded.folded;
             if (state.dupRows.length) {
                 console.warn('[数据] 完全重复行 ' + state.dupRows.length + ' 条，已折叠；前 10 条编号：',
@@ -3983,6 +3981,33 @@
             return html;
         }
 
+        // 编号非 11/14 位清单：只读提示，不参与统计、不提供删除入口
+        function renderInvalidList() {
+            const bad = state.invalidRows || [];
+            if (!bad.length) return '<div class="dbg-muted" style="margin-top:8px;font-size:11px;">编号非 11/14 位：0 条（不影响统计）</div>';
+            const distMap = {};
+            bad.forEach(row => {
+                const len = getId(row).length;
+                const k = len === 0 ? '空编号' : len + ' 位';
+                distMap[k] = (distMap[k] || 0) + 1;
+            });
+            const distText = Object.keys(distMap)
+                .sort((a, b) => (a === '空编号' ? 999 : parseInt(a)) - (b === '空编号' ? 999 : parseInt(b)))
+                .map(k => k + ' ' + distMap[k] + ' 条')
+                .join(' · ');
+            const body = bad.map((row, idx) => {
+                const f = describeSameIdRow(row);
+                return '<tr><td>' + (idx + 1) + '</td><td>' + escapeDbg(getId(row)) + '</td><td>' + getId(row).length
+                    + '</td><td>' + escapeDbg(f.专业) + '</td><td>' + escapeDbg(f.状态) + '</td><td>'
+                    + escapeDbg(f.缺陷描述) + '</td></tr>';
+            }).join('');
+            return '<div style="margin-top:10px;"><div style="font-size:11px;">编号非 11/14 位（仅提示）：'
+                + bad.length + ' 条 · ' + distText + ' <span class="dbg-nofold">不参与统计、不删除</span></div>'
+                + '<div class="dbg-scroll"><table class="dbg-table">'
+                + '<tr><th>#</th><th>编号</th><th>编号长度</th><th>专业</th><th>状态</th><th>缺陷描述（前30字）</th></tr>'
+                + body + '</table></div></div>';
+        }
+
         function renderDebugPanel() {
             if (!dbgPanel) return;
             const src = {
@@ -3994,33 +4019,22 @@
             const judgment = state.dataFallback
                 ? '<span class="dbg-warn">兜底 recv+fen（异常）</span>'
                 : '<span class="dbg-ok">仅 all</span>';
-            const bad = state.invalidRows || [];
             const dup = state.dupRows || [];
-            const distMap = {};
-            bad.forEach(row => {
-                const len = getId(row).length;
-                const k = len === 0 ? '空编号' : len + ' 位';
-                distMap[k] = (distMap[k] || 0) + 1;
-            });
-            const distText = Object.keys(distMap)
-                .sort((a, b) => (a === '空编号' ? 999 : parseInt(a)) - (b === '空编号' ? 999 : parseInt(b)))
-                .map(k => k + ' ' + distMap[k] + ' 条')
-                .join(' · ') || '—';
             const html =
                 '<div class="dbg-scroll"><table class="dbg-table">' +
                 '<tr><th>来源键</th><th>原始行数</th><th>编号唯一数</th><th>行数−唯一数</th></tr>' +
                 debugSourceRow('defectData_all', src.all) +
                 debugSourceRow('defectData_recv', src.recv) +
                 debugSourceRow('defectData_fen', src.fen) +
-                '<tr><th>编号长度不合法（已排除统计）</th><td' + (bad.length ? ' class="dbg-warn"' : '') + '>' + bad.length + ' 条</td><td colspan="2">' + distText + '</td></tr>' +
                 '<tr><th>完全重复行（已折叠）</th><td' + (dup.length ? ' class="dbg-warn"' : '') + '>' + dup.length + ' 条</td><td colspan="2">整行完全相同，仅保留先出现的一条</td></tr>' +
                 '<tr><th>看板实际使用（state.allRows）</th><td>' + state.allRows.length + ' 行</td><td colspan="2">' + judgment + '</td></tr>' +
                 '<tr><th>当前视图</th><td>' + viewName + '</td><td colspan="2">' + state.rows.length + ' 行</td></tr>' +
                 '</table></div>' +
                 renderKeyDiff() +
                 renderSameIdGroups() +
+                renderInvalidList() +
                 '<div class="dbg-muted" style="margin-top:6px;font-size:11px;color:var(--text-3);">' +
-                '统计顺序：原始行数 → 11/14 位过滤 → 整行完全相同折叠 → 同编号不同内容（仅提示，不折叠）→ 实际统计；同编号不同内容全部保留，不做按编号去重。</div>';
+                '统计顺序：原始行数 → 整行完全相同折叠（0 条则不折叠）→ 实际统计；编号长度仅作提示项单独列出，不参与任何计算。</div>';
             document.getElementById('dbgBody').innerHTML = html;
         }
 
