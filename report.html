@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷数据分析报告 V5.30.11</title>
+    <title>福建LNG设备缺陷数据分析报告 V5.30.12</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         /* ======= Reset & 全局 ======= */
@@ -1388,8 +1388,8 @@
         }
 
         // ======= 消缺龙虎榜表：口径与看板 getBoardRateStats 完全一致 =======
-        // 逐期取前三专业（已消缺 + 完成日期 + 排除未分类 + 不限等级），命中计 1 次
-        // 分母：日榜=本月已过天数；年榜=本年已过天数；周榜=当年已过自然周数；月榜=当年已过月数
+        // 逐期取第一名专业（已消缺 + 完成日期 + 排除未分类 + 不限等级），仅第一名记 1 次
+        // 分母：日度=本月已过天数；年度=本年已过天数；周度=当年已过自然周数；月度=当年已过月数
         function buildLeaderboard(processedData, baseDate, asOfDay) {
             const refDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), asOfDay);
             const curY = refDate.getFullYear();
@@ -1422,8 +1422,9 @@
             const countHits = kind => {
                 const hits = {};
                 Object.values(buckets[kind]).forEach(map => {
-                    Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 3)
-                        .forEach(([prof]) => { hits[prof] = (hits[prof] || 0) + 1; });
+                    // 每期只认第一名（并列按排序后的稳定顺序取首位），仅记 1 次
+                    const top = Object.entries(map).sort((a, b) => b[1] - a[1])[0];
+                    if (top) hits[top[0]] = (hits[top[0]] || 0) + 1;
                 });
                 return hits;
             };
@@ -1445,10 +1446,10 @@
 
             // === 组装表格（备注列预留为空） ===
             const rows = [
-                { period: '日榜', ...champInfo(countHits('day'), volume.day, dayTotal) },
-                { period: '周榜', ...champInfo(countHits('week'), volume.week, weekTotal) },
-                { period: '月榜', ...champInfo(countHits('month'), volume.month, monthTotal) },
-                { period: '年榜', ...champInfo(countHits('year'), volume.year, yearTotal) }
+                { period: '日度', ...champInfo(countHits('day'), volume.day, dayTotal) },
+                { period: '周度', ...champInfo(countHits('week'), volume.week, weekTotal) },
+                { period: '月度', ...champInfo(countHits('month'), volume.month, monthTotal) },
+                { period: '年度', ...champInfo(countHits('year'), volume.year, yearTotal) }
             ];
             const rowsHtml = rows.map(r => `<tr><td>${escHtml(r.period)}</td><td>${escHtml(r.prof)}</td><td>${escHtml(r.vol)}</td><td>${escHtml(r.rate)}</td><td></td></tr>`).join('');
 
@@ -1744,7 +1745,7 @@
             topCompleted.forEach(name => completedListEl.appendChild(buildProfessionCard(name, classIStats.completedStats[name] || 0)));
             topPending.forEach(name => pendingListEl.appendChild(buildProfessionCard(name, pendingByProfession[name] || 0)));
 
-            // 消缺龙虎榜表（日/周/月榜，每行显示各周期自己的第一）
+            // 消缺龙虎榜表（日/周/月度，每行显示各周期自己的第一）
             document.getElementById('leaderboardTable').innerHTML = buildLeaderboard(processedData, baseDate, asOfDay);
 
             // 生产重点关注缺陷情况（是否督办=是）

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.11 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.12 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -3076,7 +3076,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.30.11</span>
+                    <span class="ver">V5.30.12</span>
                 </div>
             </div>
 
@@ -3218,10 +3218,10 @@
                         <span class="bar"></span>
                         <h2>消缺龙虎榜</h2>
                         <div class="period-tabs" id="periodTabs">
-                            <button class="pbtn" data-period="yesterday">昨日</button>
-                            <button class="pbtn" data-period="week">本周</button>
-                            <button class="pbtn active" data-period="month">本月</button>
-                            <button class="pbtn" data-period="year">今年</button>
+                            <button class="pbtn" data-period="yesterday">日度</button>
+                            <button class="pbtn" data-period="week">周度</button>
+                            <button class="pbtn active" data-period="month">月度</button>
+                            <button class="pbtn" data-period="year">年度</button>
                         </div>
                     </div>
                     <div class="panel-body">
@@ -3301,7 +3301,7 @@
             '安全': 'QHSE部',
             '后勤': '综合管理部'
         };
-        const PERIOD_LABELS = { yesterday: '昨日', week: '本周', month: '本月', year: '今年' };
+        const PERIOD_LABELS = { yesterday: '日度', week: '周度', month: '月度', year: '年度' };
         // 厂区分布面板标题（随视图切换），弹窗主标题也复用它
         const MAP_TITLES = { all: '厂区分布（全站）', recv: '接收站分布', fen: '分输站分布' };
 
@@ -4436,7 +4436,7 @@
         /* 龙虎榜上榜率（试验版）：开关关闭即完全隐藏 UI 并短路计算 */
         const SHOW_BOARD_RATE = true;
 
-        /* 本年上榜率：随当前榜期计算，分子=进入各期前三的期数，分母=当年已过的自然期数 */
+        /* 本年上榜率：随当前榜期计算，分子=拿到各期第一名的期数，分母=当年已过的自然期数 */
         function getBoardRateStats(rows, now, period) {
             const kind = period === 'yesterday' ? 'day' : (period === 'week' ? 'week' : (period === 'year' ? 'year' : 'month'));
             const unitMap = { day: '日', week: '周', month: '月', year: '年' };
@@ -4471,11 +4471,11 @@
             });
             const hits = {};
             Object.values(buckets).forEach(map => {
-                Object.entries(map)
+                // 每期只认第一名（并列按排序后的稳定顺序取首位），仅记 1 次
+                const top = Object.entries(map)
                     .map(([prof, count]) => ({ prof, count }))
-                    .sort((a, b) => b.count - a.count)
-                    .slice(0, 3)
-                    .forEach(item => { hits[item.prof] = (hits[item.prof] || 0) + 1; });
+                    .sort((a, b) => b.count - a.count)[0];
+                if (top) hits[top.prof] = (hits[top.prof] || 0) + 1;
             });
             // 分母：日榜=本月已过天数；年榜=本年已过天数；周/月榜=当年已过的自然周/月数
             let total = 0;
@@ -4569,16 +4569,16 @@
                 { key: 'remainFire', cls: 'silver', icon: '火', lbl: '剩余消防类缺陷数' }
             ],
             week: [
-                { key: 'yesterdayNew', cls: 'cyan', icon: '昨', lbl: '昨日新增缺陷数' },
-                { key: 'weekNew', cls: 'amber', icon: '周', lbl: '本周新增缺陷数' },
-                { key: 'yesterdayDone', cls: 'green', icon: '昨', lbl: '昨日消缺数' },
-                { key: 'weekDone', cls: 'silver', icon: '周', lbl: '本周消缺数' }
+                { key: 'yesterdayNew', cls: 'cyan', icon: '日', lbl: '日度新增缺陷数' },
+                { key: 'weekNew', cls: 'amber', icon: '周', lbl: '周度新增缺陷数' },
+                { key: 'yesterdayDone', cls: 'green', icon: '日', lbl: '日度消缺数' },
+                { key: 'weekDone', cls: 'silver', icon: '周', lbl: '周度消缺数' }
             ],
             month: [
-                { key: 'monthNew', cls: 'cyan', icon: '月', lbl: '本月新增缺陷数' },
-                { key: 'yearNew', cls: 'amber', icon: '年', lbl: '今年新增缺陷数' },
-                { key: 'monthDone', cls: 'green', icon: '月', lbl: '本月消缺数' },
-                { key: 'yearDone', cls: 'silver', icon: '年', lbl: '今年消缺数' }
+                { key: 'monthNew', cls: 'cyan', icon: '月', lbl: '月度新增缺陷数' },
+                { key: 'yearNew', cls: 'amber', icon: '年', lbl: '年度新增缺陷数' },
+                { key: 'monthDone', cls: 'green', icon: '月', lbl: '月度消缺数' },
+                { key: 'yearDone', cls: 'silver', icon: '年', lbl: '年度消缺数' }
             ]
         };
 
@@ -5536,10 +5536,22 @@
 
         function renderBoardChart() {
             const period = state.period || 'month';
-            const periodLabel = PERIOD_LABELS[period] || '本月';
-            const items = getLeaderboard(state.rows, period).slice(0, 3);
-            state.boardItems = items;
+            const periodLabel = PERIOD_LABELS[period] || '月度';
             const boardRate = getBoardRateStats(state.rows, null, period);
+            const rateOf = prof => {
+                const hit = boardRate.hits[prof] || 0;
+                return boardRate.total ? hit / boardRate.total : 0;
+            };
+            // 年度页签：按上榜率降序（同率按消缺量、再按原稳定顺序）；日/周/月仍按当期消缺量
+            const isRateBoard = period === 'year' && SHOW_BOARD_RATE;
+            let items = getLeaderboard(state.rows, period);
+            if (isRateBoard) {
+                items = items.slice().sort((a, b) => (rateOf(b.prof) - rateOf(a.prof)) || (b.count - a.count));
+            }
+            items = items.slice(0, 3);
+            state.boardItems = items;
+            // 年度柱高按上榜率比例：最高者满高（沿用冠军 76%），其余按占比缩放
+            const maxRate = isRateBoard ? items.reduce((m, it) => Math.max(m, rateOf(it.prof)), 0) : 0;
 
             const box = document.getElementById('boardList');
             if (!box) return;
@@ -5589,6 +5601,10 @@
                         : ` title="${boardRate.scope}暂无${boardRate.unit}榜数据"`)
                     : '';
                 const plateShort = showRate ? ` data-short="${rateShort}"` : '';
+                // 年度页签柱高随上榜率缩放；其余页签沿用金银铜固定高度
+                const blockStyle = (isRateBoard && maxRate > 0)
+                    ? ` style="height:${Math.max(12, Math.round(76 * rateOf(item.prof) / maxRate))}%"`
+                    : '';
                 return `<div class="podium-item p${rank}" data-idx="${idx}"
                             title="${escHtml(prof)} · ${periodLabel}消缺 ${item.count} 条">
                             <div class="po-plaque">
@@ -5597,7 +5613,7 @@
                                 <i class="po-ribbon"></i>
                                 ${rank === 1 ? '<i class="po-spark sp-a"></i><i class="po-spark sp-b"></i>' : ''}
                             </div>
-                            <div class="podium-block">
+                            <div class="podium-block"${blockStyle}>
                                 <i class="pb-top"></i>
                                 <i class="pb-front"></i>
                                 <i class="pb-side"></i>
@@ -6426,8 +6442,8 @@
         });
         const KPI_SUBS = {
             remainI: 'Ⅰ类 · 待消缺', remainCivil: '土建类 · 待消缺', remainII: 'Ⅱ类 · 待消缺', remainFire: '消防类 · 待消缺',
-            yesterdayNew: '登记日期 · 昨日', weekNew: '登记日期 · 本周', monthNew: '登记日期 · 本月', yearNew: '登记日期 · 今年',
-            yesterdayDone: '消缺日期 · 昨日', weekDone: '消缺日期 · 本周', monthDone: '消缺日期 · 本月', yearDone: '消缺日期 · 今年'
+            yesterdayNew: '登记日期 · 日度', weekNew: '登记日期 · 周度', monthNew: '登记日期 · 月度', yearNew: '登记日期 · 年度',
+            yesterdayDone: '消缺日期 · 日度', weekDone: '消缺日期 · 周度', monthDone: '消缺日期 · 月度', yearDone: '消缺日期 · 年度'
         };
 
         const KPI_ACTIONS = Object.keys(KPI_TITLES).reduce((acc, key) => {
