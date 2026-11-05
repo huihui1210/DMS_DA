@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷数据分析报告 V5.30.8</title>
+    <title>福建LNG设备缺陷数据分析报告 V5.30.9</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         /* ======= Reset & 全局 ======= */
@@ -1053,7 +1053,7 @@
                         <div class="stat-value" id="statChangeRate"></div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">年度新增消缺率（分母：今年累计新增·Ⅰ类）</div>
+                        <div class="stat-label">年度消缺率（Ⅰ类）</div>
                         <div class="stat-value" id="statCompletionRate"></div>
                     </div>
                 </div>
@@ -1517,9 +1517,11 @@
             const recvRows = focusRows.filter(row => !isFenRow(row));
             const fenRows = focusRows.filter(isFenRow);
             const ownRows = stationParam === 'fen' ? fenRows : recvRows;
+            // 已完成/已消缺记录不再进入清单列表（仅过滤展示列表，上方累计汇总口径不变）
+            const visibleRows = rows => rows.filter(row => !isCompleted(row));
             const groups = isAll
-                ? [{ name: '接收站', rows: recvRows }, { name: '分输站', rows: fenRows }]
-                : [{ name: stationParam === 'fen' ? '分输站' : '接收站', rows: ownRows }];
+                ? [{ name: '接收站', rows: visibleRows(recvRows) }, { name: '分输站', rows: visibleRows(fenRows) }]
+                : [{ name: stationParam === 'fen' ? '分输站' : '接收站', rows: visibleRows(ownRows) }];
 
             const doneCount = rows => rows.filter(isCompleted).length;
             let summary;
