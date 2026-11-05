@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.29.8 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.29.9 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -2958,7 +2958,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.29.8</span>
+                    <span class="ver">V5.29.9</span>
                 </div>
             </div>
 
@@ -3581,29 +3581,36 @@
             }
         }
 
+        // 整行指纹：除内部临时字段（下划线开头）外，所有业务字段按名称排序后拼接
+        // 同编号但内容不同的行指纹不同，必须分别保留
+        function rowFingerprint(row) {
+            const obj = row || {};
+            return Object.keys(obj)
+                .filter(k => !String(k).startsWith('_'))
+                .sort()
+                .map(k => {
+                    const v = obj[k];
+                    const s = v === undefined || v === null ? '' : String(v).trim();
+                    return k + '=' + s;
+                })
+                .join('\u0001');
+        }
+
         function loadData() {
             // 三个来源统一合并：defectData_all 优先，其次 recv，再次 fen
-            // 有编号按编号去重；无编号按整行 JSON 指纹去重（不合并不同记录）
+            // 仅折叠「整行指纹完全相同」的重复行；同编号不同内容全部保留
             const rowsAll = readStorageRows(STORAGE_KEY);
             const rowsRecv = readStorageRows('defectData_recv');
             const rowsFen = readStorageRows('defectData_fen');
             const merged = [];
-            const seenIds = new Set();
-            const seenEmpty = new Set();
+            const seenFingerprints = new Set();
 
             [rowsAll, rowsRecv, rowsFen].forEach(rows => {
                 rows.forEach(row => {
                     if (!row || !Object.values(row).some(v => !isEmpty(v))) return;
-                    const id = getId(row);
-                    if (id) {
-                        if (seenIds.has(id)) return;
-                        seenIds.add(id);
-                    } else {
-                        let fingerprint;
-                        try { fingerprint = JSON.stringify(row); } catch (e) { fingerprint = String(row); }
-                        if (seenEmpty.has(fingerprint)) return;
-                        seenEmpty.add(fingerprint);
-                    }
+                    const fingerprint = rowFingerprint(row);
+                    if (seenFingerprints.has(fingerprint)) return;
+                    seenFingerprints.add(fingerprint);
                     merged.push(row);
                 });
             });

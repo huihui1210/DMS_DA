@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>重复编号检查 · 福建LNG设备缺陷管理系统</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+        }
+
+        .wrap { max-width: 1400px; margin: 0 auto; }
+
+        h1 { font-size: 20px; margin: 0 0 6px; }
+
+        .sub { font-size: 13px; color: #666; margin-bottom: 16px; line-height: 1.7; }
+
+        .notice {
+            display: none;
+            margin-bottom: 16px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border: 1px solid #f0c36d;
+            background: #fdf6e3;
+            color: #7a5a00;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .notice code {
+            background: rgba(0, 0, 0, .06);
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        button {
+            padding: 8px 14px;
+            font-size: 13px;
+            border: 1px solid rgba(44, 62, 80, .25);
+            border-radius: 6px;
+            background: #fff;
+            color: #2c3e50;
+            cursor: pointer;
+        }
+
+        button:hover { background: #eef2f7; }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 12px 14px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+        }
+
+        .card .k { font-size: 12px; color: #7b8794; margin-bottom: 6px; }
+
+        .card .v { font-size: 24px; font-weight: 700; line-height: 1.1; }
+
+        .card .v small { font-size: 12px; color: #7b8794; font-weight: 400; }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin: 22px 0 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+        }
+
+        th,
+        td {
+            padding: 8px 10px;
+            font-size: 12.5px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0, 0, 0, .06);
+            vertical-align: top;
+        }
+
+        th {
+            background: #eef2f7;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .scroll-x { overflow-x: auto; }
+
+        .ellipsis {
+            display: inline-block;
+            max-width: 240px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            vertical-align: bottom;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 1px 6px;
+            margin: 0 2px 2px 0;
+            border-radius: 3px;
+            font-size: 11px;
+            background: #e8f0fe;
+            color: #1a4d8f;
+        }
+
+        .tag.warn { background: #fdecea; color: #b3261e; }
+
+        .empty { padding: 20px; text-align: center; color: #7b8794; font-size: 13px; background: #fff; border-radius: 8px; }
+
+        .group {
+            margin-bottom: 22px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+            overflow: hidden;
+        }
+
+        .group-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 14px;
+            background: #f7f9fc;
+            border-bottom: 1px solid rgba(0, 0, 0, .06);
+            font-size: 13px;
+        }
+
+        .group-head .id { font-weight: 700; font-size: 14px; }
+
+        .group-head .meta { color: #666; }
+
+        .group table { box-shadow: none; border-radius: 0; }
+
+        textarea {
+            width: 100%;
+            min-height: 130px;
+            margin-top: 8px;
+            padding: 10px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 12px;
+            border: 1px solid rgba(0, 0, 0, .15);
+            border-radius: 6px;
+            resize: vertical;
+        }
+
+        .muted { color: #7b8794; font-size: 12px; }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <h1>重复编号检查</h1>
+        <div class="sub">
+            读取本机 localStorage 的 <code>defectData_all</code>、<code>defectData_recv</code>、<code>defectData_fen</code>，
+            列出所有出现 2 次及以上的缺陷编号，并对比「按编号去重」与「按整行指纹去重」的差额。<br>
+            本页面只读，不会修改任何数据。
+        </div>
+
+        <div class="notice" id="notice"></div>
+
+        <div class="toolbar">
+            <button id="btnReload">重新读取 localStorage</button>
+            <button id="btnCopy">复制为 JSON</button>
+            <button id="btnDownload">下载 JSON</button>
+        </div>
+
+        <div id="summary" class="cards"></div>
+
+        <div id="result"></div>
+
+        <div class="section-title">兜底：粘贴 JSON</div>
+        <div class="muted">
+            file:// 下读不到数据时，请在控制台执行
+            <code>JSON.stringify({ all: JSON.parse(localStorage.getItem('defectData_all')||'[]'), recv: JSON.parse(localStorage.getItem('defectData_recv')||'[]'), fen: JSON.parse(localStorage.getItem('defectData_fen')||'[]') })</code>
+            把结果粘贴到下面，或直接粘贴任意一个缺陷数组。
+        </div>
+        <textarea id="pasteBox" placeholder="粘贴 JSON 后点击下方按钮解析"></textarea>
+        <div class="toolbar" style="margin-top:8px;">
+            <button id="btnParsePaste">解析粘贴内容</button>
+        </div>
+
+        <div id="pasteMsg" class="muted"></div>
+    </div>
+
+    <script>
+        var KEYS = [
+            { key: 'all', storage: 'defectData_all' },
+            { key: 'recv', storage: 'defectData_recv' },
+            { key: 'fen', storage: 'defectData_fen' }
+        ];
+
+        var state = {
+            source: '',
+            keyCounts: { all: 0, recv: 0, fen: 0 },
+            errors: {},
+            rows: [],
+            report: null
+        };
+
+        function esc(v) {
+            return String(v == null ? '' : v)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function trimStr(v) {
+            return v === undefined || v === null ? '' : String(v).trim();
+        }
+
+        function getId(row) {
+            if (!row) return '';
+            var idKey = Object.keys(row).find(function (k) {
+                var ck = String(k).replace(/\s+/g, '').toLowerCase();
+                return ck === '缺陷编号' || ck === '编号' || ck === 'id';
+            });
+            return idKey ? trimStr(row[idKey]) : '';
+        }
+
+        function fingerprint(row) {
+            var obj = row || {};
+            return Object.keys(obj)
+                .filter(function (k) { return !String(k).startsWith('_'); })
+                .sort()
+                .map(function (k) { return k + '=' + trimStr(obj[k]); })
+                .join('\u0001');
+        }
+
+        function parseKey(raw) {
+            if (!raw) return [];
+            var data = JSON.parse(raw);
+            if (!Array.isArray(data)) throw new Error('不是数组');
+            return data.filter(function (r) { return r && typeof r === 'object'; });
+        }
+
+        function loadFromStorage() {
+            state.errors = {};
+            state.keyCounts = { all: 0, recv: 0, fen: 0 };
+            state.rows = [];
+            KEYS.forEach(function (k) {
+                var raw;
+                try { raw = localStorage.getItem(k.storage); } catch (e) {
+                    state.errors[k.key] = 'localStorage 不可用：' + e.message;
+                    return;
+                }
+                if (!raw) { state.errors[k.key] = '无数据（' + k.storage + ' 不存在或为空）'; return; }
+                try {
+                    var rows = parseKey(raw);
+                    state.keyCounts[k.key] = rows.length;
+                    rows.forEach(function (row) { state.rows.push({ row: row, source: k.key }); });
+                } catch (e) {
+                    state.errors[k.key] = '解析失败（' + k.storage + '）：' + e.message;
+                }
+            });
+            state.source = 'localStorage';
+            render();
+        }
+
+        function ingestPaste() {
+            var text = document.getElementById('pasteBox').value.trim();
+            var msg = document.getElementById('pasteMsg');
+            if (!text) { msg.textContent = '请先粘贴 JSON'; return; }
+            var obj;
+            try { obj = JSON.parse(text); } catch (e) { msg.textContent = 'JSON 解析失败：' + e.message; return; }
+
+            state.errors = {};
+            state.keyCounts = { all: 0, recv: 0, fen: 0 };
+            state.rows = [];
+            if (Array.isArray(obj)) {
+                state.keyCounts.all = obj.length;
+                obj.forEach(function (row) { state.rows.push({ row: row, source: 'pasted' }); });
+            } else if (obj && (obj.all || obj.recv || obj.fen)) {
+                ['all', 'recv', 'fen'].forEach(function (k) {
+                    var rows = Array.isArray(obj[k]) ? obj[k] : [];
+                    state.keyCounts[k] = rows.length;
+                    rows.forEach(function (row) { state.rows.push({ row: row, source: k }); });
+                });
+            } else {
+                msg.textContent = '格式不支持：请粘贴数组，或 { all / recv / fen } 对象';
+                return;
+            }
+            msg.textContent = '已解析粘贴内容';
+            state.source = 'paste';
+            render();
+        }
+
+        function buildReport() {
+            var rows = state.rows.filter(function (x) { return x.row && typeof x.row === 'object'; });
+            var merged = rows.length;
+
+            // 按编号去重（空编号每条保留）——仅用于对照，不是当前口径
+            var seenIds = {};
+            var idDedup = 0;
+            rows.forEach(function (x) {
+                var id = getId(x.row);
+                if (!id) { idDedup++; return; }
+                if (seenIds[id]) return;
+                seenIds[id] = true;
+                idDedup++;
+            });
+
+            // 按整行指纹去重
+            var seenFp = {};
+            var fpUniqueRows = [];
+            rows.forEach(function (x) {
+                var fp = fingerprint(x.row);
+                if (seenFp[fp]) return;
+                seenFp[fp] = true;
+                fpUniqueRows.push(x);
+            });
+            var fpDedup = fpUniqueRows.length;
+
+            // 按编号分组
+            var groups = {};
+            rows.forEach(function (x) {
+                var id = getId(x.row);
+                if (!id) return;
+                (groups[id] = groups[id] || []).push(x);
+            });
+
+            var dupGroups = [];
+            Object.keys(groups).forEach(function (id) {
+                var g = groups[id];
+                if (g.length < 2) return;
+                var fps = {};
+                g.forEach(function (x) { fps[fingerprint(x.row)] = true; });
+                var sources = Array.from(new Set(g.map(function (x) { return x.source; })));
+                var lens = Array.from(new Set(g.map(function (x) { return id.length; })));
+                dupGroups.push({
+                    id: id,
+                    count: g.length,
+                    sources: sources,
+                    crossStation: lens.length > 1,
+                    lengths: lens,
+                    identicalCount: g.length - Object.keys(fps).length,
+                    distinctCount: Object.keys(fps).length,
+                    rows: g
+                });
+            });
+            dupGroups.sort(function (a, b) { return b.count - a.count; });
+
+            var identicalRows = merged - fpDedup;
+            var distinctSameId = fpDedup - idDedup;
+
+            return {
+                merged: merged,
+                idDedup: idDedup,
+                fpDedup: fpDedup,
+                identicalRows: identicalRows,
+                distinctSameId: distinctSameId,
+                groups: dupGroups,
+                totalDupGroups: dupGroups.length,
+                sources: state.keyCounts,
+                errors: state.errors,
+                generatedAt: new Date().toISOString()
+            };
+        }
+
+        function render() {
+            var report = buildReport();
+            state.report = report;
+
+            var notice = document.getElementById('notice');
+            var errLines = Object.keys(report.errors).map(function (k) { return '· ' + k + '：' + report.errors[k]; });
+            var allEmpty = report.sources.all + report.sources.recv + report.sources.fen === 0;
+            if (allEmpty) {
+                notice.style.display = 'block';
+                notice.innerHTML =
+                    '<b>未读到任何数据。</b>若你是用 <code>file://</code> 直接双击打开的，浏览器的 localStorage 可能因同源限制读不到业务数据。<br>' +
+                    '请改用本地静态服务打开本目录（例如 <code>python -m http.server 8000</code>，然后访问 <code>http://localhost:8000/重复编号检查.html</code>），' +
+                    '或使用页面底部的「粘贴 JSON」兜底输入。';
+            } else if (errLines.length) {
+                notice.style.display = 'block';
+                notice.innerHTML = errLines.map(esc).join('<br>');
+            } else {
+                notice.style.display = 'none';
+            }
+
+            var cards = [
+                { k: 'defectData_all 条数', v: report.sources.all },
+                { k: 'defectData_recv 条数', v: report.sources.recv },
+                { k: 'defectData_fen 条数', v: report.sources.fen },
+                { k: '合并后条数', v: report.merged },
+                { k: '按编号去重后', v: report.idDedup },
+                { k: '按整行指纹去重后', v: report.fpDedup },
+                { k: '重复编号组数', v: report.totalDupGroups },
+                { k: '完全重复行数', v: report.identicalRows },
+                { k: '同编号不同内容行数', v: report.distinctSameId }
+            ];
+            document.getElementById('summary').innerHTML = cards.map(function (c) {
+                return '<div class="card"><div class="k">' + esc(c.k) + '</div><div class="v">' + c.v + '</div></div>';
+            }).join('');
+
+            var result = document.getElementById('result');
+            if (!report.groups.length) {
+                result.innerHTML = '<div class="empty">未发现出现 2 次及以上的缺陷编号。</div>';
+                return;
+            }
+
+            result.innerHTML = '<div class="section-title">重复编号明细（' + report.groups.length + ' 组）</div>' +
+                report.groups.map(renderGroup).join('');
+        }
+
+        function renderGroup(g) {
+            var head = '<div class="group-head">' +
+                '<span class="id">' + (g.id ? esc(g.id) : '（空编号）') + '</span>' +
+                '<span class="meta">出现 ' + g.count + ' 次</span>' +
+                g.sources.map(function (s) { return '<span class="tag">' + esc(s) + '</span>'; }).join('') +
+                (g.crossStation ? '<span class="tag warn">跨站编号长度混用：' + g.lengths.join(' / ') + ' 位</span>' : '') +
+                '<span class="meta">完全相同 ' + g.identicalCount + ' 条 · 内容不同 ' + g.distinctCount + ' 种</span>' +
+                '</div>';
+
+            if (g.distinctCount < 2) {
+                return '<div class="group">' + head +
+                    '<div style="padding:10px 14px;" class="muted">该组内所有行内容完全一致，仅需折叠重复。</div></div>';
+            }
+
+            // 逐字段差异
+            var keys = {};
+            g.rows.forEach(function (x) {
+                Object.keys(x.row).forEach(function (k) { if (!String(k).startsWith('_')) keys[k] = true; });
+            });
+            var keyList = Object.keys(keys).sort();
+            var diffKeys = keyList.filter(function (k) {
+                var vals = {};
+                g.rows.forEach(function (x) { vals[trimStr(x.row[k])] = true; });
+                return Object.keys(vals).length > 1;
+            });
+
+            if (!diffKeys.length) {
+                return '<div class="group">' + head +
+                    '<div style="padding:10px 14px;" class="muted">字段值未发现差异（差异可能来自内部字段）。</div></div>';
+            }
+
+            var thead = '<tr><th>字段</th>' + g.rows.map(function (x, i) {
+                return '<th>行' + (i + 1) + ' · ' + esc(x.source) + '</th>';
+            }).join('') + '</tr>';
+
+            var tbody = diffKeys.map(function (k) {
+                return '<tr><td><b>' + esc(k) + '</b></td>' + g.rows.map(function (x) {
+                    var v = trimStr(x.row[k]);
+                    var full = esc(v);
+                    var show = v || '（空）';
+                    return '<td><span class="ellipsis" title="' + full + '">' + esc(show) + '</span></td>';
+                }).join('') + '</tr>';
+            }).join('');
+
+            return '<div class="group">' + head +
+                '<div class="scroll-x"><table><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table></div>' +
+                '</div>';
+        }
+
+        function reportJson() {
+            var r = state.report;
+            if (!r) return '{}';
+            return JSON.stringify({
+                generatedAt: r.generatedAt,
+                source: state.source,
+                keyCounts: r.sources,
+                merged: r.merged,
+                idDedup: r.idDedup,
+                fingerprintDedup: r.fpDedup,
+                duplicateIdGroups: r.totalDupGroups,
+                identicalRows: r.identicalRows,
+                distinctSameIdRows: r.distinctSameId,
+                errors: r.errors,
+                groups: r.groups.map(function (g) {
+                    return {
+                        id: g.id,
+                        count: g.count,
+                        sources: g.sources,
+                        crossStation: g.crossStation,
+                        identicalCount: g.identicalCount,
+                        distinctCount: g.distinctCount,
+                        rows: g.rows.map(function (x) { return { source: x.source, row: x.row }; })
+                    };
+                })
+            }, null, 2);
+        }
+
+        function copyJson() {
+            var text = reportJson();
+            var done = function () { alert('已复制到剪贴板'); };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                alert('已复制到剪贴板');
+            } catch (e) {
+                alert('复制失败，请使用「下载 JSON」');
+            }
+            document.body.removeChild(ta);
+        }
+
+        function downloadJson() {
+            var blob = new Blob([reportJson()], { type: 'application/json;charset=utf-8' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = '重复编号检查_' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+        }
+
+        document.getElementById('btnReload').addEventListener('click', loadFromStorage);
+        document.getElementById('btnCopy').addEventListener('click', copyJson);
+        document.getElementById('btnDownload').addEventListener('click', downloadJson);
+        document.getElementById('btnParsePaste').addEventListener('click', ingestPaste);
+
+        loadFromStorage();
+    </script>
+</body>
+
+</html>
