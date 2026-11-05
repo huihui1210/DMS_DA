@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG分输站设备缺陷管理系统 V5.30.7</title>
+    <title>福建LNG分输站设备缺陷管理系统 V5.30.8</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -14,20 +14,13 @@
             script.type = 'text/javascript';
             script.onload = callback;
             script.onerror = function () {
-                console.warn('CDN加载失败，使用本地fallback');
-                initWithoutECharts();
+                console.warn('ECharts 加载失败，图表功能不可用');
             };
             script.src = url;
             document.head.appendChild(script);
         }
 
-        loadScript('https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js', function () {
-            window.echartsLoaded = true;
-        });
-
-        function initWithoutECharts() {
-            window.echartsLoaded = false;
-        }
+        loadScript('https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js');
     </script>
     <style>
         :root {
@@ -246,10 +239,6 @@
 
         .stat-card.stat-orange .stat-value {
             color: #e67e22;
-        }
-
-        .stat-card.stat-blue .stat-value {
-            color: #3498db;
         }
 
         .stat-card.stat-purple .stat-value {
@@ -893,7 +882,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG分输站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.7</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
+            <h1>福建LNG分输站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.8</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#fen'">数据看板</button>
                 <label for="fileInput" class="btn btn-upload">
@@ -988,8 +977,8 @@
 
         <div id="chartSection" class="chart-section" style="display: none;">
             <div class="chart-tabs">
-                <div class="chart-tab active" onclick="switchChart('bar')">柱状图</div>
-                <div class="chart-tab" onclick="switchChart('pie')">饼图</div>
+                <div class="chart-tab active" onclick="switchChart('bar', this)">柱状图</div>
+                <div class="chart-tab" onclick="switchChart('pie', this)">饼图</div>
             </div>
             <div class="chart-container" id="chartContainer"></div>
             <div class="chart-data-table" id="chartDataTable" style="display: none;"></div>
@@ -1059,9 +1048,6 @@
 
         // ======= 站点类型配置 =======
         const STATION_TYPE = 'fen';           // 分输站
-        const DEFECT_ID_LENGTH = 14;           // 14位缺陷编号
-        const DEFECT_DATE_START = 3;           // 日期从第4位开始（0-indexed=3）
-        const DEFECT_DATE_END = 11;            // 日期8位：substring(3, 11)
         const OTHER_PAGE = 'index.html';       // 转换目标页
         const STORAGE_KEY = 'defectData_fen';  // 独立localStorage键
 
@@ -1076,6 +1062,11 @@
         };
         function displayProfession(name) {
             return PROFESSION_DISPLAY_NAMES[name] || name;
+        }
+
+        // 用户数据进入 innerHTML 前统一转义
+        function escHtml(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
         }
 
         // ======= 表格状态 =======
@@ -1139,11 +1130,6 @@
                         return;
                     }
 
-                    // 调试信息：显示原始字段数量
-                    const rawColumns = rawData.length > 0 ? Object.keys(rawData[0]).length : 0;
-                    console.log('原始字段数:', rawColumns);
-                    console.log('原始字段:', Object.keys(rawData[0]));
-
                     processData();
                 } catch (error) {
                     showModal('解析失败', '文件解析失败，请确保文件格式正确：' + error.message);
@@ -1191,19 +1177,6 @@
                 }
             }
             return undefined;
-        }
-
-        function hasField(row, fieldName) {
-            const keys = Object.keys(row);
-            const cleanField = cleanString(fieldName).toLowerCase();
-
-            for (const key of keys) {
-                const cleanKey = cleanString(key).toLowerCase();
-                if (cleanKey === cleanField) {
-                    return true;
-                }
-            }
-            return false;
         }
 
         function determineStatus(row) {
@@ -1303,23 +1276,6 @@
         }
 
         // ======= 日期相关工具函数 =======
-        function getMonthKey(dateValue) {
-            if (isEmpty(dateValue)) return null;
-
-            let date;
-            if (typeof dateValue === 'number') {
-                date = new Date((dateValue - 25569) * 86400 * 1000);
-            } else {
-                date = new Date(dateValue);
-            }
-
-            if (isNaN(date.getTime())) {
-                return null;
-            }
-
-            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        }
-
         // 从缺陷编号取日期段：14位取3-11，其余长度≥8取0-8（与总界面/看板一致）
         function getDatePartFromDefectId(defectId) {
             if (isEmpty(defectId)) return null;
@@ -1334,7 +1290,8 @@
             if (!datePart) return null;
             const year = datePart.substring(0, 4);
             const month = datePart.substring(4, 6);
-            if (!isNaN(year) && !isNaN(month) && year.length === 4 && month.length === 2) {
+            const monthNum = parseInt(month, 10);
+            if (year.length === 4 && month.length === 2 && !isNaN(monthNum) && monthNum >= 1 && monthNum <= 12) {
                 return `${year}-${month}`;
             }
             return null;
@@ -1350,7 +1307,8 @@
             if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
             if (month < 1 || month > 12 || day < 1 || day > 31) return null;
             const d = new Date(year, month - 1, day);
-            if (isNaN(d.getTime())) return null;
+            // 校验日期真实存在，避免 2月30日 这类非法日期被顺延到下个月
+            if (isNaN(d.getTime()) || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
             return d;
         }
 
@@ -1391,12 +1349,6 @@
             }
             // 兜底2：去掉末尾的时分秒部分
             return String(val).replace(/\s+\d{1,2}:\d{2}(:\d{2})?$/, '').trim();
-        }
-
-        function isSameDay(a, b) {
-            return a.getFullYear() === b.getFullYear()
-                && a.getMonth() === b.getMonth()
-                && a.getDate() === b.getDate();
         }
 
         function isSameMonth(a, b) {
@@ -1674,7 +1626,7 @@
                             : idx === 2 ? 'lb-rank-3' : 'lb-rank-n';
                     return `<div class="lb-item">
                         <span class="lb-rank ${rankClass}">${idx + 1}</span>
-                        <span class="lb-profession">${displayProfession(item.prof)}</span>
+                        <span class="lb-profession">${escHtml(displayProfession(item.prof))}</span>
                         <span class="lb-count">${item.count}</span>
                     </div>`;
                 }).join('');
@@ -1925,9 +1877,6 @@
             // 固定顺序：预定义专业在前，Excel额外专业在后
             const professions = [...MAJOR_PROFESSIONS, ...extraProfessions];
 
-            console.log('[Ⅰ类专业统计] 完整专业列表:', professions.join('、'));
-            console.log('[Ⅰ类专业统计] 剩余:', JSON.stringify(remainingStats));
-
             return { professions, remainingStats, newStats, completedStats, extraProfessions };
         }
 
@@ -2158,7 +2107,6 @@
         }
 
         function renderChartFallback(type) {
-            const { monthlyStats, filteredMonths } = calculateMonthlyStats();
             const container = document.getElementById('chartContainer');
 
             let chartHtml = '<div style="height: 280px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px;">';
@@ -2169,14 +2117,14 @@
             container.innerHTML = chartHtml;
         }
 
-        function switchChart(type) {
+        function switchChart(type, tabEl) {
             currentChartType = type;
             document.querySelectorAll('.chart-tab').forEach(tab => tab.classList.remove('active'));
-            event.target.classList.add('active');
+            if (tabEl) tabEl.classList.add('active');
             renderChart(type);
         }
 
-        // ======= 接收站 Ⅰ类缺陷汇总表（饼图底下的表格）=======
+        // ======= 分输站 Ⅰ类缺陷汇总表（饼图底下的表格）=======
         // 口径：分类定级=Ⅰ类 + 专业不含土建、消防 + 专业≠未分类
         // 行：剩余、本月新增、本月消项
         // 专业：MAJOR_PROFESSIONS（11个预定义）+ Excel 额外
@@ -2198,7 +2146,7 @@
             html += `<th class="st-col" rowspan="${totalRows}">分<br>输<br>站</th>`;  // 跨所有行，竖排
             html += '<th>Ⅰ类缺陷</th>';
             html += '<th class="st-sub-total">总计</th>';
-            professions.forEach(p => { html += `<th>${displayProfession(p)}</th>`; });
+            professions.forEach(p => { html += `<th>${escHtml(displayProfession(p))}</th>`; });
             html += '</tr>';
 
             // 剩余
@@ -2244,9 +2192,13 @@
         // ======= localStorage 持久化 =======
         function saveToLocalStorage() {
             // 导入即整表覆盖本站键：不追加历史、不按编号替换
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(processedData));
-            // 同步到共享键，供 report.html 读取
-            localStorage.setItem('defectData', JSON.stringify(processedData));
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(processedData));
+                // 同步到共享键，供 report.html 读取
+                localStorage.setItem('defectData', JSON.stringify(processedData));
+            } catch (e) {
+                console.error('本地存储写入失败，数据仅保留在当前页面:', e);
+            }
             mergeToAllStorage();
         }
 
@@ -2259,15 +2211,27 @@
                 } catch (e) { return []; }
             };
             const allData = readRows('defectData_recv').concat(readRows('defectData_fen'));
-            localStorage.setItem('defectData_all', JSON.stringify(allData));
-            // 版本号时间戳：供总界面(index_1)可靠感知每次同步
-            localStorage.setItem('defectData_all_ver', String(Date.now()));
+            try {
+                localStorage.setItem('defectData_all', JSON.stringify(allData));
+                // 版本号时间戳：供总界面(index_1)可靠感知每次同步
+                localStorage.setItem('defectData_all_ver', String(Date.now()));
+            } catch (e) {
+                console.error('defectData_all 写入失败:', e);
+            }
         }
 
         function loadFromLocalStorage() {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
-                processedData = JSON.parse(saved).map(row => ({ ...row, status: determineStatus(row) }));
+                let parsed;
+                try {
+                    parsed = JSON.parse(saved);
+                } catch (e) {
+                    console.error('本地历史数据解析失败，已跳过:', e);
+                    return;
+                }
+                if (!Array.isArray(parsed)) return;
+                processedData = parsed.map(row => ({ ...row, status: determineStatus(row) }));
                 // 分输站：加载后转换"其他"→"管道运行部"（兼容旧数据）
                 let changed = false;
                 processedData.forEach(row => {
@@ -2285,11 +2249,19 @@
                     }
                 });
                 if (changed) {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(processedData));
+                    try {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(processedData));
+                    } catch (e) {
+                        console.error('本站数据回写失败:', e);
+                    }
                     mergeToAllStorage();
                 }
                 // 同步 defectData，保证从本界面生成报告时数据正确
-                localStorage.setItem('defectData', JSON.stringify(processedData));
+                try {
+                    localStorage.setItem('defectData', JSON.stringify(processedData));
+                } catch (e) {
+                    console.error('defectData 回写失败:', e);
+                }
                 if (processedData.length > 0) {
                     renderAll();
                 }
@@ -2351,8 +2323,8 @@
         // ======= 重置 =======
         function resetData() {
             localStorage.removeItem(STORAGE_KEY);
-            // 同步从 defectData_all 移除14位编号的分输站数据
-            removeFromAllStorage(14);
+            // 本站键已删除，按剩余 recv/fen 原样拼接重建 defectData_all
+            mergeToAllStorage();
             rawData = [];
             processedData = [];
             currentPage = 1;

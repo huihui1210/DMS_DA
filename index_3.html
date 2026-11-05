@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.7 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.8 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -1985,18 +1985,6 @@
             color: #8fd8ee;
         }
 
-        .ghost-dot {
-            position: absolute;
-            z-index: 2;
-            width: 6px;
-            height: 6px;
-            margin: -3px 0 0 -3px;
-            border-radius: 50%;
-            background: rgba(59, 210, 255, 0.65);
-            box-shadow: 0 0 10px rgba(59, 210, 255, 0.85);
-            animation: pulse 3s ease-in-out infinite;
-        }
-
         .marker {
             position: absolute;
             z-index: 3;
@@ -2110,12 +2098,6 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-        }
-
-        .c-date {
-            font-family: var(--num-font);
-            color: var(--text-3);
-            font-variant-numeric: tabular-nums;
         }
 
         .badge {
@@ -3094,7 +3076,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.30.7</span>
+                    <span class="ver">V5.30.8</span>
                 </div>
             </div>
 
@@ -3333,7 +3315,11 @@
         }
 
         function saveMapSpots(spots) {
-            localStorage.setItem('defectMapSpots_v1', JSON.stringify(spots));
+            try {
+                localStorage.setItem('defectMapSpots_v1', JSON.stringify(spots));
+            } catch (e) {
+                console.error('点位配置保存失败:', e);
+            }
         }
 
         /* ================= 底图上传（IndexedDB 持久化，支持原图，无需 git） ================= */
@@ -3401,10 +3387,6 @@
             } catch (e) { }
             // 兜底：git 移除底图后会显示占位
             return '';
-        }
-
-        async function hasMapImg(type) {
-            try { return !!(await dbGet(type)); } catch (e) { return false; }
         }
 
         async function removeMapImg(type) {
@@ -3627,7 +3609,8 @@
             }
             const year = datePart.substring(0, 4);
             const month = datePart.substring(4, 6);
-            if (!isNaN(year) && !isNaN(month) && year.length === 4 && month.length === 2) {
+            const monthNum = parseInt(month, 10);
+            if (year.length === 4 && month.length === 2 && !isNaN(monthNum) && monthNum >= 1 && monthNum <= 12) {
                 return `${year}-${month}`;
             }
             return null;
@@ -3650,7 +3633,9 @@
             if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
             if (month < 1 || month > 12 || day < 1 || day > 31) return null;
             const d = new Date(year, month - 1, day);
-            return isNaN(d.getTime()) ? null : d;
+            // 校验日期真实存在，避免 2月30日 这类非法日期被顺延到下个月
+            if (isNaN(d.getTime()) || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
+            return d;
         }
 
         function toDate(dateValue) {
@@ -3662,18 +3647,6 @@
                 date = new Date(dateValue);
             }
             return isNaN(date.getTime()) ? null : date;
-        }
-
-        function formatDateOnly(val) {
-            if (isEmpty(val)) return '';
-            const d = toDate(val);
-            if (d) {
-                const y = d.getFullYear();
-                const m = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${y}-${m}-${day}`;
-            }
-            return String(val).replace(/\s+\d{1,2}:\d{2}(:\d{2})?$/, '').trim();
         }
 
         function getCompleteDate(row) {
@@ -5584,9 +5557,9 @@
                     : '';
                 const plateShort = showRate ? ` data-short="${rateShort}"` : '';
                 return `<div class="podium-item p${rank}" data-idx="${idx}"
-                            title="${prof} · ${periodLabel}消缺 ${item.count} 条">
+                            title="${escHtml(prof)} · ${periodLabel}消缺 ${item.count} 条">
                             <div class="po-plaque">
-                                <span class="po-name">${EMBLEMS[rank]}<span>${prof}</span></span>
+                                <span class="po-name">${EMBLEMS[rank]}<span>${escHtml(prof)}</span></span>
                                 <span class="po-count">${item.count}<em>条</em></span>
                                 <i class="po-ribbon"></i>
                                 ${rank === 1 ? '<i class="po-spark sp-a"></i><i class="po-spark sp-b"></i>' : ''}
@@ -5633,11 +5606,11 @@
 
         function listRowHTML(row) {
             const id = getId(row);
-            return `<div class="list-row" data-id="${id || ''}">
-                <span class="c-id">${id || '—'}</span>
-                <span class="c-zone">${getZone(row)}</span>
-                <span class="c-prof">${displayProfession(getProfession(row))}</span>
-                <span class="c-desc">${getDesc(row)}</span>
+            return `<div class="list-row" data-id="${escHtml(id || '')}">
+                <span class="c-id">${escHtml(id || '—')}</span>
+                <span class="c-zone">${escHtml(getZone(row))}</span>
+                <span class="c-prof">${escHtml(displayProfession(getProfession(row)))}</span>
+                <span class="c-desc">${escHtml(getDesc(row))}</span>
             </div>`;
         }
 
@@ -5728,12 +5701,12 @@
                 const profRaw = getProfession(row);
                 const prof = displayProfession(profRaw) || profRaw || '—';
                 const cls = supervised ? '' : ' normal';
-                return `<div class="sp-item${cls}" data-id="${getId(row) || ''}">
+                return `<div class="sp-item${cls}" data-id="${escHtml(getId(row) || '')}">
                     <div class="sp-main">
-                        <div class="sp-id">${getId(row) || '无编号'}</div>
-                        <div class="sp-desc">${getDesc(row, '未填写缺陷描述')}</div>
+                        <div class="sp-id">${escHtml(getId(row) || '无编号')}</div>
+                        <div class="sp-desc">${escHtml(getDesc(row, '未填写缺陷描述'))}</div>
                     </div>
-                    <div class="sp-side"><b title="${escHtml(prof)}">${escHtml(prof)}</b>${getZone(row)}</div>
+                    <div class="sp-side"><b title="${escHtml(prof)}">${escHtml(prof)}</b>${escHtml(getZone(row))}</div>
                 </div>`;
             }).join('');
 
@@ -5885,8 +5858,8 @@
             const spots = getMapSpots()[type];
             container.innerHTML = Object.keys(spots).filter(z => zoneAll[z]).map(z => {
                 const count = zonePending[z] || 0;
-                return `<div class="marker${count ? ' alert' : ''}" data-zone="${z}" style="left:${spots[z].x * 100}%;top:${spots[z].y * 100}%">
-                    <i></i><span>${z}${count ? ' · ' + count : ''}</span>
+                return `<div class="marker${count ? ' alert' : ''}" data-zone="${escHtml(z)}" style="left:${spots[z].x * 100}%;top:${spots[z].y * 100}%">
+                    <i></i><span>${escHtml(z)}${count ? ' · ' + count : ''}</span>
                 </div>`;
             }).join('');
             const unplaced = Object.keys(zoneAll).filter(z => !spots[z]).length;
@@ -6078,10 +6051,10 @@
                 const rowsHtml = zones.map(z => {
                     const placed = !!spots[type][z];
                     const placing = mapEdit.pending && mapEdit.pending.zone === z;
-                    return `<div class="ez-row${placed ? ' placed' : ''}${placing ? ' placing' : ''}" data-type="${type}" data-zone="${z}">
-                        <span class="ez-name">${z}</span>
+                    return `<div class="ez-row${placed ? ' placed' : ''}${placing ? ' placing' : ''}" data-type="${type}" data-zone="${escHtml(z)}">
+                        <span class="ez-name">${escHtml(z)}</span>
                         <span class="ez-state">${placing ? '点击底图落点' : (placed ? '已定位' : '未定位')}</span>
-                        ${placed ? `<button class="ez-clear" data-type="${type}" data-zone="${z}" title="清除位置">×</button>` : ''}
+                        ${placed ? `<button class="ez-clear" data-type="${type}" data-zone="${escHtml(z)}" title="清除位置">×</button>` : ''}
                     </div>`;
                 }).join('');
                 groups.push(`<div class="ez-group"><div class="ez-title">${label}</div>${rowsHtml || '<div class="ez-none">暂无数据</div>'}</div>`);
@@ -6121,7 +6094,7 @@
                         <label class="mi-btn">上传PNG/JPG<input type="file" accept="image/*" data-type="${type}" hidden></label>
                         ${record ? `<button class="mi-del" data-type="${type}">删除</button>` : '<span class="mi-state">—</span>'}
                     </div>
-                    ${record ? `<div class="mi-state mi-custom">已上传 ${size}MB · ${record.note || '原图'}</div>` : '<div class="mi-state mi-empty">未上传底图</div>'}
+                    ${record ? `<div class="mi-state mi-custom">已上传 ${size}MB · ${escHtml(record.note || '原图')}</div>` : '<div class="mi-state mi-empty">未上传底图</div>'}
                 </div>`;
             }));
             drawer.innerHTML = `<div class="ez-head"><b>底图管理</b><span>存浏览器IndexedDB,无需git提交;支持原图30MB+,JPEG默认缩到4096px</span><button id="imgDone">完成</button></div>${cards.join('')}`;

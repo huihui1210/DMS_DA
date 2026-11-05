@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷数据分析报告 V5.30.7</title>
+    <title>福建LNG设备缺陷数据分析报告 V5.30.8</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         /* ======= Reset & 全局 ======= */
@@ -1161,39 +1161,6 @@
         }
 
         // ======= 日期工具函数（与 index.html 对齐）=======
-        function getMonthKey(dateValue) {
-            if (isEmpty(dateValue)) return null;
-            let date;
-            if (typeof dateValue === 'number') {
-                date = new Date((dateValue - 25569) * 86400 * 1000);
-            } else {
-                date = new Date(dateValue);
-            }
-            if (isNaN(date.getTime())) return null;
-            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        }
-
-        function getDateFromDefectId(defectId) {
-            if (!defectId) return null;
-            const idStr = String(defectId);
-            let datePart;
-            if (idStr.length === 14) {
-                datePart = idStr.substring(3, 11);
-            } else if (idStr.length >= 8) {
-                datePart = idStr.substring(0, 8);
-            } else {
-                return null;
-            }
-            const year = parseInt(datePart.substring(0, 4));
-            const month = parseInt(datePart.substring(4, 6));
-            const day = parseInt(datePart.substring(6, 8));
-            if (!isNaN(year) && !isNaN(month) && !isNaN(day) &&
-                year >= 2000 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-                return new Date(year, month - 1, day);
-            }
-            return null;
-        }
-
         function getMonthFromDefectId(defectId) {
             if (!defectId) return null;
             const idStr = String(defectId);
@@ -1248,14 +1215,6 @@
             const date = getCompleteDate(row);
             if (!date) return null;
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        }
-
-        function isSameMonth(date, now) {
-            return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
-        }
-
-        function isSameYear(date, now) {
-            return date.getFullYear() === now.getFullYear();
         }
 
         // 分类定级是否为Ⅰ类（一类/Ⅰ/I/1，排除二类/Ⅱ/II/2）
@@ -1367,6 +1326,11 @@
         }
         function displayProfession(name) {
             return PROFESSION_DISPLAY_NAMES[name] || name;
+        }
+
+        // 用户数据进入 innerHTML 前统一转义
+        function escHtml(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
         }
 
         // ======= 统计：Ⅰ类缺陷专业分布（饼图 + 饼图底下表格 共用，与 index.html 完全一致）=======
@@ -1488,7 +1452,7 @@
                 { period: '周榜', ...champInfo(weekTop, periodVolume, Object.keys(weekCounts).length) },
                 { period: '月榜', ...champInfo(monthTop, yearVolume, elapsedMonths) }
             ];
-            const rowsHtml = rows.map(r => `<tr><td>${r.period}</td><td>${r.prof}</td><td>${r.vol}</td><td>${r.rate}</td><td></td></tr>`).join('');
+            const rowsHtml = rows.map(r => `<tr><td>${escHtml(r.period)}</td><td>${escHtml(r.prof)}</td><td>${escHtml(r.vol)}</td><td>${escHtml(r.rate)}</td><td></td></tr>`).join('');
 
             return `<table class="lb-table"><thead>` +
                 `<tr><th rowspan="2" style="width:12%;">周期</th><th colspan="3">消缺龙虎榜（第一）</th><th rowspan="2" style="width:16%;">备注</th></tr>` +
@@ -1585,7 +1549,7 @@
                     const owner = keyOwner ? String(row[keyOwner] == null ? '' : row[keyOwner]).trim() : '';
                     const planDate = formatCnDate(parseDateValue(keyPlan ? row[keyPlan] : ''));
                     const actualDate = isCompleted(row) ? formatCnDate(getCompleteDate(row)) : '';
-                    return `<tr><td>${seq}</td><td class="focus-desc">${desc}</td><td>${owner}</td><td>${planDate}</td><td>${actualDate}</td></tr>`;
+                    return `<tr><td>${seq}</td><td class="focus-desc">${escHtml(desc)}</td><td>${escHtml(owner)}</td><td>${planDate}</td><td>${actualDate}</td></tr>`;
                 }).join('');
                 return `<div class="focus-table-wrap"><table class="focus-table">` +
                     `<colgroup><col style="width:5%;"><col style="width:51%;"><col style="width:8%;"><col style="width:18%;"><col style="width:18%;"></colgroup><thead>` +
@@ -1612,8 +1576,14 @@
                 return;
             }
 
-            const processedData = JSON.parse(saved);
-            if (processedData.length === 0) {
+            let processedData;
+            try {
+                processedData = JSON.parse(saved);
+            } catch (e) {
+                document.getElementById('noData').style.display = 'block';
+                return;
+            }
+            if (!Array.isArray(processedData) || processedData.length === 0) {
                 document.getElementById('noData').style.display = 'block';
                 return;
             }
@@ -1764,7 +1734,7 @@
             const buildProfessionCard = (name, count) => {
                 const item = document.createElement('div');
                 item.className = 'profession-item';
-                item.innerHTML = `<span class="profession-name">${displayProfession(name)}</span><span class="profession-count">${count}项</span>`;
+                item.innerHTML = `<span class="profession-name">${escHtml(displayProfession(name))}</span><span class="profession-count">${count}项</span>`;
                 return item;
             };
             const completedListEl = document.getElementById('completedProfessionList');
@@ -1836,7 +1806,7 @@
             const container = document.getElementById('barChart');
             const chart = echarts.init(container);
 
-            const monthLabels = months.map(m => parseInt(m.split('-')[1]) + '月');
+            const monthLabels = months.map(m => parseInt(m.split('-')[1], 10) + '月');
             const newData = months.map(m => monthlyStats[m].new);
             const completedData = months.map(m => monthlyStats[m].completed);
             const pendingData = months.map(m => monthlyStats[m].pending);
@@ -1876,7 +1846,7 @@
             html += '</tr></tbody></table>';
             tbl.innerHTML = html;
 
-            window.addEventListener('resize', () => chart.resize());
+            window.addEventListener('resize', () => { if (!chart.isDisposed()) chart.resize(); });
         }
 
         // ======= 饼图（Ⅰ类缺陷专业分布，与 index.html 口径完全一致）=======
@@ -1928,7 +1898,7 @@
                         }))
                     }]
                 });
-                window.addEventListener('resize', () => chart.resize());
+                window.addEventListener('resize', () => { if (!chart.isDisposed()) chart.resize(); });
             }
 
             // 饼图底下汇总表
@@ -1965,7 +1935,7 @@
             html += `<th class="st-col" rowspan="${totalRows}">${labelStation.split('').join('<br>')}</th>`;
             html += '<th>Ⅰ类缺陷</th>';
             html += '<th class="st-sub-total">总计</th>';
-            professions.forEach(p => { html += `<th>${displayProfession(p)}</th>`; });
+            professions.forEach(p => { html += `<th>${escHtml(displayProfession(p))}</th>`; });
             html += '</tr>';
 
             // 剩余

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.7</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.8</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -14,20 +14,13 @@
             script.type = 'text/javascript';
             script.onload = callback;
             script.onerror = function () {
-                console.warn('CDN加载失败，使用本地fallback');
-                initWithoutECharts();
+                console.warn('ECharts 加载失败，图表功能不可用');
             };
             script.src = url;
             document.head.appendChild(script);
         }
 
-        loadScript('https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js', function () {
-            window.echartsLoaded = true;
-        });
-
-        function initWithoutECharts() {
-            window.echartsLoaded = false;
-        }
+        loadScript('https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js');
     </script>
     <style>
         :root {
@@ -246,10 +239,6 @@
 
         .stat-card.stat-orange .stat-value {
             color: #e67e22;
-        }
-
-        .stat-card.stat-blue .stat-value {
-            color: #3498db;
         }
 
         .stat-card.stat-purple .stat-value {
@@ -891,7 +880,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.7</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
+            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.8</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#all'">数据看板</button>
                 <label for="fileInput" class="btn btn-upload">
@@ -987,8 +976,8 @@
 
         <div id="chartSection" class="chart-section" style="display: none;">
             <div class="chart-tabs">
-                <div class="chart-tab active" onclick="switchChart('bar')">柱状图</div>
-                <div class="chart-tab" onclick="switchChart('pie')">饼图</div>
+                <div class="chart-tab active" onclick="switchChart('bar', this)">柱状图</div>
+                <div class="chart-tab" onclick="switchChart('pie', this)">饼图</div>
             </div>
             <div class="chart-container" id="chartContainer"></div>
             <div class="chart-data-table" id="chartDataTable" style="display: none;"></div>
@@ -1082,6 +1071,11 @@
             return PROFESSION_DISPLAY_NAMES[name] || name;
         }
 
+        // 用户数据进入 innerHTML 前统一转义
+        function escHtml(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+        }
+
         // ======= 表格状态 =======
         let warnedMissingColumn = false;
         let currentPage = 1;
@@ -1143,11 +1137,6 @@
                         return;
                     }
 
-                    // 调试信息：显示原始字段数量
-                    const rawColumns = rawData.length > 0 ? Object.keys(rawData[0]).length : 0;
-                    console.log('原始字段数:', rawColumns);
-                    console.log('原始字段:', Object.keys(rawData[0]));
-
                     processData();
                 } catch (error) {
                     showModal('解析失败', '文件解析失败，请确保文件格式正确：' + error.message);
@@ -1199,19 +1188,6 @@
                 }
             }
             return undefined;
-        }
-
-        function hasField(row, fieldName) {
-            const keys = Object.keys(row);
-            const cleanField = cleanString(fieldName).toLowerCase();
-
-            for (const key of keys) {
-                const cleanKey = cleanString(key).toLowerCase();
-                if (cleanKey === cleanField) {
-                    return true;
-                }
-            }
-            return false;
         }
 
         function determineStatus(row) {
@@ -1296,23 +1272,6 @@
         }
 
         // ======= 日期相关工具函数 =======
-        function getMonthKey(dateValue) {
-            if (isEmpty(dateValue)) return null;
-
-            let date;
-            if (typeof dateValue === 'number') {
-                date = new Date((dateValue - 25569) * 86400 * 1000);
-            } else {
-                date = new Date(dateValue);
-            }
-
-            if (isNaN(date.getTime())) {
-                return null;
-            }
-
-            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        }
-
         function getMonthFromDefectId(defectId) {
             if (isEmpty(defectId)) return null;
             const idStr = String(defectId).trim();
@@ -1328,7 +1287,8 @@
             }
             const year = datePart.substring(0, 4);
             const month = datePart.substring(4, 6);
-            if (!isNaN(year) && !isNaN(month) && year.length === 4 && month.length === 2) {
+            const monthNum = parseInt(month, 10);
+            if (year.length === 4 && month.length === 2 && !isNaN(monthNum) && monthNum >= 1 && monthNum <= 12) {
                 return `${year}-${month}`;
             }
             return null;
@@ -1352,7 +1312,8 @@
             if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
             if (month < 1 || month > 12 || day < 1 || day > 31) return null;
             const d = new Date(year, month - 1, day);
-            if (isNaN(d.getTime())) return null;
+            // 校验日期真实存在，避免 2月30日 这类非法日期被顺延到下个月
+            if (isNaN(d.getTime()) || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
             return d;
         }
 
@@ -1393,12 +1354,6 @@
             }
             // 兜底2：去掉末尾的时分秒部分
             return String(val).replace(/\s+\d{1,2}:\d{2}(:\d{2})?$/, '').trim();
-        }
-
-        function isSameDay(a, b) {
-            return a.getFullYear() === b.getFullYear()
-                && a.getMonth() === b.getMonth()
-                && a.getDate() === b.getDate();
         }
 
         function isSameMonth(a, b) {
@@ -1676,7 +1631,7 @@
                             : idx === 2 ? 'lb-rank-3' : 'lb-rank-n';
                     return `<div class="lb-item">
                         <span class="lb-rank ${rankClass}">${idx + 1}</span>
-                        <span class="lb-profession">${displayProfession(item.prof)}</span>
+                        <span class="lb-profession">${escHtml(displayProfession(item.prof))}</span>
                         <span class="lb-count">${item.count}</span>
                     </div>`;
                 }).join('');
@@ -1927,9 +1882,6 @@
             // 固定顺序：预定义专业在前，Excel额外专业在后
             const professions = [...MAJOR_PROFESSIONS, ...extraProfessions];
 
-            console.log('[Ⅰ类专业统计] 完整专业列表:', professions.join('、'));
-            console.log('[Ⅰ类专业统计] 剩余:', JSON.stringify(remainingStats));
-
             return { professions, remainingStats, newStats, completedStats, extraProfessions };
         }
 
@@ -2160,7 +2112,6 @@
         }
 
         function renderChartFallback(type) {
-            const { monthlyStats, filteredMonths } = calculateMonthlyStats();
             const container = document.getElementById('chartContainer');
 
             let chartHtml = '<div style="height: 280px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px;">';
@@ -2171,17 +2122,17 @@
             container.innerHTML = chartHtml;
         }
 
-        function switchChart(type) {
+        function switchChart(type, tabEl) {
             currentChartType = type;
             document.querySelectorAll('.chart-tab').forEach(tab => tab.classList.remove('active'));
-            event.target.classList.add('active');
+            if (tabEl) tabEl.classList.add('active');
             renderChart(type);
         }
 
-        // ======= 接收站 Ⅰ类缺陷汇总表（饼图底下的表格）=======
+        // ======= 福建LNG Ⅰ类缺陷汇总表（饼图底下的表格）=======
         // 口径：分类定级=Ⅰ类 + 专业不含土建、消防 + 专业≠未分类
         // 行：剩余、本月新增、本月消项
-        // 专业：MAJOR_PROFESSIONS（11个预定义）+ Excel 额外
+        // 专业：MAJOR_PROFESSIONS（12个预定义）+ Excel 额外
         function renderSummaryTable() {
             const section = document.getElementById('summaryTableSection');
             // 与饼图调用同一个公共函数，确保数据完全一致
@@ -2200,7 +2151,7 @@
             html += `<th class="st-col" rowspan="${totalRows}">福<br>建<br>L<br>N<br>G</th>`;  // 跨所有行，竖排
             html += '<th>Ⅰ类缺陷</th>';
             html += '<th class="st-sub-total">总计</th>';
-            professions.forEach(p => { html += `<th>${displayProfession(p)}</th>`; });
+            professions.forEach(p => { html += `<th>${escHtml(displayProfession(p))}</th>`; });
             html += '</tr>';
 
             // 剩余
@@ -2282,17 +2233,25 @@
 
         function saveToLocalStorage() {
             // 同步共享键，供 report.html 读取
-            localStorage.setItem('defectData', JSON.stringify(processedData));
+            try {
+                localStorage.setItem('defectData', JSON.stringify(processedData));
+            } catch (e) {
+                console.error('defectData 写入失败:', e);
+            }
             // 总界面导入：整表覆盖 defectData_all，并回写 recv / fen 保证三键一致
             mergeToAllStorage(processedData);
         }
 
         // 总界面导入：all 整表覆盖（原样写入，不折叠）；recv / fen 按编号长度整表回写，异常长度归 recv，保证不丢行
         function mergeToAllStorage(stationData) {
-            localStorage.setItem('defectData_all', JSON.stringify(stationData));
-            localStorage.setItem('defectData_recv', JSON.stringify(stationData.filter(row => getRowId(row).length !== 14)));
-            localStorage.setItem('defectData_fen', JSON.stringify(stationData.filter(row => getRowId(row).length === 14)));
-            localStorage.setItem('defectData_all_ver', String(Date.now()));
+            try {
+                localStorage.setItem('defectData_all', JSON.stringify(stationData));
+                localStorage.setItem('defectData_recv', JSON.stringify(stationData.filter(row => getRowId(row).length !== 14)));
+                localStorage.setItem('defectData_fen', JSON.stringify(stationData.filter(row => getRowId(row).length === 14)));
+                localStorage.setItem('defectData_all_ver', String(Date.now()));
+            } catch (e) {
+                console.error('总界面数据写入失败:', e);
+            }
         }
 
         // 显式清空全部数据（二次确认）
@@ -2359,7 +2318,11 @@
                 }
             });
             // 同步 defectData，保证从本界面生成报告时数据正确
-            localStorage.setItem('defectData', JSON.stringify(processedData));
+            try {
+                localStorage.setItem('defectData', JSON.stringify(processedData));
+            } catch (e) {
+                console.error('defectData 回写失败:', e);
+            }
             if (processedData.length > 0) {
                 renderAll();
             }
@@ -2387,7 +2350,11 @@
         function checkAndRedirect(data) {
             const detectedType = detectDefectIdType(data);
             if (detectedType && detectedType !== STATION_TYPE) {
-                localStorage.setItem('pendingTransferData', JSON.stringify(data));
+                try {
+                    localStorage.setItem('pendingTransferData', JSON.stringify(data));
+                } catch (e) {
+                    console.error('待转移数据写入失败:', e);
+                }
                 const targetPage = detectedType === 'fen' ? 'index_2.html' :
                     detectedType === 'recv' ? 'index.html' : 'index_1.html';
                 window.location.href = targetPage;
@@ -2414,9 +2381,13 @@
 
         // ======= 重置 =======
         function resetData() {
-            localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem('defectData_all');
-            localStorage.removeItem('defectData_all_ver');
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem('defectData_all');
+                localStorage.removeItem('defectData_all_ver');
+            } catch (e) {
+                console.error('清空数据失败:', e);
+            }
             rawData = [];
             processedData = [];
             currentPage = 1;
