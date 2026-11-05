@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.10 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.11 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -3076,7 +3076,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.30.10</span>
+                    <span class="ver">V5.30.11</span>
                 </div>
             </div>
 
@@ -4460,10 +4460,11 @@
                 if (!prof || prof === '未分类') return;
                 const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
                 if (dayDate > today) return;
+                // 日榜只统计本月；年榜按本年逐日；周/月榜按当年周/月
+                if (kind === 'day' && d.getMonth() !== ref.getMonth()) return;
                 let key;
-                if (kind === 'day') key = dayDate.getTime();
+                if (kind === 'day' || kind === 'year') key = dayDate.getTime();
                 else if (kind === 'week') key = mondayOf(dayDate).getTime();
-                else if (kind === 'year') key = 0;
                 else key = d.getMonth();
                 buckets[key] = buckets[key] || {};
                 buckets[key][prof] = (buckets[key][prof] || 0) + 1;
@@ -4476,18 +4477,19 @@
                     .slice(0, 3)
                     .forEach(item => { hits[item.prof] = (hits[item.prof] || 0) + 1; });
             });
-            // 分母沿用月度口径：当年已过的自然期数（1 月至当前月 / 1 月 1 日至今天 / 1 月 1 日所在周至本周）
+            // 分母：日榜=本月已过天数；年榜=本年已过天数；周/月榜=当年已过的自然周/月数
             let total = 0;
             if (kind === 'day') {
+                total = ref.getDate();
+            } else if (kind === 'year') {
                 total = Math.round((today - new Date(curY, 0, 1)) / 86400000) + 1;
             } else if (kind === 'week') {
                 total = Math.round((mondayOf(ref) - mondayOf(new Date(curY, 0, 1))) / (7 * 86400000)) + 1;
-            } else if (kind === 'year') {
-                total = 1;
             } else {
                 total = ref.getMonth() + 1;
             }
-            return { hits, total: Math.max(0, total), unit: unitMap[kind] };
+            const scope = kind === 'day' ? '本月' : '本年';
+            return { hits, total: Math.max(0, total), unit: unitMap[kind], scope };
         }
 
         function getLeaderboard(rows, period) {
@@ -5583,8 +5585,8 @@
                 const plateCls = showRate ? 'pb-plate rate' : 'pb-plate';
                 const plateTitle = showRate
                     ? (rateTotal
-                        ? ` title="本年上榜 ${rateHit}/${rateTotal} ${boardRate.unit} · 上榜率 ${ratePct}%"`
-                        : ` title="本年暂无${boardRate.unit}榜数据"`)
+                        ? ` title="${boardRate.scope}上榜 ${rateHit}/${rateTotal} ${boardRate.unit} · 上榜率 ${ratePct}%"`
+                        : ` title="${boardRate.scope}暂无${boardRate.unit}榜数据"`)
                     : '';
                 const plateShort = showRate ? ` data-short="${rateShort}"` : '';
                 return `<div class="podium-item p${rank}" data-idx="${idx}"
