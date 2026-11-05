@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.29.5 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.29.6 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -2969,7 +2969,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.29.5</span>
+                    <span class="ver">V5.29.6</span>
                 </div>
             </div>
 
@@ -4140,17 +4140,14 @@
             return { total, done, remain };
         }
 
-        /* 存量指标环比：当前累计 vs 上月末累计，同口径
-           opts.invert=true → 下降为好（总数/剩余类）；opts.revision=true → 下降标注数据修订（完成类） */
+        /* 存量指标环比：当前累计 vs 上月末累计，同口径；opts.invert=true → 下降为好（总数/剩余类） */
         function stockTrend(cur, prev, label, opts) {
             const o = opts || {};
             const t = trendView(cur, prev, { emptyLabel: '无上月数据', invert: !!o.invert });
             const diff = cur - prev;
             t.title = prev === 0
                 ? `${label} 当前累计 ${cur} 条 · 上月无数据`
-                : `${label} 当前累计 ${cur} 条 · 上月末累计 ${prev} 条（较上月 ${diff >= 0 ? '+' : ''}${diff} 条）`
-                + (diff < 0 && o.revision ? '（数据修订导致下降）' : '');
-            if (o.note) t.title += `（${o.note}）`;
+                : `${label} 当前累计 ${cur} 条 · 上月末累计 ${prev} 条（较上月 ${diff >= 0 ? '+' : ''}${diff} 条）`;
             return t;
         }
 
@@ -4243,11 +4240,10 @@
             const pp = +(curRate - (prevD / prevT * 100)).toFixed(1);
             const ppAbs = Math.abs(pp).toFixed(1);
             const ppStr = `${pp >= 0 ? '+' : '-'}${ppAbs} 个百分点`;
-            const ppPct = `${pp >= 0 ? '+' : '-'}${ppAbs}%`;
             if (pp === 0) {
                 return {
                     arrow: '—', pct: '0pp', tip: '较上个月', tone: 'flat',
-                    title: `${label} ${curStr}（较上月 0.0 个百分点，非 0.0%）· ${deltaNote}`
+                    title: `${label} ${curStr}（较上月 0.0 个百分点）· ${deltaNote}`
                 };
             }
             const up = pp > 0;
@@ -4256,7 +4252,7 @@
                 pct: `${up ? '' : '-'}${ppAbs}pp`,
                 tip: '较上个月',
                 tone: up ? 'up' : 'down',
-                title: `${label} ${curStr}（较上月 ${ppStr}，非 ${ppPct}）· ${deltaNote}`
+                title: `${label} ${curStr}（较上月 ${ppStr}）· ${deltaNote}`
             };
         }
 
@@ -4337,9 +4333,9 @@
             const slRemain = slStock.map(s => s.remain);
             const slRate = cumulativeRateSeries(rows, months, curY, curM);
 
-            const tTotal = stockTrend(total, prevSnap.total, '缺陷总数', { invert: true, note: '总数减少说明问题存量下降，为好转' });
-            const tRemain = stockTrend(pending, prevSnap.remain, '剩余缺陷', { invert: true, note: '剩余下降为好转' });
-            const tDone = stockTrend(completed, prevSnap.done, '完成缺陷', { revision: true });
+            const tTotal = stockTrend(total, prevSnap.total, '缺陷总数', { invert: true });
+            const tRemain = stockTrend(pending, prevSnap.remain, '剩余缺陷', { invert: true });
+            const tDone = stockTrend(completed, prevSnap.done, '完成缺陷');
 
             const cards = [
                 { key: 'total', cls: 'cyan', val: total, lbl: '缺陷总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: tTotal.tip || '较上月', title: tTotal.title, spark: slTotal },
@@ -4437,12 +4433,12 @@
                 });
                 const title = isRemain
                     ? (prev === 0
-                        ? `${def.lbl} 当前 ${val} · 上月无数据 · 剩余下降为好转`
-                        : `${def.lbl} 当前 ${val} · 上月末 ${prev}（较上月 ${val - prev >= 0 ? '+' : ''}${val - prev}）· 剩余下降为好转`)
+                        ? `${def.lbl} 当前 ${val} · 上月无数据`
+                        : `${def.lbl} 当前 ${val} · 上月末 ${prev}（较上月 ${val - prev >= 0 ? '+' : ''}${val - prev}）`)
                     : (isNewAdd
                         ? (prev === 0
-                            ? `${def.lbl} 当前 ${val} 条 · 上期无数据 · 新增减少为好转`
-                            : `${def.lbl} 当前 ${val} 条 · 上期 ${prev} 条（差 ${val - prev >= 0 ? '+' : ''}${val - prev}）· 新增减少为好转`)
+                            ? `${def.lbl} 当前 ${val} 条 · 上期无数据`
+                            : `${def.lbl} 当前 ${val} 条 · 上期 ${prev} 条（差 ${val - prev >= 0 ? '+' : ''}${val - prev}）`)
                         : undefined);
 
                 const spark = monthKeys.map(mk => {
@@ -4751,9 +4747,9 @@
 
             // 存量环比：当前累计 vs 上月末累计（同口径，不用本月/上月新增流量）
             const prevSnap = stockSnapshot(spRows, monthEndDate(lastY, lastM));
-            const tTotal = stockTrend(total, prevSnap.total, '督办总数', { invert: true, note: '总数减少说明问题存量下降，为好转' });
-            const tRemain = stockTrend(remain, prevSnap.remain, '督办剩余', { invert: true, note: '剩余下降为好转' });
-            const tDone = stockTrend(done, prevSnap.done, '督办完成', { revision: true });
+            const tTotal = stockTrend(total, prevSnap.total, '督办总数', { invert: true });
+            const tRemain = stockTrend(remain, prevSnap.remain, '督办剩余', { invert: true });
+            const tDone = stockTrend(done, prevSnap.done, '督办完成');
             // 累计督办完成率环比：主显示累计完成绝对增量，百分比与百分点为次要信息
             const rateTrend = rateDeltaView(spRows, curY, curM, lastY, lastM, rate, '累计督办完成率');
 
