@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.28.0 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.29.0 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -2946,7 +2946,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.28.0</span>
+                    <span class="ver">V5.29.0</span>
                 </div>
             </div>
 
@@ -4094,6 +4094,88 @@
             return out;
         }
 
+        /* 月末快照：某月最后一天 23:59:59.999 */
+        function monthEndDate(y, m) {
+            return new Date(y, m + 1, 0, 23, 59, 59, 999);
+        }
+
+        /* 截至某一时点的累计总数 / 累计完成数（未登记日期的记录不计入历史快照） */
+        function cumulativeAt(rows, end) {
+            let t = 0, d = 0;
+            rows.forEach(r => {
+                const dd = getDateFromDefectId(getId(r));
+                if (dd && dd <= end) t++;
+                if (r.status !== '已消缺项') return;
+                const cd = getCompleteDate(r);
+                if (cd && cd <= end) d++;
+            });
+            return { t, d };
+        }
+
+        /* 累计完成率序列：各月末累计完成 / 各月末累计总数（当月末取当前全量，含无日期记录） */
+        function cumulativeRateSeries(rows, months, curY, curM) {
+            return months.map(mm => {
+                const isCur = mm.y === curY && mm.m === curM;
+                let t, d;
+                if (isCur) {
+                    t = rows.length;
+                    d = rows.filter(r => r.status === '已消缺项').length;
+                } else {
+                    const snap = cumulativeAt(rows, monthEndDate(mm.y, mm.m));
+                    t = snap.t;
+                    d = snap.d;
+                }
+                return t ? +(d / t * 100).toFixed(1) : 0;
+            });
+        }
+
+        /* 累计完成率环比：主显示累计完成绝对增量，百分比为次要信息并标注上月累计完成基数 */
+        function rateDeltaView(rows, curY, curM, lastY, lastM, curRate, label) {
+            const prevEnd = monthEndDate(lastY, lastM);
+            let prevT = 0, prevD = 0;
+            rows.forEach(r => {
+                const dd = getDateFromDefectId(getId(r));
+                if (dd && dd <= prevEnd) prevT++;
+                if (r.status !== '已消缺项') return;
+                const cd = getCompleteDate(r);
+                if (cd && cd <= prevEnd) prevD++;
+            });
+            let curD = 0;
+            rows.forEach(r => {
+                if (r.status !== '已消缺项') return;
+                const cd = getCompleteDate(r);
+                if (cd) curD++;
+            });
+            const delta = curD - prevD;
+            const crossYear = lastY !== curY ? `（跨年对比 ${lastY}-${String(lastM + 1).padStart(2, '0')}）` : '';
+            const curStr = curRate.toFixed(1) + '%';
+            if (prevT === 0) {
+                return {
+                    arrow: '—', pct: '—', tone: 'flat', tip: '上月无数据',
+                    title: `${label} ${curStr}（上月无数据）`
+                };
+            }
+            const pp = curRate - (prevD / prevT * 100);
+            const ppStr = (Math.abs(pp) < 0.05 ? '0.0' : (pp >= 0 ? '+' : '') + pp.toFixed(1)) + ' 个百分点';
+            if (delta === 0) {
+                return {
+                    arrow: '—', pct: '持平', tone: 'flat', tip: `较上月累计完成 0 条${crossYear}`,
+                    title: `${label} ${curStr}（较上月 ${ppStr}）`
+                };
+            }
+            const up = delta > 0;
+            const pctStr = prevD > 0
+                ? `${up ? '+' : '-'}${(Math.abs(delta) / prevD * 100).toFixed(1)}%（基数：上月累计完成 ${prevD} 条）`
+                : '基数：上月累计完成 0 条';
+            return {
+                arrow: up ? '↗' : '↘',
+                pct: `${up ? '+' : ''}${delta} 条`,
+                tone: up ? 'up' : 'down',
+                tip: `较上月累计完成 ${up ? '+' : ''}${delta} 条 · ${pctStr}${crossYear}`,
+                title: `${label} ${curStr}（较上月 ${ppStr}）`
+            };
+        }
+
         function sparklineSVG(data, w, h, tone) {
             w = w || 56;
             h = h || 28;
@@ -4127,7 +4209,7 @@
                     <div class="s-body">
                         <div class="s-val">${c.val}</div>
                         <div class="s-foot">
-                            <span class="s-trend s-${c.tone}" title="${c.lbl} ${c.tip} ${c.arrow} ${c.pct}">
+                            <span class="s-trend s-${c.tone}" title="${c.title || (c.lbl + ' ' + c.tip + ' ' + c.arrow + ' ' + c.pct)}">
                                 <i class="s-arrow">${c.arrow}</i><span class="s-pct">${c.pct}</span><em>${c.tip}</em>
                             </span>
                             ${sparklineSVG(c.spark, c.sparkW, c.sparkH, c.tone)}
@@ -4168,16 +4250,8 @@
                 else if (dd.getFullYear() === lastY && dd.getMonth() === lastM) lmTotal++;
             });
 
-            // 完成率趋势
-            const curR = mDone + mTotal > 0 ? mDone / (mDone + mTotal) * 100 : 0;
-            const lastR = lmDone + lmTotal > 0 ? lmDone / (lmDone + lmTotal) * 100 : 0;
-            const rd = curR - lastR;
-            const tRate = Math.abs(rd) < 0.01 ? { arrow: '—', pct: '0%', tone: 'flat' }
-                : {
-                    arrow: rd > 0 ? '↗' : '↘',
-                    pct: (Math.abs(rd) < 1 ? Math.abs(rd).toFixed(2) : Math.abs(rd).toFixed(1)) + '%',
-                    tone: rd > 0 ? 'up' : 'down'
-                };
+            // 累计消缺率环比：主显示累计完成绝对增量，百分比与百分点为次要信息
+            const rateTrend = rateDeltaView(rows, curY, curM, lastY, lastM, rate, '累计消缺率');
 
             // 最近 6 个月 sparkline 数据
             const months = [];
@@ -4199,11 +4273,7 @@
                 const cumD = slDone.slice(0, i + 1).reduce((a, b) => a + b, 0);
                 return Math.max(0, cumT - cumD);
             });
-            const slRate = months.map((_, i) => {
-                const cumT = slTotal.slice(0, i + 1).reduce((a, b) => a + b, 0);
-                const cumD = slDone.slice(0, i + 1).reduce((a, b) => a + b, 0);
-                return cumT ? +(cumD / cumT * 100).toFixed(1) : 0;
-            });
+            const slRate = cumulativeRateSeries(rows, months, curY, curM);
 
             const tTotal = kpiTrend(mTotal, lmTotal);
             const tRemain = kpiTrend(pending, pending - mDone + lmDone);
@@ -4213,7 +4283,7 @@
                 { key: 'total', cls: 'cyan', val: total, lbl: '缺陷总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: '较上月', spark: slTotal },
                 { key: 'pending', cls: 'amber', val: pending, lbl: '剩余缺陷', icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月', spark: slRemain },
                 { key: 'completed', cls: 'green', val: completed, lbl: '完成缺陷', icon: '✓', arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: '较上月', spark: slDone },
-                { key: 'rate', cls: 'silver', val: rate.toFixed(1) + '%', lbl: '消缺率', icon: '%', arrow: tRate.arrow, pct: tRate.pct, tone: tRate.tone, tip: '较上月', spark: slRate }
+                { key: 'rate', cls: 'silver', val: total ? rate.toFixed(1) + '%' : '—', lbl: '累计消缺率', icon: '%', arrow: rateTrend.arrow, pct: rateTrend.pct, tone: rateTrend.tone, tip: rateTrend.tip, title: rateTrend.title, spark: slRate }
             ];
 
             document.getElementById('kpiGrid').innerHTML = cards.map(kpiCardHTML).join('');
@@ -4427,14 +4497,14 @@
                         /* 剩余置顶并放大，环比放在 tooltip 里（不回到图面） */
                         const heroRow = (i) => {
                             const cur = pendingData[i];
-                            const prev = i > 0 ? pendingData[i - 1] : cur;
-                            const d = cur - prev;
-                            const dTxt = d === 0 ? '持平' : (d > 0 ? '▲' : '▼') + Math.abs(d);
+                            const prev = i > 0 ? pendingData[i - 1] : null;
+                            const d = prev === null ? null : cur - prev;
+                            const dTxt = d === null ? '—' : (d === 0 ? '持平' : (d > 0 ? '▲' : '▼') + Math.abs(d));
                             return `<div style="display:flex;align-items:center;justify-content:space-between;gap:24px;line-height:1.85;">
                             <span style="color:#ffd0b5;font-weight:700;">${dot(REMAIN_HERO)}剩余</span>
                             <span style="display:flex;align-items:baseline;gap:6px;">
                                 <b style="color:#ffeedd;font-family:var(--num-font);font-size:16px;font-weight:800;letter-spacing:.5px;">${cur}</b>
-                                <em style="font-style:normal;font-size:10px;color:#c99a86;">${dTxt} 环比</em>
+                                <em style="font-style:normal;font-size:10px;color:#c99a86;">${d === null ? '—' : dTxt + ' 环比'}</em>
                             </span></div>`;
                         };
                         const row = (name, color, v) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:24px;line-height:1.6;opacity:.86;"><span style="color:#9cc8e2;">${dot(color)}${name}</span><b style="color:#d3ecf9;font-family:var(--num-font);font-size:12px;">${v}</b></div>`;
@@ -4613,16 +4683,8 @@
             const tTotal = kpiTrend(mNew, lmNew);
             const tRemain = kpiTrend(remain, remain - mDone + lmDone);
             const tDone = kpiTrend(mDone, lmDone);
-            // 完成率趋势
-            const curR = mDone + mNew > 0 ? mDone / (mDone + mNew) * 100 : 0;
-            const lastR = lmDone + lmNew > 0 ? lmDone / (lmDone + lmNew) * 100 : 0;
-            const rd = curR - lastR;
-            const tRate = Math.abs(rd) < 0.01 ? { arrow: '—', pct: '0%', tone: 'flat' }
-                : {
-                    arrow: rd > 0 ? '↗' : '↘',
-                    pct: (Math.abs(rd) < 1 ? Math.abs(rd).toFixed(2) : Math.abs(rd).toFixed(1)) + '%',
-                    tone: rd > 0 ? 'up' : 'down'
-                };
+            // 累计督办完成率环比：主显示累计完成绝对增量，百分比与百分点为次要信息
+            const rateTrend = rateDeltaView(spRows, curY, curM, lastY, lastM, rate, '累计督办完成率');
 
             // 生成最近 N 个月的督办数据（用于 sparkline）
             const MONTHS = 6;
@@ -4646,17 +4708,13 @@
                 const cumDone = slDone.slice(0, months.indexOf(m) + 1).reduce((a, b) => a + b, 0);
                 return Math.max(0, cumTotal - cumDone);
             });
-            const slRate = months.map((m, i) => {
-                const cumT = slTotal.slice(0, i + 1).reduce((a, b) => a + b, 0);
-                const cumD = slDone.slice(0, i + 1).reduce((a, b) => a + b, 0);
-                return cumT ? +(cumD / cumT * 100).toFixed(1) : 0;
-            });
+            const slRate = cumulativeRateSeries(spRows, months, curY, curM);
 
             const cards = [
                 { key: 'total', cls: 'cyan', val: total, lbl: '督办总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: '较上月', spark: slTotal, sparkW: 62, sparkH: 26 },
                 { key: 'remain', cls: 'amber', val: remain, lbl: '督办剩余', icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月', spark: slRemain, sparkW: 62, sparkH: 26 },
                 { key: 'done', cls: 'green', val: done, lbl: '督办完成', icon: '✓', arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: '较上月', spark: slDone, sparkW: 62, sparkH: 26 },
-                { key: 'rate', cls: 'silver', val: rate.toFixed(1) + '%', lbl: '督办完成率', icon: '%', arrow: tRate.arrow, pct: tRate.pct, tone: tRate.tone, tip: '较上月', spark: slRate, sparkW: 62, sparkH: 26 }
+                { key: 'rate', cls: 'silver', val: total ? rate.toFixed(1) + '%' : '—', lbl: '累计督办完成率', icon: '%', arrow: rateTrend.arrow, pct: rateTrend.pct, tone: rateTrend.tone, tip: rateTrend.tip, title: rateTrend.title, spark: slRate, sparkW: 62, sparkH: 26 }
             ];
 
             const grid = document.getElementById('superviseGrid');
@@ -4667,7 +4725,7 @@
                 total: ['督办总数', sp => sp, '督办标记 · 全部'],
                 remain: ['督办剩余', sp => sp.filter(r => r.status === '待消缺项目'), '督办标记 · 待消缺'],
                 done: ['督办完成', sp => sp.filter(r => r.status === '已消缺项'), '督办标记 · 已消缺'],
-                rate: ['督办完成率', sp => sp, '完成率明细']
+                rate: ['累计督办完成率', sp => sp, '完成率明细']
             };
             grid.querySelectorAll('.s-card').forEach(card => {
                 card.addEventListener('click', () => {
@@ -5008,7 +5066,7 @@
         function getAlertCandidates() {
             const pending = state.rows.filter(row => row.status === '待消缺项目');
             const flagged = pending.filter(row => isFlag(row, '是否督办') || isFlag(row, '是否逾期'));
-            return flagged.length ? flagged : pending.filter(isClassIScopeRow);
+            return flagged.length ? flagged : pending;
         }
 
         function renderAlerts() {
@@ -5772,7 +5830,7 @@
             total: ['缺陷总数', rows => rows, '全部缺陷记录'],
             pending: ['剩余缺陷', rows => rows.filter(r => r.status === '待消缺项目'), '当前待消缺'],
             completed: ['完成缺陷', rows => rows.filter(r => r.status === '已消缺项'), '已完成消缺'],
-            rate: ['消缺率', rows => rows, '完成 / 总数']
+            rate: ['累计消缺率', rows => rows, '累计完成 / 累计总数']
         });
 
         /* ================= 事件 / 初始化 ================= */

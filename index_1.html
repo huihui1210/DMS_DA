@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.28.0</title>
+    <title>福建LNG设备缺陷管理系统 V5.29.0</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -891,7 +891,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.28.0</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
+            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.29.0</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#all'">数据看板</button>
                 <label for="fileInput" class="btn btn-upload">
@@ -901,6 +901,7 @@
                 <input type="file" id="fileInput" accept=".csv,.xlsx">
                 <button class="btn btn-station" onclick="window.location.href='index.html'">接收站</button>
                 <button class="btn btn-station" onclick="window.location.href='index_2.html'">分输站</button>
+                <button class="btn btn-reset" onclick="clearAllData()">清空全部数据</button>
                 <button class="btn btn-reset" onclick="resetData()">重置</button>
                 <button class="btn btn-chart" onclick="generateReport()">生成报告</button>
                 <button class="btn btn-export" onclick="exportBeautifiedExcel()">导出美化Excel</button>
@@ -1314,7 +1315,7 @@
 
         function getMonthFromDefectId(defectId) {
             if (isEmpty(defectId)) return null;
-            const idStr = String(defectId);
+            const idStr = String(defectId).trim();
             let datePart;
             if (idStr.length === 14) {
                 // 14位编号：从第4位开始取8位日期
@@ -1336,7 +1337,7 @@
         // 从缺陷编号解析日期对象（YYYYMMDD），兼容11位和14位编号
         function getDateFromDefectId(defectId) {
             if (isEmpty(defectId)) return null;
-            const idStr = String(defectId);
+            const idStr = String(defectId).trim();
             let datePart;
             if (idStr.length === 14) {
                 datePart = idStr.substring(3, 11);
@@ -1507,7 +1508,7 @@
             });
 
             processedData.forEach(row => {
-                const defectId = row['缺陷编号'] || row['编号'] || row['ID'];
+                const defectId = String(row['缺陷编号'] || row['编号'] || row['ID'] || '').trim();
                 const profession = getProfession(row);
                 const isPending = row.status === '待消缺项目';
                 const isCompleted = row.status === '已消缺项';
@@ -1573,7 +1574,7 @@
                 let pending = 0;
                 processedData.forEach(row => {
                     if (!isClassIScopeRow(row)) return;
-                    const mk = getMonthFromDefectId(row['缺陷编号'] || row['编号'] || row['ID']);
+                    const mk = getMonthFromDefectId(String(row['缺陷编号'] || row['编号'] || row['ID'] || '').trim());
                     if (!mk || mk > month) return;
                     if (row.status === '已消缺项') {
                         const ck = getCompleteMonth(row);
@@ -1903,7 +1904,7 @@
                 }
 
                 // 剩余：待消缺 + 新增月份≤本月（与柱状图当月"剩余"口径完全一致）
-                const defectId = row['缺陷编号'] || row['编号'] || row['ID'];
+                const defectId = String(row['缺陷编号'] || row['编号'] || row['ID'] || '').trim();
                 const newMonthKey = getMonthFromDefectId(defectId);
                 if (row.status === '待消缺项目' && newMonthKey && newMonthKey <= currentMonthKey) {
                     remainingStats[profession]++;
@@ -1962,13 +1963,17 @@
             let pieAllNames = [...MAJOR_PROFESSIONS];
             if (type === 'pie') {
                 const stats = getClassIProfessionStats();
-                pieAllNames = stats.professions.map(displayProfession);
-                // 饼图显示所有专业（0项也保留，ECharts会处理为不可见扇形）
+                // 只显示有剩余缺陷的专业，0 值不进入饼图与图例
                 pieData = stats.professions
+                    .filter(name => (stats.remainingStats[name] || 0) > 0)
                     .map(name => ({ name: displayProfession(name), value: stats.remainingStats[name] || 0 }));
+                pieAllNames = pieData.map(d => d.name);
             }
 
             const option = {
+                graphic: (type === 'pie' && pieData.length === 0)
+                    ? [{ type: 'text', left: 'center', top: 'middle', style: { text: '暂无Ⅰ类剩余缺陷数据', fill: '#94a3b8', fontSize: 14 } }]
+                    : [],
                 title: {
                     text: `${new Date().getFullYear()}年福建LNGⅠ类设备缺陷管理统计`,
                     left: 'center',
@@ -2239,10 +2244,51 @@
         }
 
         // ======= localStorage 持久化 =======
+        // 统一取缺陷编号（trim 后用于长度判断与去重）
+        function getRowId(row) {
+            const idKey = Object.keys(row).find(k => {
+                const ck = cleanString(k).toLowerCase();
+                return ck === '缺陷编号' || ck === '编号' || ck === 'id';
+            });
+            return idKey ? String(row[idKey] || '').trim() : '';
+        }
+
         function saveToLocalStorage() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(processedData));
-            // 同步到共享键，供 report.html 读取
+            // 同步共享键，供 report.html 读取
             localStorage.setItem('defectData', JSON.stringify(processedData));
+            // 按编号长度整体替换本站记录（与站点页 mergeToAllStorage 行为一致）
+            mergeToAllStorage(processedData);
+        }
+
+        // 将本站数据合并到 defectData_all：按编号长度整体替换本站记录
+        function mergeToAllStorage(stationData) {
+            const ALL_KEY = 'defectData_all';
+            let allData = [];
+            try {
+                allData = JSON.parse(localStorage.getItem(ALL_KEY) || '[]');
+            } catch (e) { allData = []; }
+            const idLengths = new Set(
+                stationData.map(r => getRowId(r).length).filter(l => l === 11 || l === 14)
+            );
+            if (idLengths.size > 0) {
+                allData = allData.filter(row => !idLengths.has(getRowId(row).length));
+                allData = allData.concat(stationData);
+            } else {
+                const stationKeys = new Set(stationData.map(getRowId).filter(k => k));
+                allData = allData.filter(row => !stationKeys.has(getRowId(row)));
+                allData = allData.concat(stationData);
+            }
+            localStorage.setItem(ALL_KEY, JSON.stringify(allData));
+            localStorage.setItem('defectData_all_ver', String(Date.now()));
+        }
+
+        // 显式清空全部数据（二次确认）
+        function clearAllData() {
+            if (!confirm('确定清空全部缺陷数据？此操作不可恢复。')) return;
+            if (!confirm('再次确认：将清空 defectData_all、defectData 及同步版本号。')) return;
+            localStorage.removeItem('defectData');
+            resetData();
+            alert('已清空全部数据');
         }
 
         function loadFromLocalStorage() {
@@ -2251,6 +2297,24 @@
             if (saved) {
                 try {
                     processedData = JSON.parse(saved);
+                    // 缺站点类型时补读接收站/分输站独立键
+                    const hasRecvId = processedData.some(row => getRowId(row).length === 11);
+                    const hasFenId = processedData.some(row => getRowId(row).length === 14);
+                    const readKey = key => {
+                        try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return []; }
+                    };
+                    const extras = [];
+                    if (!hasRecvId) extras.push(...readKey('defectData_recv'));
+                    if (!hasFenId) extras.push(...readKey('defectData_fen'));
+                    // 按编号去重，保留先出现者（defectData_all 优先）
+                    const seenIds = new Set();
+                    processedData = processedData.concat(extras).filter(row => {
+                        const id = getRowId(row);
+                        if (!id) return true;
+                        if (seenIds.has(id)) return false;
+                        seenIds.add(id);
+                        return true;
+                    }).map(row => ({ ...row, status: determineStatus(row) }));
                     // 如果总界面有保存但 defectData_all 没数据，用自己的键
                     if (!localStorage.getItem('defectData_all')) {
                         localStorage.setItem('defectData_all', saved);
@@ -2659,7 +2723,9 @@
         (function () {
             const POLL_INTERVAL_MS = 5000;
             const VER_KEY = 'defectData_all_ver';
+            const RAW_KEY = 'defectData_all';
             let lastVer = localStorage.getItem(VER_KEY) || '';
+            let lastRaw = localStorage.getItem(RAW_KEY) || '';
 
             function onDataChanged() {
                 try {
@@ -2689,8 +2755,10 @@
             setInterval(function () {
                 try {
                     const ver = localStorage.getItem(VER_KEY) || '';
-                    if (ver && ver !== lastVer) {
+                    const raw = localStorage.getItem(RAW_KEY) || '';
+                    if ((ver && ver !== lastVer) || raw !== lastRaw) {
                         lastVer = ver;
+                        lastRaw = raw;
                         onDataChanged();
                     }
                 } catch (e) { }
@@ -2700,6 +2768,11 @@
             window.addEventListener('storage', function (e) {
                 if (e.key === VER_KEY && e.newValue && e.newValue !== lastVer) {
                     lastVer = e.newValue;
+                    lastRaw = localStorage.getItem(RAW_KEY) || lastRaw;
+                    onDataChanged();
+                } else if (e.key === RAW_KEY && e.newValue && e.newValue !== lastRaw) {
+                    lastRaw = e.newValue;
+                    lastVer = localStorage.getItem(VER_KEY) || lastVer;
                     onDataChanged();
                 }
             });

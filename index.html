@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG接收站设备缺陷管理系统 V5.28.0</title>
+    <title>福建LNG接收站设备缺陷管理系统 V5.29.0</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -893,7 +893,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.28.0</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
+            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.29.0</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#recv'">数据看板</button>
                 <label for="fileInput" class="btn btn-upload">
@@ -1291,7 +1291,8 @@
                     if (profKey) {
                         const prof = String(newRow[profKey] || '').trim();
                         if (prof === '其他' || prof === '其他专业') {
-                            newRow[profKey] = '接收站运行部';
+                            const idStr = String(newRow['缺陷编号'] || newRow['编号'] || newRow['ID'] || '').trim();
+                            newRow[profKey] = idStr.length === 14 ? '管道运行部' : '接收站运行部';
                         }
                     }
                     return newRow;
@@ -1319,27 +1320,30 @@
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
         }
 
-        function getMonthFromDefectId(defectId) {
+        // 从缺陷编号取日期段：14位取3-11，其余长度≥8取0-8（与总界面/看板一致）
+        function getDatePartFromDefectId(defectId) {
             if (isEmpty(defectId)) return null;
-            const idStr = String(defectId);
-            // 11位编号：前8位为日期（YYYYMMDD）
-            if (idStr.length >= DEFECT_DATE_END) {
-                const datePart = idStr.substring(DEFECT_DATE_START, DEFECT_DATE_END);
-                const year = datePart.substring(0, 4);
-                const month = datePart.substring(4, 6);
-                if (!isNaN(year) && !isNaN(month) && year.length === 4 && month.length === 2) {
-                    return `${year}-${month}`;
-                }
+            const idStr = String(defectId).trim();
+            if (idStr.length === 14) return idStr.substring(3, 11);
+            if (idStr.length >= 8) return idStr.substring(0, 8);
+            return null;
+        }
+
+        function getMonthFromDefectId(defectId) {
+            const datePart = getDatePartFromDefectId(defectId);
+            if (!datePart) return null;
+            const year = datePart.substring(0, 4);
+            const month = datePart.substring(4, 6);
+            if (!isNaN(year) && !isNaN(month) && year.length === 4 && month.length === 2) {
+                return `${year}-${month}`;
             }
             return null;
         }
 
-        // 从缺陷编号前8位解析日期对象（YYYYMMDD）
+        // 从缺陷编号解析日期对象（兼容11位与14位编号）
         function getDateFromDefectId(defectId) {
-            if (isEmpty(defectId)) return null;
-            const idStr = String(defectId);
-            if (idStr.length < DEFECT_DATE_END) return null;
-            const datePart = idStr.substring(DEFECT_DATE_START, DEFECT_DATE_END);
+            const datePart = getDatePartFromDefectId(defectId);
+            if (!datePart) return null;
             const year = parseInt(datePart.substring(0, 4), 10);
             const month = parseInt(datePart.substring(4, 6), 10);
             const day = parseInt(datePart.substring(6, 8), 10);
@@ -1502,7 +1506,7 @@
             });
 
             processedData.forEach(row => {
-                const defectId = row['缺陷编号'] || row['编号'] || row['ID'];
+                const defectId = String(row['缺陷编号'] || row['编号'] || row['ID'] || '').trim();
                 const profession = getProfession(row);
                 const isPending = row.status === '待消缺项目';
                 const isCompleted = row.status === '已消缺项';
@@ -1568,7 +1572,7 @@
                 let pending = 0;
                 processedData.forEach(row => {
                     if (!isClassIScopeRow(row)) return;
-                    const mk = getMonthFromDefectId(row['缺陷编号'] || row['编号'] || row['ID']);
+                    const mk = getMonthFromDefectId(String(row['缺陷编号'] || row['编号'] || row['ID'] || '').trim());
                     if (!mk || mk > month) return;
                     if (row.status === '已消缺项') {
                         const ck = getCompleteMonth(row);
@@ -1898,7 +1902,7 @@
                 }
 
                 // 剩余：待消缺 + 新增月份≤本月（与柱状图当月"剩余"口径完全一致）
-                const defectId = row['缺陷编号'] || row['编号'] || row['ID'];
+                const defectId = String(row['缺陷编号'] || row['编号'] || row['ID'] || '').trim();
                 const newMonthKey = getMonthFromDefectId(defectId);
                 if (row.status === '待消缺项目' && newMonthKey && newMonthKey <= currentMonthKey) {
                     remainingStats[profession]++;
@@ -1957,13 +1961,17 @@
             let pieAllNames = [...MAJOR_PROFESSIONS];
             if (type === 'pie') {
                 const stats = getClassIProfessionStats();
-                pieAllNames = stats.professions.map(displayProfession);
-                // 饼图显示所有专业（0项也保留，ECharts会处理为不可见扇形）
+                // 只显示有剩余缺陷的专业，0 值不进入饼图与图例
                 pieData = stats.professions
+                    .filter(name => (stats.remainingStats[name] || 0) > 0)
                     .map(name => ({ name: displayProfession(name), value: stats.remainingStats[name] || 0 }));
+                pieAllNames = pieData.map(d => d.name);
             }
 
             const option = {
+                graphic: (type === 'pie' && pieData.length === 0)
+                    ? [{ type: 'text', left: 'center', top: 'middle', style: { text: '暂无Ⅰ类剩余缺陷数据', fill: '#94a3b8', fontSize: 14 } }]
+                    : [],
                 title: {
                     text: `${new Date().getFullYear()}年接收站Ⅰ类设备缺陷管理统计`,
                     left: 'center',
@@ -2287,7 +2295,7 @@
         function loadFromLocalStorage() {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
-                processedData = JSON.parse(saved);
+                processedData = JSON.parse(saved).map(row => ({ ...row, status: determineStatus(row) }));
                 // 接收站：加载后转换"其他"→"接收站运行部"（兼容旧数据）
                 let changed = false;
                 processedData.forEach(row => {
@@ -2298,7 +2306,8 @@
                     if (profKey) {
                         const prof = String(row[profKey] || '').trim();
                         if (prof === '其他' || prof === '其他专业') {
-                            row[profKey] = '接收站运行部';
+                            const idStr = String(row['缺陷编号'] || row['编号'] || row['ID'] || '').trim();
+                            row[profKey] = idStr.length === 14 ? '管道运行部' : '接收站运行部';
                             changed = true;
                         }
                     }
