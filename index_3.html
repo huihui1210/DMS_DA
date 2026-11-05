@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.2 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.3 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -3078,7 +3078,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.30.2</span>
+                    <span class="ver">V5.30.3</span>
                 </div>
             </div>
 
@@ -3115,6 +3115,7 @@
             <div id="dbgBody"></div>
             <div class="dbg-actions">
                 <button id="dbgExport" type="button">导出当前 all 为 JSON</button>
+                <button id="dbgExportBad" type="button">导出被排除行 JSON</button>
             </div>
         </div>
 
@@ -3438,6 +3439,8 @@
             kpiGroup: 'overview',
             allRows: [],
             rows: [],
+            invalidRows: [],
+            dataFallback: false,
             charts: {},
             alertIndex: 0,
             alertItems: [],
@@ -3511,6 +3514,12 @@
         function getId(row) {
             const raw = row['缺陷编号'] || row['编号'] || row['ID'];
             return isEmpty(raw) ? '' : String(raw).trim();
+        }
+
+        // 编号合法性：仅 11 位（接收站）/ 14 位（分输站）参与统计，其余视为脏数据
+        function isValidIdLength(id) {
+            const len = String(id || '').trim().length;
+            return len === 11 || len === 14;
         }
 
         function getStationType(id) {
@@ -3736,8 +3745,15 @@
                 console.warn('[数据] defectData_all 缺失或解析失败，已用接收站/分输站数据兜底，共 ' + rows.length + ' 条');
             }
 
-            state.allRows = rows
-                .filter(row => row && typeof row === 'object')
+            // 统计层过滤：只接受 11/14 位合法编号；其余列脏数据，存储保持完整、不做去重
+            const rawRows = rows.filter(row => row && typeof row === 'object');
+            state.invalidRows = rawRows.filter(row => !isValidIdLength(getId(row)));
+            if (state.invalidRows.length) {
+                console.warn('[数据] 编号长度不合法 ' + state.invalidRows.length + ' 条，已排除统计；前 10 条编号：',
+                    state.invalidRows.slice(0, 10).map(getId));
+            }
+            state.allRows = rawRows
+                .filter(row => isValidIdLength(getId(row)))
                 .map(normalizeRow);
         }
 
@@ -3800,31 +3816,52 @@
             const judgment = state.dataFallback
                 ? '<span class="dbg-warn">兜底 recv+fen（异常）</span>'
                 : '<span class="dbg-ok">仅 all</span>';
+            const bad = state.invalidRows || [];
+            const distMap = {};
+            bad.forEach(row => {
+                const len = getId(row).length;
+                const k = len === 0 ? '空编号' : len + ' 位';
+                distMap[k] = (distMap[k] || 0) + 1;
+            });
+            const distText = Object.keys(distMap)
+                .sort((a, b) => (a === '空编号' ? 999 : parseInt(a)) - (b === '空编号' ? 999 : parseInt(b)))
+                .map(k => k + ' ' + distMap[k] + ' 条')
+                .join(' · ') || '—';
             const html =
                 '<div class="dbg-scroll"><table class="dbg-table">' +
                 '<tr><th>来源键</th><th>原始行数</th><th>编号唯一数</th><th>行数−唯一数</th></tr>' +
                 debugSourceRow('defectData_all', src.all) +
                 debugSourceRow('defectData_recv', src.recv) +
                 debugSourceRow('defectData_fen', src.fen) +
+                '<tr><th>编号长度不合法（已排除统计）</th><td' + (bad.length ? ' class="dbg-warn"' : '') + '>' + bad.length + ' 条</td><td colspan="2">' + distText + '</td></tr>' +
                 '<tr><th>看板实际使用（state.allRows）</th><td>' + state.allRows.length + ' 行</td><td colspan="2">' + judgment + '</td></tr>' +
                 '<tr><th>当前视图</th><td>' + viewName + '</td><td colspan="2">' + state.rows.length + ' 行</td></tr>' +
                 '</table></div>' +
                 '<div class="dbg-muted" style="margin-top:6px;font-size:11px;color:var(--text-3);">' +
-                '编号为空的行计入行数、不计入唯一数；本面板只读，不做任何过滤或去重。</div>';
+                '仅 11/14 位编号参与统计，其余为脏数据已排除；11/14 位内同编号多行仍全部保留，不做去重。</div>';
             document.getElementById('dbgBody').innerHTML = html;
+        }
+
+        function downloadJson(text, filename) {
+            const blob = new Blob([text], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
         }
 
         function exportAllJson() {
             const info = readSourceInfo('defectData_all');
             const text = info.exists && !info.broken ? info.raw : '[]';
             const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-            const blob = new Blob([text], { type: 'application/json' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'defectData_all_' + stamp + '.json';
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+            downloadJson(text, 'defectData_all_' + stamp + '.json');
+        }
+
+        function exportInvalidJson() {
+            const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            downloadJson(JSON.stringify(state.invalidRows || [], null, 2), 'defectData_invalid_ids_' + stamp + '.json');
         }
 
         function toggleDebugPanel(force) {
@@ -3841,6 +3878,8 @@
             if (closeBtn) closeBtn.addEventListener('click', () => toggleDebugPanel(false));
             const exportBtn = document.getElementById('dbgExport');
             if (exportBtn) exportBtn.addEventListener('click', exportAllJson);
+            const exportBadBtn = document.getElementById('dbgExportBad');
+            if (exportBadBtn) exportBadBtn.addEventListener('click', exportInvalidJson);
             let openByUrl = false;
             try {
                 openByUrl = new URLSearchParams(location.search).get('debug') === '1';

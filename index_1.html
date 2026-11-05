@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.2</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.3</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -891,7 +891,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.2</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
+            <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.3</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#all'">数据看板</button>
                 <label for="fileInput" class="btn btn-upload">
@@ -2302,11 +2302,21 @@
                 rows = readRows('defectData_recv').concat(readRows('defectData_fen'));
                 console.warn('[数据] defectData_all 缺失或解析失败，已用接收站/分输站数据兜底，共 ' + rows.length + ' 条');
             }
-            processedData = rows
+            const loadedRows = rows
                 .filter(row => row && typeof row === 'object')
                 .map(row => ({ ...row, status: determineStatus(row) }));
-            // 总界面：清理残留的"其他"值，按编号长度转换
-            let changed = false;
+            // 统计层过滤：只接受 11/14 位合法编号；其余为脏数据不计入统计，存储保持完整、不做去重
+            const isValidId = row => {
+                const len = getRowId(row).length;
+                return len === 11 || len === 14;
+            };
+            const invalidRows = loadedRows.filter(row => !isValidId(row));
+            if (invalidRows.length) {
+                console.warn('[数据] 编号长度不合法 ' + invalidRows.length + ' 条，已排除统计；前 10 条编号：',
+                    invalidRows.slice(0, 10).map(getRowId));
+            }
+            processedData = loadedRows.filter(isValidId);
+            // 总界面：清理残留的"其他"值，按编号长度转换（仅内存展示，不回写存储）
             processedData.forEach(row => {
                 const profKey = Object.keys(row).find(k => {
                     const ck = cleanString(k).toLowerCase();
@@ -2318,17 +2328,12 @@
                         const id = getRowId(row);
                         if (id.length === 11) {
                             row[profKey] = '接收站运行部';
-                            changed = true;
                         } else if (id.length === 14) {
                             row[profKey] = '管道运行部';
-                            changed = true;
                         }
                     }
                 }
             });
-            if (changed) {
-                localStorage.setItem('defectData_all', JSON.stringify(processedData));
-            }
             // 同步 defectData，保证从本界面生成报告时数据正确
             localStorage.setItem('defectData', JSON.stringify(processedData));
             if (processedData.length > 0) {
