@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG接收站设备缺陷管理系统 V5.30.0</title>
+    <title>福建LNG接收站设备缺陷管理系统 V5.30.1</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -893,7 +893,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.0</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
+            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.1</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#recv'">数据看板</button>
                 <label for="fileInput" class="btn btn-upload">
@@ -2243,52 +2243,24 @@
 
         // ======= localStorage 持久化 =======
         function saveToLocalStorage() {
+            // 导入即整表覆盖本站键：不追加历史、不按编号替换
             localStorage.setItem(STORAGE_KEY, JSON.stringify(processedData));
             // 同步到共享键，供 report.html 读取
             localStorage.setItem('defectData', JSON.stringify(processedData));
-            // 合并汇总到福建LNG总界面（按缺陷编号去重）
-            mergeToAllStorage(processedData);
+            mergeToAllStorage();
         }
 
-        // 将本站数据合并到 defectData_all（福建LNG），按编号长度整体替换本站记录
-        function mergeToAllStorage(stationData) {
-            const ALL_KEY = 'defectData_all';
-            let allData = [];
-            try {
-                allData = JSON.parse(localStorage.getItem(ALL_KEY) || '[]');
-            } catch (e) { allData = []; }
-            const getKey = row => String(row['缺陷编号'] || row['编号'] || row['ID'] || '');
-            // 按编号长度识别本站数据：11位=接收站，14位=分输站
-            const idLengths = new Set(
-                stationData.map(r => getKey(r).trim().length).filter(l => l === 11 || l === 14)
-            );
-            if (idLengths.size > 0) {
-                // 整体替换：先移除旧的本站记录，再写入本次新数据（本次未包含的记录视为已删除）
-                allData = allData.filter(row => !idLengths.has(getKey(row).trim().length));
-                allData = allData.concat(stationData);
-            } else {
-                // 无法识别编号长度时退化为按编号覆盖
-                const stationKeys = new Set(stationData.map(getKey).filter(k => k));
-                const otherData = allData.filter(row => !stationKeys.has(getKey(row)));
-                allData = otherData.concat(stationData);
-            }
-            localStorage.setItem(ALL_KEY, JSON.stringify(allData));
+        // defectData_all 每次导入后整表重建：当前 recv 全量 + 当前 fen 全量
+        function mergeToAllStorage() {
+            const readRows = key => {
+                try {
+                    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch (e) { return []; }
+            };
+            const allData = readRows('defectData_recv').concat(readRows('defectData_fen'));
+            localStorage.setItem('defectData_all', JSON.stringify(allData));
             // 版本号时间戳：供总界面(index_1)可靠感知每次同步
-            localStorage.setItem('defectData_all_ver', String(Date.now()));
-        }
-
-        // 从 defectData_all 中移除指定编号长度的站点数据
-        function removeFromAllStorage(idLength) {
-            const ALL_KEY = 'defectData_all';
-            let allData = [];
-            try {
-                allData = JSON.parse(localStorage.getItem(ALL_KEY) || '[]');
-            } catch (e) { allData = []; }
-            const filtered = allData.filter(row => {
-                const id = row['缺陷编号'] || row['编号'] || row['ID'];
-                return id ? String(id).trim().length !== idLength : true;
-            });
-            localStorage.setItem(ALL_KEY, JSON.stringify(filtered));
             localStorage.setItem('defectData_all_ver', String(Date.now()));
         }
 
@@ -2314,8 +2286,7 @@
                 });
                 if (changed) {
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(processedData));
-                    removeFromAllStorage(11);
-                    mergeToAllStorage(processedData);
+                    mergeToAllStorage();
                 }
                 // 同步 defectData，保证从本界面生成报告时数据正确
                 localStorage.setItem('defectData', JSON.stringify(processedData));
