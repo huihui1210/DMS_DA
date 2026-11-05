@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.5 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.6 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -3094,7 +3094,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.30.5</span>
+                    <span class="ver">V5.30.6</span>
                 </div>
             </div>
 
@@ -3134,6 +3134,7 @@
                 <button id="dbgExportBad" type="button">导出被排除行 JSON</button>
                 <button id="dbgExportDup" type="button">导出被折叠行 JSON</button>
                 <button id="dbgExportSameId" type="button">导出同编号清单 JSON</button>
+                <button id="dbgExportDiff" type="button">导出缺失行 JSON</button>
                 <button id="dbgCleanDup" type="button">清理完全重复行</button>
             </div>
         </div>
@@ -3915,6 +3916,73 @@
                 + '<div class="dbg-scroll"><table class="dbg-table">' + head + body + '</table></div></div>';
         }
 
+        // 三键差集：recv/fen 有、all 没有的行（整行指纹 + 编号双路匹配，只读）
+        function getKeyDiff() {
+            const recv = readSourceInfo('defectData_recv');
+            const fen = readSourceInfo('defectData_fen');
+            const all = readSourceInfo('defectData_all');
+            const allRows = all.exists && !all.broken ? all.rows : [];
+            const allFp = new Set();
+            const allIds = new Set();
+            allRows.forEach(row => {
+                if (!row || typeof row !== 'object') return;
+                allFp.add(rowFingerprint(row));
+                const id = getId(row);
+                if (id) allIds.add(id);
+            });
+            const missing = [];
+            const seen = new Set();
+            const scan = (info, src) => {
+                if (!info.exists || info.broken) return;
+                info.rows.forEach(row => {
+                    if (!row || typeof row !== 'object') return;
+                    const fp = rowFingerprint(row);
+                    if (allFp.has(fp) || seen.has(fp)) return;
+                    const id = getId(row);
+                    seen.add(fp);
+                    missing.push({ row, src, reason: id && allIds.has(id) ? '同编号内容不同' : 'all 中无此编号' });
+                });
+            };
+            scan(recv, 'recv');
+            scan(fen, 'fen');
+            const recvCount = recv.exists && !recv.broken ? recv.rows.length : null;
+            const fenCount = fen.exists && !fen.broken ? fen.rows.length : null;
+            const allCount = all.exists && !all.broken ? all.rows.length : null;
+            const sum = recvCount !== null && fenCount !== null ? recvCount + fenCount : null;
+            return {
+                recvCount, fenCount, allCount, sum,
+                diff: sum !== null && allCount !== null ? allCount - sum : null,
+                missing
+            };
+        }
+
+        function renderKeyDiff() {
+            const d = getKeyDiff();
+            const fmt = v => (v === null ? '—' : v);
+            const diffCls = d.diff === 0 ? 'dbg-ok' : 'dbg-warn';
+            const diffText = d.diff === null ? '—' : (d.diff > 0 ? '+' + d.diff : String(d.diff));
+            const changed = d.missing.filter(m => m.reason === '同编号内容不同').length;
+            let html = '<div style="margin-top:10px;font-size:11px;">三键条数对照：recv <b>' + fmt(d.recvCount)
+                + '</b> · fen <b>' + fmt(d.fenCount) + '</b> · recv+fen <b>' + fmt(d.sum)
+                + '</b> · all <b>' + fmt(d.allCount) + '</b> · 差额 <span class="' + diffCls + '">' + diffText + '</span></div>'
+                + '<div style="margin-top:4px;font-size:11px;">recv/fen 有、all 没有：<b>' + d.missing.length
+                + '</b> 条（其中同编号内容不同 ' + changed + ' 条）'
+                + '<span class="dbg-nofold">只读，不写存储、不删除</span></div>';
+            if (d.missing.length) {
+                const body = d.missing.map((m, idx) => {
+                    const f = describeSameIdRow(m.row);
+                    return '<tr><td>' + (idx + 1) + '</td><td>' + m.src + '</td><td>' + escapeDbg(getId(m.row))
+                        + '</td><td>' + getId(m.row).length + '</td><td>' + escapeDbg(f.专业) + '</td><td>'
+                        + escapeDbg(f.状态) + '</td><td>' + escapeDbg(f.缺陷描述) + '</td><td class="dbg-warn">'
+                        + m.reason + '</td></tr>';
+                }).join('');
+                html += '<div class="dbg-scroll" style="margin-top:4px;"><table class="dbg-table">'
+                    + '<tr><th>#</th><th>来源</th><th>编号</th><th>长度</th><th>专业</th><th>状态</th><th>缺陷描述（前30字）</th><th>判定</th></tr>'
+                    + body + '</table></div>';
+            }
+            return html;
+        }
+
         function renderDebugPanel() {
             if (!dbgPanel) return;
             const src = {
@@ -3949,6 +4017,7 @@
                 '<tr><th>看板实际使用（state.allRows）</th><td>' + state.allRows.length + ' 行</td><td colspan="2">' + judgment + '</td></tr>' +
                 '<tr><th>当前视图</th><td>' + viewName + '</td><td colspan="2">' + state.rows.length + ' 行</td></tr>' +
                 '</table></div>' +
+                renderKeyDiff() +
                 renderSameIdGroups() +
                 '<div class="dbg-muted" style="margin-top:6px;font-size:11px;color:var(--text-3);">' +
                 '统计顺序：原始行数 → 11/14 位过滤 → 整行完全相同折叠 → 同编号不同内容（仅提示，不折叠）→ 实际统计；同编号不同内容全部保留，不做按编号去重。</div>';
@@ -3990,6 +4059,13 @@
             downloadJson(JSON.stringify(rows, null, 2), 'defectData_same_id_' + stamp + '.json');
         }
 
+        // 导出 recv/fen 有、all 没有的差集行（只读）
+        function exportDiffJson() {
+            const rows = getKeyDiff().missing.map(m => m.row);
+            const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            downloadJson(JSON.stringify(rows, null, 2), 'defectData_missing_' + stamp + '.json');
+        }
+
         // 一次性手动清理：三个键各自独立折叠「整行完全相同」，不做按编号去重、不过滤编号
         function cleanExactDuplicates() {
             const keys = ['defectData_recv', 'defectData_fen', 'defectData_all'];
@@ -4018,11 +4094,11 @@
             const fen = fenPlan && fenPlan.kept ? fenPlan.kept : readStorageRows('defectData_fen');
             if (recvPlan && recvPlan.kept) localStorage.setItem('defectData_recv', JSON.stringify(recvPlan.kept));
             if (fenPlan && fenPlan.kept) localStorage.setItem('defectData_fen', JSON.stringify(fenPlan.kept));
-            // all 重建 = 当前 recv 全量 + 当前 fen 全量，再折叠整行完全相同
-            const rebuilt = foldExactDuplicates(recv.concat(fen));
-            localStorage.setItem('defectData_all', JSON.stringify(rebuilt.kept));
+            // all 重建 = 当前 recv 全量 + 当前 fen 全量原样拼接（不再折叠、不过滤）
+            const rebuilt = recv.concat(fen);
+            localStorage.setItem('defectData_all', JSON.stringify(rebuilt));
             localStorage.setItem('defectData_all_ver', String(Date.now()));
-            alert('清理完成：\n' + detail + '\n\ndefectData_all 重建后 ' + rebuilt.kept.length + ' 条（本次折叠 ' + rebuilt.folded.length + ' 条）');
+            alert('清理完成：\n' + detail + '\n\ndefectData_all 重建后 ' + rebuilt.length + ' 条（= recv ' + recv.length + ' + fen ' + fen.length + '）');
             loadData();
             renderAll();
             if (dbgPanel && dbgPanel.classList.contains('open')) renderDebugPanel();
@@ -4048,6 +4124,8 @@
             if (exportDupBtn) exportDupBtn.addEventListener('click', exportDupJson);
             const exportSameIdBtn = document.getElementById('dbgExportSameId');
             if (exportSameIdBtn) exportSameIdBtn.addEventListener('click', exportSameIdJson);
+            const exportDiffBtn = document.getElementById('dbgExportDiff');
+            if (exportDiffBtn) exportDiffBtn.addEventListener('click', exportDiffJson);
             const cleanDupBtn = document.getElementById('dbgCleanDup');
             if (cleanDupBtn) cleanDupBtn.addEventListener('click', cleanExactDuplicates);
             let openByUrl = false;
