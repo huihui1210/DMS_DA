@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.29.2 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.29.3 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -2945,7 +2945,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.29.2</span>
+                    <span class="ver">V5.29.3</span>
                 </div>
             </div>
 
@@ -3775,11 +3775,9 @@
                 remainingII: 0,
                 remainingCivil: 0,
                 yesterdayNew: 0,
-                weekNew: 0,
                 monthNew: 0,
                 yearCompleted: 0,
                 yesterdayDone: 0,
-                weekDone: 0,
                 monthDone: 0,
                 yearNew: 0
             };
@@ -3789,8 +3787,6 @@
                 monthlyStats[m] = { new: 0, completed: 0, pending: 0 };
             });
 
-            const weekDay = now.getDay() || 7;
-            const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - weekDay + 1);
             const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
 
             rows.forEach(row => {
@@ -3817,7 +3813,6 @@
                 if (defectDate) {
                     const dd = new Date(defectDate.getFullYear(), defectDate.getMonth(), defectDate.getDate());
                     if (dd.getTime() === yesterday.getTime()) stats.yesterdayNew++;
-                    if (dd >= weekStart) stats.weekNew++;
                     if (dd.getFullYear() === now.getFullYear() && dd.getMonth() === now.getMonth()) stats.monthNew++;
                     if (dd.getFullYear() === now.getFullYear()) stats.yearNew++;
                 }
@@ -3825,7 +3820,6 @@
                 if (isCompleted && completeDate) {
                     const cd = new Date(completeDate.getFullYear(), completeDate.getMonth(), completeDate.getDate());
                     if (cd.getTime() === yesterday.getTime()) stats.yesterdayDone++;
-                    if (cd >= weekStart) stats.weekDone++;
                     if (cd.getFullYear() === now.getFullYear() && cd.getMonth() === now.getMonth()) stats.monthDone++;
                     if (cd.getFullYear() === now.getFullYear()) stats.yearCompleted++;
                 }
@@ -3914,10 +3908,37 @@
             };
         }
 
+        /* 龙虎榜上榜率（试验版）：开关关闭即完全隐藏 UI 并短路计算 */
+        const SHOW_BOARD_RATE = true;
+
+        /* 本年上榜率：月度榜口径，分子=进入当月前三的月数，分母=1 月至当前月 */
+        function getBoardRateStats(rows, now) {
+            if (!SHOW_BOARD_RATE) return { hits: {}, totalMonths: 0 };
+            const ref = now || new Date();
+            const curY = ref.getFullYear();
+            const totalMonths = ref.getMonth() + 1;
+            const hits = {};
+            for (let m = 0; m < totalMonths; m++) {
+                const map = {};
+                rows.forEach(row => {
+                    if (row.status !== '已消缺项') return;
+                    const d = getCompleteDate(row);
+                    if (!d || d.getFullYear() !== curY || d.getMonth() !== m) return;
+                    const prof = getProfession(row);
+                    if (!prof || prof === '未分类') return;
+                    map[prof] = (map[prof] || 0) + 1;
+                });
+                Object.entries(map)
+                    .map(([prof, count]) => ({ prof, count }))
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 3)
+                    .forEach(item => { hits[item.prof] = (hits[item.prof] || 0) + 1; });
+            }
+            return { hits, totalMonths };
+        }
+
         function getLeaderboard(rows, period) {
             const now = new Date();
-            const day = now.getDay() || 7;
-            const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
             const yearStart = new Date(now.getFullYear(), 0, 1);
             const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
@@ -3931,7 +3952,7 @@
                 const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
                 let matched = false;
                 if (period === 'yesterday') matched = dayDate >= yesterdayStart && dayDate < yesterdayEnd;
-                else if (period === 'week') matched = dayDate >= weekStart;
+                else if (period === 'week') matched = isSameWeek(dayDate, now);
                 else if (period === 'month') matched = dayDate >= monthStart;
                 else matched = dayDate >= yearStart;
                 if (!matched) return;
@@ -4059,14 +4080,22 @@
 
         /* ===== 趋势 / sparkline / 卡片渲染（总览、分组、督办三处共用） ===== */
         /* 方向即颜色：↗ 上升=绿、↘ 下降=红、— 持平=灰，不再按指标语义反转 */
-        function kpiTrend(cur, prev) {
+        function kpiTrend(cur, prev, emptyLabel) {
+            if (prev === 0) return { arrow: '—', pct: '', tone: 'flat', tip: emptyLabel || '无上期数据' };
             if (cur === prev) return { arrow: '—', pct: '0%', tone: 'flat' };
-            const base = prev > 0 ? prev : Math.max(1, cur);
-            const pct = Math.abs(cur - prev) / base * 100;
+            const pct = Math.abs(cur - prev) / prev * 100;
             const pctStr = pct < 1 ? pct.toFixed(2) + '%' : pct.toFixed(1) + '%';
             // 负值一律视为下降，避免出现「↗ + 负数」的矛盾
             const up = cur > prev && cur >= 0;
             return { arrow: up ? '↗' : '↘', pct: pctStr, tone: up ? 'up' : 'down' };
+        }
+
+        /* 统一趋势视图：对比值为 0 一律「— 无上期数据」；invert=true 时颜色按好坏反转（剩余类：降为绿） */
+        function trendView(cur, prev, opts) {
+            const o = opts || {};
+            const t = kpiTrend(cur, prev, o.emptyLabel || '无上期数据');
+            if (o.invert && t.tone !== 'flat') t.tone = t.tone === 'up' ? 'down' : 'up';
+            return t;
         }
 
         /* 存量快照：截至某时点的累计总数 / 累计完成数 / 累计剩余数（无日期记录不进历史快照） */
@@ -4087,10 +4116,13 @@
 
         /* 存量指标环比：当前累计 vs 上月末累计，同口径；累计值下降只可能是数据修订（剩余类不提示修订） */
         function stockTrend(cur, prev, label, monotonic) {
-            const t = kpiTrend(cur, prev);
+            const t = trendView(cur, prev, { emptyLabel: '无上月数据', invert: monotonic === false });
             const diff = cur - prev;
-            t.title = `${label} 当前累计 ${cur} 条 · 上月末累计 ${prev} 条（较上月 ${diff >= 0 ? '+' : ''}${diff} 条）`
-                + (diff < 0 && monotonic !== false ? '（数据修订导致下降）' : '');
+            t.title = prev === 0
+                ? `${label} 当前累计 ${cur} 条 · 上月无数据`
+                : `${label} 当前累计 ${cur} 条 · 上月末累计 ${prev} 条（较上月 ${diff >= 0 ? '+' : ''}${diff} 条）`
+                  + (diff < 0 && monotonic !== false ? '（数据修订导致下降）' : '');
+            if (monotonic === false) t.title += '（剩余下降为好转）';
             return t;
         }
 
@@ -4183,19 +4215,20 @@
             const pp = +(curRate - (prevD / prevT * 100)).toFixed(1);
             const ppAbs = Math.abs(pp).toFixed(1);
             const ppStr = `${pp >= 0 ? '+' : '-'}${ppAbs} 个百分点`;
+            const ppPct = `${pp >= 0 ? '+' : '-'}${ppAbs}%`;
             if (pp === 0) {
                 return {
-                    arrow: '—', pct: '持平', tip: '较上个月', tone: 'flat',
-                    title: `${label} ${curStr}（较上月 ${ppStr}）· ${deltaNote}`
+                    arrow: '—', pct: '0pp', tip: '较上个月', tone: 'flat',
+                    title: `${label} ${curStr}（较上月 0.0 个百分点，非 0.0%）· ${deltaNote}`
                 };
             }
             const up = pp > 0;
             return {
                 arrow: up ? '↗' : '↘',
-                pct: `${up ? '' : '-'}${ppAbs}%`,
+                pct: `${up ? '' : '-'}${ppAbs}pp`,
                 tip: '较上个月',
                 tone: up ? 'up' : 'down',
-                title: `${label} ${curStr}（较上月 ${ppStr}）· ${deltaNote}`
+                title: `${label} ${curStr}（较上月 ${ppStr}，非 ${ppPct}）· ${deltaNote}`
             };
         }
 
@@ -4281,9 +4314,9 @@
             const tDone = stockTrend(completed, prevSnap.done, '完成缺陷');
 
             const cards = [
-                { key: 'total', cls: 'cyan', val: total, lbl: '缺陷总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: '较上月', title: tTotal.title, spark: slTotal },
-                { key: 'pending', cls: 'amber', val: pending, lbl: '剩余缺陷', icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月', title: tRemain.title, spark: slRemain },
-                { key: 'completed', cls: 'green', val: completed, lbl: '完成缺陷', icon: '✓', arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: '较上月', title: tDone.title, spark: slDone },
+                { key: 'total', cls: 'cyan', val: total, lbl: '缺陷总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: tTotal.tip || '较上月', title: tTotal.title, spark: slTotal },
+                { key: 'pending', cls: 'amber', val: pending, lbl: '剩余缺陷', icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: tRemain.tip || '较上月', title: tRemain.title, spark: slRemain },
+                { key: 'completed', cls: 'green', val: completed, lbl: '完成缺陷', icon: '✓', arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: tDone.tip || '较上月', title: tDone.title, spark: slDone },
                 { key: 'rate', cls: 'silver', val: total ? rate.toFixed(1) + '%' : '—', lbl: '累计消缺率', icon: '%', arrow: rateTrend.arrow, pct: rateTrend.pct, tone: rateTrend.tone, tip: rateTrend.tip, title: rateTrend.title, spark: slRate }
             ];
 
@@ -4291,6 +4324,33 @@
         }
 
         /* ===== 分组：12 项指标（剩余 / 较上日·较上周 / 较上月·较上年） ===== */
+        /* 上一周期对比窗口：[start, end)，上界 = 同周期最后一天 + 1 天，月末/年末按实际天数截断 */
+        function prevPeriodWindow(kind, now) {
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            if (kind === 'day') {
+                const start = new Date(today); start.setDate(today.getDate() - 1);
+                return [start, today]; // [昨日00:00, 今日00:00)
+            }
+            if (kind === 'week') {
+                const wd = today.getDay() || 7;
+                const thisMon = new Date(today); thisMon.setDate(today.getDate() - wd + 1);
+                const lastMon = new Date(thisMon); lastMon.setDate(thisMon.getDate() - 7);
+                const elapsed = Math.round((today - thisMon) / 86400000);
+                const end = new Date(lastMon); end.setDate(lastMon.getDate() + elapsed + 1);
+                return [lastMon, end]; // [上周一, 上周同星期几+1天)
+            }
+            if (kind === 'month') {
+                const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                const daysInLast = new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+                const day = Math.min(today.getDate(), daysInLast);
+                return [start, new Date(start.getFullYear(), start.getMonth(), day + 1)]; // [上月1日, 上月同日+1天)
+            }
+            const start = new Date(today.getFullYear() - 1, 0, 1);
+            const daysInLast = new Date(today.getFullYear() - 1, today.getMonth() + 1, 0).getDate();
+            const day = Math.min(today.getDate(), daysInLast);
+            return [start, new Date(today.getFullYear() - 1, today.getMonth(), day + 1)]; // [去年1/1, 去年同月同日+1天)
+        }
+
         function rangeCount(meta, kind, start, end) {
             return meta.filter(m => {
                 const d = kind === 'new' ? m.dd : (m.done ? m.cd : null);
@@ -4303,33 +4363,19 @@
             const meta = buildKpiMeta(rows);
             const now = new Date();
 
-            // 对比窗口：上日 / 上周同期 / 上月同期 / 上年同期
-            const day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const day1 = new Date(day0); day1.setDate(day0.getDate() + 1);
-            const dayM1 = new Date(day0); dayM1.setDate(day0.getDate() - 1);
-            const dayM2 = new Date(dayM1); dayM2.setDate(dayM1.getDate() - 1);
-
-            const wd = now.getDay() || 7;
-            const week0 = new Date(day0); week0.setDate(day0.getDate() - wd + 1);
-            const weekPrev0 = new Date(week0); weekPrev0.setDate(week0.getDate() - 7);
-            const weekPrevEnd = new Date(weekPrev0);
-            weekPrevEnd.setDate(weekPrev0.getDate() + Math.round((day1 - week0) / 86400000));
-
+            // 对比窗口：上日 / 上周同期 / 上月同期 / 上年同期，统一由 prevPeriodWindow 生成（上界=同周期最后一天+1天）
             const monthPrev0 = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            const monthPrevEnd = new Date(now.getFullYear(), now.getMonth(), day0.getDate());
-            const yearPrev0 = new Date(now.getFullYear() - 1, 0, 1);
-            const yearPrevEnd = new Date(now.getFullYear() - 1, now.getMonth(), day0.getDate());
             const lastMonthKey = monthKeyOf(monthPrev0);
 
             const PREV_WIN = {
-                yesterdayNew: ['new', dayM2, dayM1],
-                weekNew: ['new', weekPrev0, weekPrevEnd],
-                monthNew: ['new', monthPrev0, monthPrevEnd],
-                yearNew: ['new', yearPrev0, yearPrevEnd],
-                yesterdayDone: ['done', dayM2, dayM1],
-                weekDone: ['done', weekPrev0, weekPrevEnd],
-                monthDone: ['done', monthPrev0, monthPrevEnd],
-                yearDone: ['done', yearPrev0, yearPrevEnd]
+                yesterdayNew: ['new', ...prevPeriodWindow('day', now)],
+                weekNew: ['new', ...prevPeriodWindow('week', now)],
+                monthNew: ['new', ...prevPeriodWindow('month', now)],
+                yearNew: ['new', ...prevPeriodWindow('year', now)],
+                yesterdayDone: ['done', ...prevPeriodWindow('day', now)],
+                weekDone: ['done', ...prevPeriodWindow('week', now)],
+                monthDone: ['done', ...prevPeriodWindow('month', now)],
+                yearDone: ['done', ...prevPeriodWindow('year', now)]
             };
             const TREND_LABEL = {
                 yesterdayNew: '较上日', weekNew: '较上周', monthNew: '较上月', yearNew: '较上年',
@@ -4356,7 +4402,15 @@
                     prev = rangeCount(meta, w[0], w[1], w[2]);
                     label = TREND_LABEL[def.key];
                 }
-                const t = kpiTrend(val, prev);
+                const t = trendView(val, prev, {
+                    emptyLabel: isRemain ? '无上月数据' : '无上期数据',
+                    invert: isRemain
+                });
+                const title = isRemain
+                    ? (prev === 0
+                        ? `${def.lbl} 当前 ${val} · 上月无数据 · 剩余下降为好转`
+                        : `${def.lbl} 当前 ${val} · 上月末 ${prev}（较上月 ${val - prev >= 0 ? '+' : ''}${val - prev}）· 剩余下降为好转`)
+                    : undefined;
 
                 const spark = monthKeys.map(mk => {
                     if (isRemain) {
@@ -4370,7 +4424,7 @@
 
                 return {
                     ...def, val, spark, sparkW: 62, sparkH: 26,
-                    arrow: t.arrow, pct: t.pct, tone: t.tone, tip: label
+                    arrow: t.arrow, pct: t.pct, tone: t.tone, tip: t.tip || label, title
                 };
             });
 
@@ -4686,9 +4740,9 @@
             const slRate = cumulativeRateSeries(spRows, months, curY, curM);
 
             const cards = [
-                { key: 'total', cls: 'cyan', val: total, lbl: '督办总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: '较上月', title: tTotal.title, spark: slTotal, sparkW: 62, sparkH: 26 },
-                { key: 'remain', cls: 'amber', val: remain, lbl: '督办剩余', icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: '较上月', title: tRemain.title, spark: slRemain, sparkW: 62, sparkH: 26 },
-                { key: 'done', cls: 'green', val: done, lbl: '督办完成', icon: '✓', arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: '较上月', title: tDone.title, spark: slDone, sparkW: 62, sparkH: 26 },
+                { key: 'total', cls: 'cyan', val: total, lbl: '督办总数', icon: '●', arrow: tTotal.arrow, pct: tTotal.pct, tone: tTotal.tone, tip: tTotal.tip || '较上月', title: tTotal.title, spark: slTotal, sparkW: 62, sparkH: 26 },
+                { key: 'remain', cls: 'amber', val: remain, lbl: '督办剩余', icon: '◆', arrow: tRemain.arrow, pct: tRemain.pct, tone: tRemain.tone, tip: tRemain.tip || '较上月', title: tRemain.title, spark: slRemain, sparkW: 62, sparkH: 26 },
+                { key: 'done', cls: 'green', val: done, lbl: '督办完成', icon: '✓', arrow: tDone.arrow, pct: tDone.pct, tone: tDone.tone, tip: tDone.tip || '较上月', title: tDone.title, spark: slDone, sparkW: 62, sparkH: 26 },
                 { key: 'rate', cls: 'silver', val: total ? rate.toFixed(1) + '%' : '—', lbl: '累计督办完成率', icon: '%', arrow: rateTrend.arrow, pct: rateTrend.pct, tone: rateTrend.tone, tip: rateTrend.tip, title: rateTrend.title, spark: slRate, sparkW: 62, sparkH: 26 }
             ];
 
@@ -4926,6 +4980,7 @@
             const periodLabel = PERIOD_LABELS[period] || '本月';
             const items = getLeaderboard(state.rows, period).slice(0, 3);
             state.boardItems = items;
+            const boardRate = getBoardRateStats(state.rows);
 
             const box = document.getElementById('boardList');
             if (!box) return;
@@ -4962,8 +5017,13 @@
                 const item = items[idx];
                 const prof = displayProfession(item.prof);
                 const rank = idx + 1;
+                const rateHit = boardRate.hits[item.prof] || 0;
+                const ratePct = boardRate.totalMonths ? Math.round(rateHit / boardRate.totalMonths * 100) : 0;
+                const rateText = (SHOW_BOARD_RATE && prof && prof !== '未分类')
+                    ? ` · 本年上榜 ${rateHit}/${boardRate.totalMonths} 期 · 上榜率 ${ratePct}%`
+                    : '';
                 return `<div class="podium-item p${rank}" data-idx="${idx}"
-                            title="${prof} · ${periodLabel}消缺 ${item.count} 条">
+                            title="${prof} · ${periodLabel}消缺 ${item.count} 条${rateText}">
                             <div class="po-plaque">
                                 <span class="po-name">${EMBLEMS[rank]}<span>${prof}</span></span>
                                 <span class="po-count">${item.count}<em>条</em></span>
