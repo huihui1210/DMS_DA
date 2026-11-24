@@ -1089,19 +1089,19 @@
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-label" id="labelYearNew"></div>
-                        <div class="stat-value" id="statYearNew"></div>
+                        <div class="stat-value" id="statYearNew" data-edit-type="stat" data-field="yearNew"></div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-label" id="labelYearCompleted"></div>
-                        <div class="stat-value" id="statYearCompleted"></div>
+                        <div class="stat-value" id="statYearCompleted" data-edit-type="stat" data-field="yearCompleted"></div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">剩余环比变化率</div>
-                        <div class="stat-value" id="statChangeRate"></div>
+                        <div class="stat-value" id="statChangeRate" data-edit-type="stat" data-field="changeRate"></div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">年度消缺率（Ⅰ类）</div>
-                        <div class="stat-value" id="statCompletionRate"></div>
+                        <div class="stat-value" id="statCompletionRate" data-edit-type="stat" data-field="completionRate"></div>
                     </div>
                 </div>
             </div>
@@ -1129,7 +1129,10 @@
             asOfDay: 0,
             isThisMonth: false,
             editing: false,
-            pieGroups: {}
+            pieGroups: {},
+            statOverrides: {},
+            classIStats: null,
+            pendingByProfession: null
         };
 
         // ======= 导航 & 打印 =======
@@ -1145,13 +1148,17 @@
             setReportEditing(!reportState.editing);
         }
 
+        function refreshEditableState() {
+            document.querySelectorAll('#reportContent [data-edit-type]').forEach(cell => {
+                cell.contentEditable = String(reportState.editing);
+                cell.spellcheck = false;
+            });
+        }
+
         function setReportEditing(editing) {
             reportState.editing = editing;
             document.body.classList.toggle('report-editing', editing);
-            document.querySelectorAll('#reportContent [data-edit-type]').forEach(cell => {
-                cell.contentEditable = String(editing);
-                cell.spellcheck = false;
-            });
+            refreshEditableState();
             const button = document.getElementById('editReportBtn');
             button.textContent = editing ? '完成' : '编辑';
             button.classList.toggle('active', editing);
@@ -1182,6 +1189,7 @@
         function handleReportCellInput(event) {
             const cell = event.target.closest('[data-edit-type]');
             if (!cell || !reportState.editing) return;
+            if (cell.dataset.editType === 'stat' || cell.dataset.editType === 'rank') return;
             const value = readEditableNumber(cell);
             const field = cell.dataset.field;
 
@@ -1196,6 +1204,43 @@
                 if (!group || !statsKey) return;
                 group.stats[statsKey][cell.dataset.profession] = value;
                 updatePieGroup(group);
+            }
+            refreshDerivedReport();
+        }
+
+        function readEditableRate(cell) {
+            const match = cell.textContent.replace(/[^0-9.\-]/g, '').match(/-?\d+(\.\d+)?/);
+            return match ? Number(match[0]) : null;
+        }
+
+        function applyStatEdit(cell) {
+            const field = cell.dataset.field;
+            if (!field || cell.textContent.trim() === (cell.dataset.originalText || '')) return;
+            let value;
+            if (field === 'yearNew' || field === 'yearCompleted') {
+                value = Math.max(0, parseInt(cell.textContent.replace(/\D/g, ''), 10) || 0);
+            } else {
+                value = readEditableRate(cell);
+                if (value === null) {
+                    refreshDerivedReport();
+                    return;
+                }
+            }
+            reportState.statOverrides[field] = value;
+            refreshDerivedReport();
+        }
+
+        function applyRankEdit(cell) {
+            if (cell.textContent.trim() === (cell.dataset.originalText || '')) return;
+            const group = cell.dataset.rankGroup;
+            const profession = cell.dataset.profession;
+            const value = Math.max(0, parseInt(cell.textContent.replace(/\D/g, ''), 10) || 0);
+            if (group === 'completed' && reportState.classIStats) {
+                reportState.classIStats.completedStats[profession] = value;
+                const overall = reportState.pieGroups.pieChartTable;
+                if (overall) updatePieGroup(overall);
+            } else if (group === 'pending' && reportState.pendingByProfession) {
+                reportState.pendingByProfession[profession] = value;
             }
             refreshDerivedReport();
         }
@@ -1461,9 +1506,16 @@
                 event.target.blur();
             }
         });
+        reportContentEl.addEventListener('focusin', event => {
+            const cell = event.target.closest('[data-edit-type]');
+            if (cell) cell.dataset.originalText = cell.textContent.trim();
+        });
         reportContentEl.addEventListener('focusout', event => {
             const cell = event.target.closest('[data-edit-type]');
-            if (cell && !cell.textContent.trim()) cell.textContent = '0';
+            if (!cell) return;
+            if (cell.dataset.editType === 'stat') { applyStatEdit(cell); return; }
+            if (cell.dataset.editType === 'rank') { applyRankEdit(cell); return; }
+            if (!cell.textContent.trim()) cell.textContent = '0';
         });
 
         // 打印时压缩图表高度，减少分页留白；打印结束后恢复屏幕高度
@@ -1984,36 +2036,47 @@
             const yearNewTotal = ytdMonths.reduce((sum, month) => sum + state.monthlyStats[month].new, 0);
             const yearCompletedTotal = ytdMonths.reduce((sum, month) => sum + state.monthlyStats[month].completed, 0);
             const completionRate = yearNewTotal > 0 ? `${(yearCompletedTotal / yearNewTotal * 100).toFixed(1)}%` : '无数据';
-            const overall = state.pieGroups.pieChartTable;
-            const topCompletedNames = overall ? topProfessions(overall.stats.completedStats).map(displayProfession).join('、') || '无' : '无';
+            const topCompletedNames = topProfessions((state.classIStats && state.classIStats.completedStats) || {}).map(displayProfession).join('、') || '无';
+
+            // 年度卡片手工修改的值优先展示；其它数据变化时仍按原逻辑重算
+            const overrides = state.statOverrides;
+            const displayYearNew = overrides.yearNew !== undefined ? overrides.yearNew : yearNewTotal;
+            const displayYearCompleted = overrides.yearCompleted !== undefined ? overrides.yearCompleted : yearCompletedTotal;
+            const displayChangeRate = overrides.changeRate !== undefined ? Number(overrides.changeRate) : (changeRate !== null ? Number(changeRate) : null);
+            const displayCompletionRate = overrides.completionRate !== undefined ? `${overrides.completionRate}%` : completionRate;
 
             let summaryText;
-            if (changeRate !== null) {
-                const changeText = changeRate >= 0 ? `上升${Math.abs(changeRate)}%` : `下降${Math.abs(changeRate)}%`;
-                summaryText = `截至${state.currentMonth}月${state.asOfDay}日，${stationName}Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${changeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；${state.currentMonth}月消缺前三专业为${topCompletedNames}；${state.currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
+            if (displayChangeRate !== null) {
+                const changeText = displayChangeRate >= 0 ? `上升${Math.abs(displayChangeRate)}%` : `下降${Math.abs(displayChangeRate)}%`;
+                summaryText = `截至${state.currentMonth}月${state.asOfDay}日，${stationName}Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${displayChangeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；${state.currentMonth}月消缺前三专业为${topCompletedNames}；${state.currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${displayYearNew}</span>项、消缺<span class="highlight">${displayYearCompleted}</span>项。`;
             } else {
-                summaryText = `截至${state.currentMonth}月${state.asOfDay}日，${stationName}Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项（本月数据截至今日，环比待完整月数据）；${state.currentMonth}月消缺前三专业为${topCompletedNames}；${state.currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
+                summaryText = `截至${state.currentMonth}月${state.asOfDay}日，${stationName}Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项（本月数据截至今日，环比待完整月数据）；${state.currentMonth}月消缺前三专业为${topCompletedNames}；${state.currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${displayYearNew}</span>项、消缺<span class="highlight">${displayYearCompleted}</span>项。`;
             }
 
             document.getElementById('summaryText').innerHTML = summaryText;
-            document.getElementById('statYearNew').textContent = yearNewTotal;
-            document.getElementById('statYearCompleted').textContent = yearCompletedTotal;
-            document.getElementById('statChangeRate').textContent = changeRate !== null ? `${changeRate >= 0 ? '+' : ''}${changeRate}%` : '—';
-            document.getElementById('statCompletionRate').textContent = completionRate;
-            refreshProfessionRanking(overall);
+            document.getElementById('statYearNew').textContent = displayYearNew;
+            document.getElementById('statYearCompleted').textContent = displayYearCompleted;
+            document.getElementById('statChangeRate').textContent = displayChangeRate !== null ? `${displayChangeRate >= 0 ? '+' : ''}${displayChangeRate}%` : '—';
+            document.getElementById('statCompletionRate').textContent = displayCompletionRate;
+            refreshProfessionRanking();
         }
 
-        function refreshProfessionRanking(overall) {
-            if (!overall) return;
-            const topCompleted = topProfessions(overall.stats.completedStats);
-            const topPending = topProfessions(overall.stats.remainingStats);
+        function renderProfessionCards(listEl, names, stats, group) {
+            listEl.innerHTML = names.map(name =>
+                `<div class="profession-item"><span class="profession-name">${escHtml(displayProfession(name))}</span><span class="profession-count" data-edit-type="rank" data-rank-group="${group}" data-profession="${escHtml(name)}">${stats[name] || 0}项</span></div>`
+            ).join('');
+        }
+
+        function refreshProfessionRanking() {
+            const completedStats = (reportState.classIStats && reportState.classIStats.completedStats) || {};
+            const pendingStats = reportState.pendingByProfession || {};
+            const topCompleted = topProfessions(completedStats);
+            const topPending = topProfessions(pendingStats);
             document.getElementById('topCompletedProfessions').textContent = topCompleted.map(displayProfession).join('、') || '无';
             document.getElementById('topPendingProfessions').textContent = topPending.map(displayProfession).join('、') || '无';
-            const cards = (names, stats) => names.map(name =>
-                `<div class="profession-item"><span class="profession-name">${escHtml(displayProfession(name))}</span><span class="profession-count">${stats[name] || 0}项</span></div>`
-            ).join('');
-            document.getElementById('completedProfessionList').innerHTML = cards(topCompleted, overall.stats.completedStats);
-            document.getElementById('pendingProfessionList').innerHTML = cards(topPending, overall.stats.remainingStats);
+            renderProfessionCards(document.getElementById('completedProfessionList'), topCompleted, completedStats, 'completed');
+            renderProfessionCards(document.getElementById('pendingProfessionList'), topPending, pendingStats, 'pending');
+            refreshEditableState();
         }
 
         function updatePieGroup(group) {
@@ -2231,7 +2294,6 @@
                 if (isCompleted(row) && (!ck || ck <= currentMonthKey)) return;
                 pendingByProfession[profession] = (pendingByProfession[profession] || 0) + 1;
             });
-            const topPending = Object.entries(pendingByProfession).sort((a, b) => b[1] - a[1]).slice(0, 3).map(item => item[0]);
 
             // === 文本 ===
             let summaryText;
@@ -2251,23 +2313,11 @@
             // 专业排名段落（用具体月份，避免"本月/上月"歧义）
             document.getElementById('completedMonthLabel').textContent = `${currentMonth}月`;
             document.getElementById('pendingMonthLabel').textContent = `${currentMonth}月`;
-            document.getElementById('topCompletedProfessions').textContent = topCompletedNames;
-            document.getElementById('topPendingProfessions').textContent = topPending.map(displayProfession).join('、') || '无';
 
-            // 专业卡片：分别放在"本月消缺最多"与"本月剩余最多"下方，与前三名顺序一一对应
-            // 消缺组卡片显示基准月消缺项数，剩余组卡片显示截至基准月底剩余项数
-            const buildProfessionCard = (name, count) => {
-                const item = document.createElement('div');
-                item.className = 'profession-item';
-                item.innerHTML = `<span class="profession-name">${escHtml(displayProfession(name))}</span><span class="profession-count">${count}项</span>`;
-                return item;
-            };
-            const completedListEl = document.getElementById('completedProfessionList');
-            const pendingListEl = document.getElementById('pendingProfessionList');
-            completedListEl.innerHTML = '';
-            pendingListEl.innerHTML = '';
-            topCompleted.forEach(name => completedListEl.appendChild(buildProfessionCard(name, classIStats.completedStats[name] || 0)));
-            topPending.forEach(name => pendingListEl.appendChild(buildProfessionCard(name, pendingByProfession[name] || 0)));
+            // 保存基准数据，专业排名卡片据此渲染，数字可修改并重新排序
+            reportState.classIStats = classIStats;
+            reportState.pendingByProfession = pendingByProfession;
+            refreshProfessionRanking();
 
             // 消缺龙虎榜表（日/周/月榜，沿用报告自身口径，与看板 30/365 天口径不同）
             document.getElementById('leaderboardTable').innerHTML = buildLeaderboard(processedData, baseDate, asOfDay);
@@ -2347,13 +2397,13 @@
                     data: ['新增', '消缺', '剩余'],
                     right: 10, top: 'middle', orient: 'vertical'
                 },
-                grid: { left: '3%', right: '120px', bottom: '5%', top: '10%', containLabel: true },
+                grid: { left: '3%', right: '120px', bottom: '5%', top: '14%', containLabel: true },
                 xAxis: { type: 'category', data: monthLabels, axisLabel: { rotate: 0, fontSize: 12 } },
                 yAxis: { type: 'value' },
                 series: [
-                    { name: '新增', type: 'bar', data: newData, itemStyle: { color: '#4472c4' }, label: { show: true, position: 'top', fontSize: 11, fontWeight: 'bold' } },
-                    { name: '消缺', type: 'bar', data: completedData, itemStyle: { color: '#c5504b' }, label: { show: true, position: 'top', fontSize: 11, fontWeight: 'bold' } },
-                    { name: '剩余', type: 'bar', data: pendingData, itemStyle: { color: '#70ad47' }, label: { show: true, position: 'top', fontSize: 11, fontWeight: 'bold' } }
+                    { name: '新增', type: 'bar', data: newData, itemStyle: { color: '#4472c4' }, label: { show: true, position: 'top', distance: 1, fontSize: 9, color: '#444' } },
+                    { name: '消缺', type: 'bar', data: completedData, itemStyle: { color: '#c5504b' }, label: { show: true, position: 'top', distance: 1, fontSize: 9, color: '#444' } },
+                    { name: '剩余', type: 'bar', data: pendingData, itemStyle: { color: '#70ad47' }, label: { show: true, position: 'top', distance: 1, fontSize: 9, color: '#444' } }
                 ]
             });
 
