@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>福建LNG设备缺陷数据分析报告 V5.30.15</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
     <style>
         /* ======= Reset & 全局 ======= */
         * {
@@ -344,8 +345,7 @@
             left: 0;
         }
 
-        .report-action-btn,
-        .export-menu button {
+        .report-action-btn {
             padding: 7px 14px;
             border: 1px solid #d5dce6;
             border-radius: 6px;
@@ -356,38 +356,9 @@
         }
 
         .report-action-btn:hover,
-        .report-action-btn.active,
-        .export-menu button:hover {
+        .report-action-btn.active {
             border-color: #3498db;
             background: #eef6fc;
-        }
-
-        .export-wrap {
-            position: relative;
-        }
-
-        .export-menu {
-            position: absolute;
-            top: calc(100% + 5px);
-            right: 0;
-            display: none;
-            min-width: 92px;
-            padding: 5px;
-            border: 1px solid #dfe3e8;
-            border-radius: 7px;
-            background: #fff;
-            box-shadow: 0 5px 18px rgba(44, 62, 80, 0.14);
-        }
-
-        .export-menu.open {
-            display: grid;
-            gap: 3px;
-        }
-
-        .export-menu button {
-            width: 100%;
-            border-color: transparent;
-            text-align: left;
         }
 
         .report-editing [data-edit-type] {
@@ -1041,13 +1012,7 @@
             <div class="date" id="reportDate"></div>
             <div class="report-actions" id="reportActions" style="display: none;">
                 <button type="button" class="report-action-btn" id="editReportBtn" onclick="toggleReportEditing()" title="修改图表数据，刷新后恢复原始数据" aria-pressed="false">编辑</button>
-                <div class="export-wrap">
-                    <button type="button" class="report-action-btn" id="exportReportBtn" onclick="toggleExportMenu(event)" aria-expanded="false">导出</button>
-                    <div class="export-menu" id="exportMenu">
-                        <button type="button" onclick="exportReport('pdf')">PDF</button>
-                        <button type="button" onclick="exportReport('word')">Word</button>
-                    </div>
-                </div>
+                <button type="button" class="report-action-btn" id="exportReportBtn" onclick="exportReport()" title="导出 Word 文档">导出 Word</button>
             </div>
         </div>
 
@@ -1176,25 +1141,6 @@
             window.location.href = backPage;
         }
 
-        function printReport() {
-            setReportEditing(false);
-            closeExportMenu();
-            window.print();
-        }
-
-        function toggleExportMenu(event) {
-            event.stopPropagation();
-            const menu = document.getElementById('exportMenu');
-            const open = !menu.classList.contains('open');
-            menu.classList.toggle('open', open);
-            document.getElementById('exportReportBtn').setAttribute('aria-expanded', String(open));
-        }
-
-        function closeExportMenu() {
-            document.getElementById('exportMenu').classList.remove('open');
-            document.getElementById('exportReportBtn').setAttribute('aria-expanded', 'false');
-        }
-
         function toggleReportEditing() {
             setReportEditing(!reportState.editing);
         }
@@ -1254,45 +1200,249 @@
             refreshDerivedReport();
         }
 
-        function exportReport(format) {
-            closeExportMenu();
-            if (format === 'pdf') {
-                printReport();
-                return;
+        // ======= Word（.docx）导出 =======
+        const DOCX_FONT_TITLE = '黑体';
+        const DOCX_FONT_BODY = '仿宋_GB2312';
+
+        function docxRun(text, options = {}) {
+            const font = options.font || DOCX_FONT_BODY;
+            return new docx.TextRun({
+                text: text || '',
+                bold: !!options.bold,
+                size: options.size || 24,
+                font: { ascii: font, hAnsi: font, eastAsia: font }
+            });
+        }
+
+        function docxParagraph(text, options = {}) {
+            return new docx.Paragraph({
+                alignment: docx.AlignmentType.JUSTIFIED,
+                spacing: {
+                    line: 360,
+                    before: options.before || 0,
+                    after: options.after === undefined ? 120 : options.after
+                },
+                indent: options.indent === false ? undefined : { firstLine: 480 },
+                children: [docxRun(text)]
+            });
+        }
+
+        function docxHeading(text, level) {
+            return new docx.Paragraph({
+                spacing: { before: level === 2 ? 280 : 200, after: level === 2 ? 140 : 100 },
+                children: [docxRun(text, {
+                    font: DOCX_FONT_TITLE,
+                    bold: true,
+                    size: level === 2 ? 30 : 26
+                })]
+            });
+        }
+
+        function docxCellParagraph(text, header) {
+            return new docx.Paragraph({
+                alignment: docx.AlignmentType.CENTER,
+                spacing: { line: 260, before: 20, after: 20 },
+                children: [docxRun(text, {
+                    font: header ? DOCX_FONT_TITLE : DOCX_FONT_BODY,
+                    bold: header,
+                    size: 20
+                })]
+            });
+        }
+
+        function docxTableBorders() {
+            return {
+                top: { style: docx.BorderStyle.SINGLE, size: 4, color: 'A6A6A6' },
+                bottom: { style: docx.BorderStyle.SINGLE, size: 4, color: 'A6A6A6' },
+                left: { style: docx.BorderStyle.SINGLE, size: 4, color: 'A6A6A6' },
+                right: { style: docx.BorderStyle.SINGLE, size: 4, color: 'A6A6A6' },
+                insideHorizontal: { style: docx.BorderStyle.SINGLE, size: 4, color: 'BFBFBF' },
+                insideVertical: { style: docx.BorderStyle.SINGLE, size: 4, color: 'BFBFBF' }
+            };
+        }
+
+        // 把页面表格按行列（含合并单元格）转成 Word 表格
+        function docxTable(tableEl) {
+            const occupied = [];
+            const rows = Array.from(tableEl.rows).map((tr, rowIndex) => {
+                occupied[rowIndex] = occupied[rowIndex] || [];
+                let columnIndex = 0;
+                const cells = Array.from(tr.cells).map(cell => {
+                    while (occupied[rowIndex][columnIndex]) columnIndex++;
+                    const rowSpan = Math.max(1, cell.rowSpan || 1);
+                    const columnSpan = Math.max(1, cell.colSpan || 1);
+                    for (let r = 0; r < rowSpan; r++) {
+                        occupied[rowIndex + r] = occupied[rowIndex + r] || [];
+                        for (let c = 0; c < columnSpan; c++) occupied[rowIndex + r][columnIndex + c] = true;
+                    }
+                    const header = cell.tagName === 'TH';
+                    const lines = (cell.innerText || '').split('\n').map(t => t.trim()).filter(Boolean);
+                    const tableCell = new docx.TableCell({
+                        rowSpan: rowSpan > 1 ? rowSpan : undefined,
+                        columnSpan: columnSpan > 1 ? columnSpan : undefined,
+                        verticalAlign: docx.VerticalAlign.CENTER,
+                        shading: header ? { type: docx.ShadingType.CLEAR, fill: 'EEF3F8', color: 'auto' } : undefined,
+                        margins: { top: 50, bottom: 50, left: 60, right: 60 },
+                        children: (lines.length ? lines : ['']).map(line => docxCellParagraph(line, header))
+                    });
+                    columnIndex += columnSpan;
+                    return tableCell;
+                });
+                return new docx.TableRow({ children: cells });
+            });
+            return new docx.Table({
+                width: { size: 100, type: docx.WidthType.PERCENTAGE },
+                borders: docxTableBorders(),
+                rows
+            });
+        }
+
+        function docxChartParagraph(container) {
+            const chart = echarts.getInstanceByDom(container);
+            if (!chart) {
+                const text = (container.innerText || '').trim();
+                return text ? docxParagraph(text, { indent: false }) : null;
+            }
+            const dataUrl = chart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#ffffff' });
+            const binary = atob(dataUrl.split(',')[1]);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            const rect = container.getBoundingClientRect();
+            const width = 600;
+            const height = Math.max(1, Math.round(width * (rect.height / Math.max(1, rect.width))));
+            return new docx.Paragraph({
+                alignment: docx.AlignmentType.CENTER,
+                spacing: { before: 80, after: 120 },
+                children: [new docx.ImageRun({ data: bytes, transformation: { width, height }, type: 'png' })]
+            });
+        }
+
+        function docxStatsGrid(grid) {
+            const cards = Array.from(grid.querySelectorAll('.stat-card'));
+            if (!cards.length) return null;
+            const read = (card, selector) => (card.querySelector(selector)?.innerText || '').trim();
+            const buildCell = (text, bold) => new docx.TableCell({
+                verticalAlign: docx.VerticalAlign.CENTER,
+                margins: { top: 60, bottom: 60, left: 60, right: 60 },
+                children: [new docx.Paragraph({
+                    alignment: docx.AlignmentType.CENTER,
+                    children: [docxRun(text, { bold, size: 21 })]
+                })]
+            });
+            return new docx.Table({
+                width: { size: 100, type: docx.WidthType.PERCENTAGE },
+                borders: docxTableBorders(),
+                rows: [
+                    new docx.TableRow({ children: cards.map(card => buildCell(read(card, '.stat-label'), false)) }),
+                    new docx.TableRow({ children: cards.map(card => buildCell(read(card, '.stat-value'), true)) })
+                ]
+            });
+        }
+
+        function docxCardTable(container) {
+            const items = Array.from(container.querySelectorAll('.profession-item'));
+            if (!items.length) return null;
+            const text = (item, selector) => (item.querySelector(selector)?.innerText || item.innerText || '').trim();
+            return new docx.Table({
+                width: { size: 60, type: docx.WidthType.PERCENTAGE },
+                borders: docxTableBorders(),
+                rows: items.map(item => new docx.TableRow({
+                    children: [
+                        new docx.TableCell({
+                            width: { size: 70, type: docx.WidthType.PERCENTAGE },
+                            margins: { top: 40, bottom: 40, left: 80, right: 60 },
+                            children: [docxCellParagraph(text(item, '.profession-name'), false)]
+                        }),
+                        new docx.TableCell({
+                            margins: { top: 40, bottom: 40, left: 60, right: 80 },
+                            children: [docxCellParagraph(text(item, '.profession-count'), false)]
+                        })
+                    ]
+                }))
+            });
+        }
+
+        function buildDocxChildren() {
+            const children = [];
+            const title = document.getElementById('reportTitle').innerText.trim();
+            const date = document.getElementById('reportDate').innerText.trim();
+            children.push(new docx.Paragraph({
+                alignment: docx.AlignmentType.CENTER,
+                spacing: { after: 120 },
+                children: [docxRun(title, { font: DOCX_FONT_TITLE, bold: true, size: 44 })]
+            }));
+            if (date) {
+                children.push(new docx.Paragraph({
+                    alignment: docx.AlignmentType.CENTER,
+                    spacing: { after: 280 },
+                    children: [docxRun(date, { size: 21 })]
+                }));
             }
 
-            setReportEditing(false);
-            try {
-                const clone = document.querySelector('.container').cloneNode(true);
-                clone.querySelectorAll('#reportActions, #reportBack, #noData').forEach(el => el.remove());
-                clone.querySelectorAll('[data-edit-type]').forEach(cell => {
-                    cell.removeAttribute('contenteditable');
-                    cell.removeAttribute('spellcheck');
-                });
-                clone.querySelectorAll('.chart-container').forEach(clonedChart => {
-                    const source = document.getElementById(clonedChart.id);
-                    const chart = source ? echarts.getInstanceByDom(source) : null;
-                    if (!chart) return;
-                    const image = document.createElement('img');
-                    image.className = 'word-chart';
-                    image.src = chart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#fff' });
-                    image.alt = '';
-                    clonedChart.replaceWith(image);
-                });
+            const appendTable = table => {
+                children.push(table);
+                children.push(new docx.Paragraph({ spacing: { after: 80 } }));
+            };
 
-                const styles = document.querySelector('style').innerHTML;
-                const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><style>${styles}
-                    body { background: #fff !important; padding: 0 !important; }
-                    .container { max-width: 100% !important; min-height: 0 !important; box-shadow: none !important; padding: 20px !important; overflow: visible !important; }
-                    .word-chart { display: block; width: 100%; height: auto; margin: 12px 0; }
-                    [data-edit-type] { outline: none !important; background: transparent !important; }
-                    </style></head><body>${clone.outerHTML}</body></html>`;
-                const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
+            const appendNode = node => {
+                if (node.nodeType !== 1) return;
+                if (node.style && node.style.display === 'none') return;
+                const tag = node.tagName;
+
+                if (tag === 'H2') { children.push(docxHeading(node.innerText.trim(), 2)); return; }
+                if (tag === 'H3') { children.push(docxHeading(node.innerText.trim(), 3)); return; }
+                if (tag === 'TABLE') { appendTable(docxTable(node)); return; }
+                if (tag === 'P') {
+                    const text = (node.innerText || '').replace(/\s+/g, ' ').trim();
+                    if (text) children.push(docxParagraph(text));
+                    return;
+                }
+                if (node.classList.contains('chart-container')) {
+                    const chartParagraph = docxChartParagraph(node);
+                    if (chartParagraph) children.push(chartParagraph);
+                    return;
+                }
+                if (node.classList.contains('stats-grid')) {
+                    const table = docxStatsGrid(node);
+                    if (table) appendTable(table);
+                    return;
+                }
+                if (node.classList.contains('lb-left') || node.classList.contains('profession-list')) {
+                    const table = docxCardTable(node);
+                    if (table) appendTable(table);
+                    return;
+                }
+                Array.from(node.children).forEach(appendNode);
+            };
+
+            Array.from(document.getElementById('reportContent').children).forEach(appendNode);
+            return children;
+        }
+
+        async function exportReport() {
+            setReportEditing(false);
+            if (typeof docx === 'undefined') {
+                alert('Word 导出组件加载失败，请检查网络后刷新重试');
+                return;
+            }
+            try {
+                const documentFile = new docx.Document({
+                    sections: [{
+                        properties: {
+                            page: {
+                                size: { width: 11906, height: 16838 },
+                                margin: { top: 1134, right: 1247, bottom: 1134, left: 1247 }
+                            }
+                        },
+                        children: buildDocxChildren()
+                    }]
+                });
+                const blob = await docx.Packer.toBlob(documentFile);
+                const name = document.getElementById('reportTitle').innerText.trim().replace(/[\\/:*?"<>|]/g, '_');
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
-                const name = document.getElementById('reportTitle').textContent.replace(/[\\/:*?"<>|]/g, '_');
                 link.href = url;
-                link.download = `${name}.doc`;
+                link.download = `${name}.docx`;
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
@@ -1315,10 +1465,8 @@
             const cell = event.target.closest('[data-edit-type]');
             if (cell && !cell.textContent.trim()) cell.textContent = '0';
         });
-        document.addEventListener('click', closeExportMenu);
 
         // 打印时压缩图表高度，减少分页留白；打印结束后恢复屏幕高度
-        // 注意：必须同时清掉屏幕样式的 min-height:260px，否则 resize 读到的容器高度仍是260
         // 同时压缩图表内部布局（标题字号、饼图半径/中心、图例间距），避免标题与图形/标签重叠
         // 宽度直接设为打印实际宽度（A4：210mm-容器左右24mm-chart-section内边距/边框≈681px），
         // 让 ECharts 按打印尺寸重绘，保证图表与下方表格同宽，不靠 CSS 缩放避免图小表大
