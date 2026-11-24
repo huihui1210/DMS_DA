@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -327,23 +327,89 @@
             background-color: #34495e;
         }
 
-        .btn-back {
-            background-color: #95a5a6;
-            color: white;
-            margin-right: 10px;
-        }
-
-        .btn-back:hover {
-            background-color: #7f8c8d;
-        }
-
-        .btn-group {
+        .report-actions,
+        .report-actions-left {
+            position: absolute;
+            top: 0;
             display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
+            gap: 8px;
+            z-index: 20;
+        }
+
+        .report-actions {
+            right: 0;
+        }
+
+        .report-actions-left {
+            left: 0;
+        }
+
+        .report-action-btn,
+        .export-menu button {
+            padding: 7px 14px;
+            border: 1px solid #d5dce6;
+            border-radius: 6px;
+            background: #fff;
+            color: #2c3e50;
+            font: 13px 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            cursor: pointer;
+        }
+
+        .report-action-btn:hover,
+        .report-action-btn.active,
+        .export-menu button:hover {
+            border-color: #3498db;
+            background: #eef6fc;
+        }
+
+        .export-wrap {
+            position: relative;
+        }
+
+        .export-menu {
+            position: absolute;
+            top: calc(100% + 5px);
+            right: 0;
+            display: none;
+            min-width: 92px;
+            padding: 5px;
+            border: 1px solid #dfe3e8;
+            border-radius: 7px;
+            background: #fff;
+            box-shadow: 0 5px 18px rgba(44, 62, 80, 0.14);
+        }
+
+        .export-menu.open {
+            display: grid;
+            gap: 3px;
+        }
+
+        .export-menu button {
+            width: 100%;
+            border-color: transparent;
+            text-align: left;
+        }
+
+        .report-editing [data-edit-type] {
+            min-width: 24px;
+            outline: 1px dashed #7aa7c7;
+            outline-offset: -2px;
+            background: #f0f8ff !important;
+            cursor: text;
+        }
+
+        .report-editing [data-edit-type]:focus {
+            outline: 2px solid #3498db;
+            background: #fff !important;
+        }
+
+        @media screen and (max-width: 700px) {
+            .report-actions,
+            .report-actions-left {
+                position: static;
+                justify-content: center;
+                margin-top: 12px;
+            }
         }
 
         .no-data {
@@ -866,12 +932,15 @@
                 padding-bottom: 10mm !important;
             }
 
-            .btn-group {
+            .report-actions,
+            .report-actions-left {
                 display: none !important;
             }
 
-            .btn-group#btnGroup {
-                display: none !important;
+            .report-editing [data-edit-type],
+            .report-editing [data-edit-type]:focus {
+                outline: none !important;
+                background: transparent !important;
             }
 
             .chart-container {
@@ -965,8 +1034,21 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="report-actions-left" id="reportBack" style="display: none;">
+                <button type="button" class="report-action-btn" onclick="goBack()">返回</button>
+            </div>
             <h1 id="reportTitle">福建LNG设备缺陷数据分析报告</h1>
             <div class="date" id="reportDate"></div>
+            <div class="report-actions" id="reportActions" style="display: none;">
+                <button type="button" class="report-action-btn" id="editReportBtn" onclick="toggleReportEditing()" title="修改图表数据，刷新后恢复原始数据" aria-pressed="false">编辑</button>
+                <div class="export-wrap">
+                    <button type="button" class="report-action-btn" id="exportReportBtn" onclick="toggleExportMenu(event)" aria-expanded="false">导出</button>
+                    <div class="export-menu" id="exportMenu">
+                        <button type="button" onclick="exportReport('pdf')">PDF</button>
+                        <button type="button" onclick="exportReport('word')">Word</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="reportContent" style="display: none;">
@@ -1062,19 +1144,28 @@
         </div>
 
         <div id="noData" class="no-data">
-            <p>暂无数据，请先在主页面导入Excel文件</p>
-            <button class="btn btn-primary" onclick="goBack()">返回主页面</button>
-        </div>
-
-        <div class="btn-group" id="btnGroup" style="display: none;">
-            <button class="btn btn-back" onclick="goBack()">返回主页面</button>
-            <button class="btn btn-primary" onclick="printReport()">打印报告</button>
+            <p>暂无数据，请先导入 Excel</p>
+            <button class="btn btn-primary" onclick="goBack()">返回</button>
         </div>
     </div>
 
     <script>
         // ======= 全局配置常量（与 index.html 完全一致）=======
         let MAJOR_PROFESSIONS = ['机械', '电气', '仪表', '信息化', '防腐', '工程', '分析', '管道抢修', '后勤', '安全', '接收站运行部', '管道运行部'];
+
+        // 编辑只修改当前页面内存，不写回 localStorage，刷新后重新读取原始数据
+        const reportState = {
+            months: [],
+            monthlyStats: null,
+            currentYear: 0,
+            currentMonth: 0,
+            currentMonthKey: '',
+            lastMonthKey: '',
+            asOfDay: 0,
+            isThisMonth: false,
+            editing: false,
+            pieGroups: {}
+        };
 
         // ======= 导航 & 打印 =======
         function goBack() {
@@ -1086,8 +1177,145 @@
         }
 
         function printReport() {
+            setReportEditing(false);
+            closeExportMenu();
             window.print();
         }
+
+        function toggleExportMenu(event) {
+            event.stopPropagation();
+            const menu = document.getElementById('exportMenu');
+            const open = !menu.classList.contains('open');
+            menu.classList.toggle('open', open);
+            document.getElementById('exportReportBtn').setAttribute('aria-expanded', String(open));
+        }
+
+        function closeExportMenu() {
+            document.getElementById('exportMenu').classList.remove('open');
+            document.getElementById('exportReportBtn').setAttribute('aria-expanded', 'false');
+        }
+
+        function toggleReportEditing() {
+            setReportEditing(!reportState.editing);
+        }
+
+        function setReportEditing(editing) {
+            reportState.editing = editing;
+            document.body.classList.toggle('report-editing', editing);
+            document.querySelectorAll('#reportContent [data-edit-type]').forEach(cell => {
+                cell.contentEditable = String(editing);
+                cell.spellcheck = false;
+            });
+            const button = document.getElementById('editReportBtn');
+            button.textContent = editing ? '完成' : '编辑';
+            button.classList.toggle('active', editing);
+            button.setAttribute('aria-pressed', String(editing));
+            if (!editing && document.activeElement && document.activeElement.matches('[data-edit-type]')) {
+                document.activeElement.blur();
+            }
+        }
+
+        function placeCaretAtEnd(cell) {
+            const range = document.createRange();
+            range.selectNodeContents(cell);
+            range.collapse(false);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+
+        function readEditableNumber(cell) {
+            const cleaned = cell.textContent.replace(/\D/g, '').slice(0, 9);
+            if (cell.textContent !== cleaned) {
+                cell.textContent = cleaned;
+                placeCaretAtEnd(cell);
+            }
+            return cleaned ? Number(cleaned) : 0;
+        }
+
+        function handleReportCellInput(event) {
+            const cell = event.target.closest('[data-edit-type]');
+            if (!cell || !reportState.editing) return;
+            const value = readEditableNumber(cell);
+            const field = cell.dataset.field;
+
+            if (cell.dataset.editType === 'monthly') {
+                const stats = reportState.monthlyStats[cell.dataset.month];
+                if (!stats || !['new', 'completed', 'pending'].includes(field)) return;
+                stats[field] = value;
+                updateBarChart();
+            } else if (cell.dataset.editType === 'profession') {
+                const group = reportState.pieGroups[cell.dataset.tableId];
+                const statsKey = { remaining: 'remainingStats', new: 'newStats', completed: 'completedStats' }[field];
+                if (!group || !statsKey) return;
+                group.stats[statsKey][cell.dataset.profession] = value;
+                updatePieGroup(group);
+            }
+            refreshDerivedReport();
+        }
+
+        function exportReport(format) {
+            closeExportMenu();
+            if (format === 'pdf') {
+                printReport();
+                return;
+            }
+
+            setReportEditing(false);
+            try {
+                const clone = document.querySelector('.container').cloneNode(true);
+                clone.querySelectorAll('#reportActions, #reportBack, #noData').forEach(el => el.remove());
+                clone.querySelectorAll('[data-edit-type]').forEach(cell => {
+                    cell.removeAttribute('contenteditable');
+                    cell.removeAttribute('spellcheck');
+                });
+                clone.querySelectorAll('.chart-container').forEach(clonedChart => {
+                    const source = document.getElementById(clonedChart.id);
+                    const chart = source ? echarts.getInstanceByDom(source) : null;
+                    if (!chart) return;
+                    const image = document.createElement('img');
+                    image.className = 'word-chart';
+                    image.src = chart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#fff' });
+                    image.alt = '';
+                    clonedChart.replaceWith(image);
+                });
+
+                const styles = document.querySelector('style').innerHTML;
+                const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><style>${styles}
+                    body { background: #fff !important; padding: 0 !important; }
+                    .container { max-width: 100% !important; min-height: 0 !important; box-shadow: none !important; padding: 20px !important; overflow: visible !important; }
+                    .word-chart { display: block; width: 100%; height: auto; margin: 12px 0; }
+                    [data-edit-type] { outline: none !important; background: transparent !important; }
+                    </style></head><body>${clone.outerHTML}</body></html>`;
+                const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                const name = document.getElementById('reportTitle').textContent.replace(/[\\/:*?"<>|]/g, '_');
+                link.href = url;
+                link.download = `${name}.doc`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } catch (error) {
+                console.error('Word 导出失败', error);
+                alert('导出失败，请重试');
+            }
+        }
+
+        const reportContentEl = document.getElementById('reportContent');
+        reportContentEl.addEventListener('input', handleReportCellInput);
+        reportContentEl.addEventListener('keydown', event => {
+            if (event.key === 'Enter' && event.target.matches('[data-edit-type]')) {
+                event.preventDefault();
+                event.target.blur();
+            }
+        });
+        reportContentEl.addEventListener('focusout', event => {
+            const cell = event.target.closest('[data-edit-type]');
+            if (cell && !cell.textContent.trim()) cell.textContent = '0';
+        });
+        document.addEventListener('click', closeExportMenu);
 
         // 打印时压缩图表高度，减少分页留白；打印结束后恢复屏幕高度
         // 注意：必须同时清掉屏幕样式的 min-height:260px，否则 resize 读到的容器高度仍是260
@@ -1573,6 +1801,137 @@
             document.getElementById('focusTable').innerHTML = tableHtml;
         }
 
+        function updateBarChart() {
+            const chart = echarts.getInstanceByDom(document.getElementById('barChart'));
+            if (!chart || !reportState.monthlyStats) return;
+            const values = field => reportState.months.map(month => reportState.monthlyStats[month][field]);
+            chart.setOption({
+                series: [
+                    { data: values('new') },
+                    { data: values('completed') },
+                    { data: values('pending') }
+                ]
+            });
+        }
+
+        function topProfessions(stats) {
+            return Object.entries(stats)
+                .filter(([, count]) => count > 0)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(([name]) => name);
+        }
+
+        function refreshDerivedReport() {
+            const state = reportState;
+            if (!state.monthlyStats) return;
+            const currentRemaining = state.monthlyStats[state.currentMonthKey].pending;
+            const lastMonthRemaining = state.monthlyStats[state.lastMonthKey] ? state.monthlyStats[state.lastMonthKey].pending : 0;
+            let changeRate = null;
+            if (!state.isThisMonth && lastMonthRemaining > 0) {
+                changeRate = ((currentRemaining - lastMonthRemaining) / lastMonthRemaining * 100).toFixed(1);
+            }
+
+            const ytdMonths = state.months.filter(month => month.startsWith(`${state.currentYear}-`));
+            const yearNewTotal = ytdMonths.reduce((sum, month) => sum + state.monthlyStats[month].new, 0);
+            const yearCompletedTotal = ytdMonths.reduce((sum, month) => sum + state.monthlyStats[month].completed, 0);
+            const completionRate = yearNewTotal > 0 ? `${(yearCompletedTotal / yearNewTotal * 100).toFixed(1)}%` : '无数据';
+            const overall = state.pieGroups.pieChartTable;
+            const topCompletedNames = overall ? topProfessions(overall.stats.completedStats).map(displayProfession).join('、') || '无' : '无';
+
+            let summaryText;
+            if (changeRate !== null) {
+                const changeText = changeRate >= 0 ? `上升${Math.abs(changeRate)}%` : `下降${Math.abs(changeRate)}%`;
+                summaryText = `截至${state.currentMonth}月${state.asOfDay}日，${stationName}Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项，环比${changeText}（从<span class="highlight">${lastMonthRemaining}</span>项${changeRate >= 0 ? '上升至' : '降至'}<span class="highlight">${currentRemaining}</span>项）；${state.currentMonth}月消缺前三专业为${topCompletedNames}；${state.currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
+            } else {
+                summaryText = `截至${state.currentMonth}月${state.asOfDay}日，${stationName}Ⅰ类缺陷剩余<span class="highlight">${currentRemaining}</span>项（本月数据截至今日，环比待完整月数据）；${state.currentMonth}月消缺前三专业为${topCompletedNames}；${state.currentYear}年累计新增Ⅰ类缺陷<span class="highlight">${yearNewTotal}</span>项、消缺<span class="highlight">${yearCompletedTotal}</span>项。`;
+            }
+
+            document.getElementById('summaryText').innerHTML = summaryText;
+            document.getElementById('statYearNew').textContent = yearNewTotal;
+            document.getElementById('statYearCompleted').textContent = yearCompletedTotal;
+            document.getElementById('statChangeRate').textContent = changeRate !== null ? `${changeRate >= 0 ? '+' : ''}${changeRate}%` : '—';
+            document.getElementById('statCompletionRate').textContent = completionRate;
+            refreshProfessionRanking(overall);
+        }
+
+        function refreshProfessionRanking(overall) {
+            if (!overall) return;
+            const topCompleted = topProfessions(overall.stats.completedStats);
+            const topPending = topProfessions(overall.stats.remainingStats);
+            document.getElementById('topCompletedProfessions').textContent = topCompleted.map(displayProfession).join('、') || '无';
+            document.getElementById('topPendingProfessions').textContent = topPending.map(displayProfession).join('、') || '无';
+            const cards = (names, stats) => names.map(name =>
+                `<div class="profession-item"><span class="profession-name">${escHtml(displayProfession(name))}</span><span class="profession-count">${stats[name] || 0}项</span></div>`
+            ).join('');
+            document.getElementById('completedProfessionList').innerHTML = cards(topCompleted, overall.stats.completedStats);
+            document.getElementById('pendingProfessionList').innerHTML = cards(topPending, overall.stats.remainingStats);
+        }
+
+        function updatePieGroup(group) {
+            ['remaining', 'new', 'completed'].forEach(field => {
+                const stats = group.stats[`${field}Stats`];
+                const total = group.professions.reduce((sum, profession) => sum + (stats[profession] || 0), 0);
+                document.querySelectorAll(`[data-pie-total="${group.tableId}"][data-field="${field}"]`).forEach(cell => {
+                    cell.textContent = total;
+                });
+            });
+
+            const totalRemaining = group.professions.reduce((sum, profession) => sum + (group.stats.remainingStats[profession] || 0), 0);
+            const totalNew = group.professions.reduce((sum, profession) => sum + (group.stats.newStats[profession] || 0), 0);
+            const totalCompleted = group.professions.reduce((sum, profession) => sum + (group.stats.completedStats[profession] || 0), 0);
+            const month = group.currentMonthKey.split('-')[1];
+            document.getElementById(group.summaryId).innerHTML = `截至${month}月${group.day}日，${group.labelStation}Ⅰ类缺陷剩余<span class="highlight">${totalRemaining}</span>项；${month}月新增${totalNew}项，消缺${totalCompleted}项。Ⅱ类剩余${group.pendingII}项，土建剩余${group.pendingCivil}项，消防剩余${group.pendingFire}项。`;
+            drawReportPie(group);
+        }
+
+        function drawReportPie(group) {
+            const container = document.getElementById(group.chartId);
+            const pieData = group.professions.map(name => ({
+                name: displayProfession(name),
+                value: group.stats.remainingStats[name] || 0
+            }));
+            let chart = echarts.getInstanceByDom(container);
+            if (pieData.every(item => item.value === 0)) {
+                if (chart) chart.dispose();
+                container.innerHTML = '<div style="text-align:center;padding-top:100px;color:#999;">暂无数据</div>';
+                return;
+            }
+
+            if (!chart) {
+                container.innerHTML = '';
+                chart = echarts.init(container);
+                window.addEventListener('resize', () => { if (!chart.isDisposed()) chart.resize(); });
+            }
+            const colors = ['#4472c4', '#c5504b', '#70ad47', '#ffc000', '#5b9bd5', '#ed7d31', '#a5a5a5', '#7030a0'];
+            chart.setOption({
+                title: {
+                    text: `${group.labelStation}剩余Ⅰ类缺陷专业分布`,
+                    left: 'center', top: 10,
+                    textStyle: { fontSize: 16, fontWeight: 'bold', color: '#333' }
+                },
+                tooltip: { trigger: 'item', formatter: '{b}: {c}项 ({d}%)' },
+                legend: {
+                    type: 'plain', orient: 'vertical', right: 15, top: 60,
+                    columns: 1, itemWidth: 10, itemHeight: 8, itemGap: 8,
+                    textStyle: { fontSize: 11 }, data: group.professions.map(displayProfession)
+                },
+                series: [{
+                    name: '待消缺专业分布',
+                    type: 'pie',
+                    radius: ['35%', '70%'],
+                    center: ['50%', '55%'],
+                    itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+                    label: { show: true, formatter: '{b}: {c}项', fontSize: 12 },
+                    labelLine: { show: true, length: 15, length2: 20 },
+                    data: pieData.map((item, index) => ({
+                        ...item,
+                        itemStyle: { color: colors[index % colors.length] }
+                    }))
+                }]
+            });
+        }
+
         // ======= 加载 & 渲染主流程 =======
         function loadReport() {
             const saved = localStorage.getItem('defectData');
@@ -1626,9 +1985,12 @@
                 });
             }
 
+            setReportEditing(false);
+            reportState.pieGroups = {};
             document.getElementById('noData').style.display = 'none';
             document.getElementById('reportContent').style.display = 'block';
-            document.getElementById('btnGroup').style.display = 'flex';
+            document.getElementById('reportBack').style.display = 'flex';
+            document.getElementById('reportActions').style.display = 'flex';
 
             // 自动检测站点类型，设置站名和专业显示名
             setupStationConfig(processedData);
@@ -1668,6 +2030,16 @@
             // === 月度统计（Ⅰ类口径：定级Ⅰ类，专业不含土建/消防）===
             // 柱状图/底下月份表/总体情况文字/年度累计卡片 全部共用这一套
             const monthlyStats = calculateMonthlyStats(processedData, yearMonths, true);
+            Object.assign(reportState, {
+                months: yearMonths,
+                monthlyStats,
+                currentYear,
+                currentMonth,
+                currentMonthKey,
+                lastMonthKey,
+                asOfDay,
+                isThisMonth
+            });
 
             // === 本月（基准月）数据 ===
             const currentRemaining = monthlyStats[currentMonthKey].pending;
@@ -1818,7 +2190,7 @@
 
             chart.setOption({
                 title: {
-                    text: `${year}年${stationName}Ⅰ类设备缺陷管理统计`,
+                    text: `${year}年${stationName}Ⅰ类缺陷统计`,
                     left: 'center', top: 0,
                     textStyle: { fontSize: 18, fontWeight: 'bold', color: '#333' }
                 },
@@ -1843,11 +2215,11 @@
             monthLabels.forEach(m => html += `<th>${m}</th>`);
             html += '</tr></thead><tbody>';
             html += '<tr><td><span class="legend-dot" style="background-color: #4472c4;"></span>新增</td>';
-            newData.forEach(v => html += `<td>${v}</td>`);
+            newData.forEach((v, i) => html += `<td data-edit-type="monthly" data-month="${months[i]}" data-field="new">${v}</td>`);
             html += '</tr><tr><td><span class="legend-dot" style="background-color: #c5504b;"></span>消缺</td>';
-            completedData.forEach(v => html += `<td>${v}</td>`);
+            completedData.forEach((v, i) => html += `<td data-edit-type="monthly" data-month="${months[i]}" data-field="completed">${v}</td>`);
             html += '</tr><tr><td><span class="legend-dot" style="background-color: #70ad47;"></span>剩余</td>';
-            pendingData.forEach(v => html += `<td>${v}</td>`);
+            pendingData.forEach((v, i) => html += `<td data-edit-type="monthly" data-month="${months[i]}" data-field="pending">${v}</td>`);
             html += '</tr></tbody></table>';
             tbl.innerHTML = html;
 
@@ -1866,45 +2238,24 @@
             const summaryId = opts.summaryId || 'pieChartSummary';
             const tableId = opts.tableId || 'pieChartTable';
 
-            const pieData = professions
-                .map(name => ({ name: displayProfession(name), value: remainingStats[name] || 0 }));
-
             const container = document.getElementById(chartId);
             if (!container) return;
-
-            if (pieData.every(d => d.value === 0)) {
-                container.innerHTML = '<div style="text-align:center;padding-top:100px;color:#999;">暂无数据</div>';
-            } else {
-                const colors = ['#4472c4', '#c5504b', '#70ad47', '#ffc000', '#5b9bd5', '#ed7d31', '#a5a5a5', '#7030a0'];
-                const chart = echarts.init(container);
-                chart.setOption({
-                    title: {
-                        text: `${labelStation}当前主要剩余Ⅰ类缺陷专业分布情况`,
-                        left: 'center', top: 10,
-                        textStyle: { fontSize: 16, fontWeight: 'bold', color: '#333' }
-                    },
-                    tooltip: { trigger: 'item', formatter: '{b}: {c}项 ({d}%)' },
-                    legend: {
-                        type: 'plain', orient: 'vertical', right: 15, top: 60,
-                        columns: 1, itemWidth: 10, itemHeight: 8, itemGap: 8,
-                        textStyle: { fontSize: 11 }, data: professions.map(displayProfession)
-                    },
-                    series: [{
-                        name: '待消缺专业分布',
-                        type: 'pie',
-                        radius: ['35%', '70%'],
-                        center: ['50%', '55%'],
-                        itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
-                        label: { show: true, formatter: '{b}: {c}项', fontSize: 12 },
-                        labelLine: { show: true, length: 15, length2: 20 },
-                        data: pieData.map((item, index) => ({
-                            ...item,
-                            itemStyle: { color: colors[index % colors.length] }
-                        }))
-                    }]
-                });
-                window.addEventListener('resize', () => { if (!chart.isDisposed()) chart.resize(); });
-            }
+            const group = {
+                professions,
+                stats: classIStats,
+                currentMonthKey,
+                day,
+                labelStation,
+                chartId,
+                summaryId,
+                tableId,
+                pendingII: 0,
+                pendingCivil: 0,
+                pendingFire: 0
+            };
+            reportState.pieGroups[tableId] = group;
+            const pieData = professions.map(name => ({ name: displayProfession(name), value: remainingStats[name] || 0 }));
+            drawReportPie(group);
 
             // 饼图底下汇总表
             const totalRemaining = pieData.reduce((s, d) => s + d.value, 0);
@@ -1927,6 +2278,7 @@
                 if (!isEmpty(levelRaw) && !isClassILevel(levelRaw) && /二|Ⅱ|II/i.test(String(levelRaw))) pendingII++;
             });
 
+            Object.assign(group, { pendingII, pendingCivil, pendingFire });
             const summaryEl = document.getElementById(summaryId);
             summaryEl.innerHTML = `截至${currentMonthKey.split('-')[1]}月${day}日，${labelStation}Ⅰ类缺陷剩余<span class="highlight">${totalRemaining}</span>项；${currentMonthKey.split('-')[1]}月新增${totalNew}项，消缺${totalCompleted}项。Ⅱ类剩余${pendingII}项，土建剩余${pendingCivil}项，消防剩余${pendingFire}项。`;
 
@@ -1946,22 +2298,22 @@
             // 剩余
             html += '<tr>';
             html += '<td>剩余</td>';
-            html += `<td class="st-total">${totalRemaining}</td>`;
-            professions.forEach(p => { html += `<td>${remainingStats[p] || 0}</td>`; });
+            html += `<td class="st-total" data-pie-total="${tableId}" data-field="remaining">${totalRemaining}</td>`;
+            professions.forEach(p => { html += `<td data-edit-type="profession" data-table-id="${tableId}" data-profession="${escHtml(p)}" data-field="remaining">${remainingStats[p] || 0}</td>`; });
             html += '</tr>';
 
             // 本月新增
             html += '<tr>';
             html += `<td>${monthLabel}新增</td>`;
-            html += `<td class="st-total">${totalNew}</td>`;
-            professions.forEach(p => { html += `<td>${newStats[p] || 0}</td>`; });
+            html += `<td class="st-total" data-pie-total="${tableId}" data-field="new">${totalNew}</td>`;
+            professions.forEach(p => { html += `<td data-edit-type="profession" data-table-id="${tableId}" data-profession="${escHtml(p)}" data-field="new">${newStats[p] || 0}</td>`; });
             html += '</tr>';
 
             // 本月消项
             html += '<tr>';
             html += `<td>${monthLabel}消项</td>`;
-            html += `<td class="st-total">${totalCompleted}</td>`;
-            professions.forEach(p => { html += `<td>${completedStats[p] || 0}</td>`; });
+            html += `<td class="st-total" data-pie-total="${tableId}" data-field="completed">${totalCompleted}</td>`;
+            professions.forEach(p => { html += `<td data-edit-type="profession" data-table-id="${tableId}" data-profession="${escHtml(p)}" data-field="completed">${completedStats[p] || 0}</td>`; });
             html += '</tr>';
 
             html += '</tbody></table></div>';

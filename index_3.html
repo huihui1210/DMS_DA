@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -667,7 +667,7 @@
             filter: blur(9px);
         }
 
-        /* 图例改成与「缺陷滚动清单」同款的滚动列表：表头固定，行在内部循环滚动 */
+        /* 图例改成与「待消缺清单」同款的滚动列表：表头固定，行在内部循环滚动 */
         .prof-legend {
             flex: 0 0 138px;
             min-width: 0;
@@ -706,7 +706,7 @@
             flex-direction: column;
         }
 
-        /* hover 时暂停滚动，方便逐条查看/点击（与缺陷滚动清单同一行为） */
+        /* hover 时暂停滚动，方便逐条查看/点击（与待消缺清单同一行为） */
         .prof-legend-body:hover .prof-legend-track {
             animation-play-state: paused;
         }
@@ -2126,7 +2126,7 @@
             overflow: hidden;
         }
 
-        /* 与「缺陷滚动清单」对齐：行间不留空隙，用 1px 分隔线；
+        /* 与「待消缺清单」对齐：行间不留空隙，用 1px 分隔线；
            斑马纹走 background-color（同 .list-row:nth-child(even) 的色值），
            督办状态色改为 background-image 叠加层，避免盖住或造成深浅跳变 */
         .sp-item {
@@ -2154,12 +2154,12 @@
             color: #7fd4e8;
         }
 
-        /* 斑马底纹：偶数行叠加青色，与缺陷滚动清单一致；复制第二份后全局奇偶仍连续 */
+        /* 斑马底纹：偶数行叠加青色，与待消缺清单一致；复制第二份后全局奇偶仍连续 */
         .sp-list .sp-item:nth-child(even) {
             background-color: rgba(59, 210, 255, 0.04);
         }
 
-        /* hover 与缺陷滚动清单同一色值（选择器需压过斑马纹那条） */
+        /* hover 与待消缺清单同一色值（选择器需压过斑马纹那条） */
         .sp-list .sp-item:hover {
             background-color: rgba(59, 210, 255, 0.07);
         }
@@ -3066,7 +3066,7 @@
         <div class="top">
             <div class="top-left">
                 <div class="seg" id="seg">
-                    <button class="seg-btn active" data-view="all">看板总览</button>
+                    <button class="seg-btn active" data-view="all">总览</button>
                     <button class="seg-btn" data-view="recv">接收站</button>
                     <button class="seg-btn" data-view="fen">分输站</button>
                 </div>
@@ -3081,7 +3081,7 @@
             </div>
 
             <div class="top-right">
-                <button class="sys-link as-btn" id="dbgBtn" type="button" title="数据核对（?debug=1 默认展开）">数据核对</button>
+                <button class="sys-link as-btn" id="dbgBtn" type="button" title="数据核对">数据核对</button>
                 <button class="sys-link as-btn" id="mapImgBtn" type="button">底图</button>
                 <button class="sys-link as-btn" id="mapEditBtn" type="button">点位</button>
                 <button class="sys-link fs-btn" id="fsBtn" type="button" title="铺满全屏" aria-label="铺满全屏"
@@ -3112,11 +3112,11 @@
             </div>
             <div id="dbgBody"></div>
             <div class="dbg-actions">
-                <button id="dbgExport" type="button">导出当前 all 为 JSON</button>
-                <button id="dbgExportBad" type="button">导出非11/14位清单 JSON</button>
-                <button id="dbgExportDup" type="button">导出被折叠行 JSON</button>
-                <button id="dbgExportSameId" type="button">导出同编号清单 JSON</button>
-                <button id="dbgExportDiff" type="button">导出缺失行 JSON</button>
+                <button id="dbgExport" type="button">导出全部 JSON</button>
+                <button id="dbgExportBad" type="button">导出异常编号</button>
+                <button id="dbgExportDup" type="button">导出重复行</button>
+                <button id="dbgExportSameId" type="button">导出同编号</button>
+                <button id="dbgExportDiff" type="button">导出缺失行</button>
                 <button id="dbgCleanDup" type="button">清理完全重复行</button>
             </div>
         </div>
@@ -3144,8 +3144,7 @@
                 <div class="panel">
                     <div class="panel-head">
                         <span class="bar"></span>
-                        <h2>缺陷趋势</h2>
-                        <span class="hint">近12个月 · Ⅰ类</span>
+                        <h2>Ⅰ类缺陷趋势（近12个月）</h2>
                     </div>
                     <div class="panel-body">
                         <div class="chart" id="chartTrend"></div>
@@ -3155,8 +3154,7 @@
                 <div class="panel">
                     <div class="panel-head">
                         <span class="bar"></span>
-                        <h2>专业分布</h2>
-                        <span class="hint">Ⅰ类 · 剩余</span>
+                        <h2>Ⅰ类剩余专业分布</h2>
                     </div>
                     <div class="panel-body">
                         <div class="prof-wrap" id="chartProf"></div>
@@ -3175,18 +3173,17 @@
                     <div class="panel-head">
                         <span class="bar"></span>
                         <h2 id="mapTitle">厂区分布</h2>
-                        <span class="hint" id="mapHint">拖动切换站点 · 滚轮缩放 / 双击复位</span>
                         <span class="map-dots" id="mapDots"></span>
                     </div>
                     <div class="panel-body">
-                        <div class="map-grid" id="mapGrid"></div>
+                        <div class="map-grid" id="mapGrid" title="拖动切换站点；滚轮缩放；双击复位"></div>
                     </div>
                 </div>
 
                 <div class="panel">
                     <div class="panel-head">
                         <span class="bar"></span>
-                        <h2>缺陷滚动清单</h2>
+                        <h2>待消缺清单</h2>
                         <span class="hint" id="listHint"></span>
                     </div>
                     <div class="panel-body">
@@ -3230,7 +3227,7 @@
                 <div class="panel">
                     <div class="panel-head">
                         <span class="bar"></span>
-                        <h2>督办滚动清单</h2>
+                        <h2>督办清单</h2>
                         <span class="hint" id="superviseHint"></span>
                     </div>
                     <div class="panel-body">
@@ -3247,7 +3244,7 @@
             <div class="modal">
                 <div class="modal-head">
                     <span class="bar"></span>
-                    <h3 id="modalTitle">缺陷滚动清单</h3>
+                    <h3 id="modalTitle">待消缺清单</h3>
                     <span class="modal-sub" id="modalSub"></span>
                     <span class="modal-count" id="modalCount"></span>
                     <button class="modal-close" id="modalClose" title="关闭">×</button>
@@ -3284,8 +3281,8 @@
         </div>
 
         <div id="emptyState">
-            <h3>暂无缺陷数据</h3>
-            <p>请先在接收站 / 分输站页面同步数据，看板会自动刷新。</p>
+            <h3>暂无数据</h3>
+            <p>请先在接收站或分输站页面导入数据。</p>
             <p><a class="sys-link" href="index_1.html">前往福建LNG总系统</a></p>
         </div>
     </div>
@@ -3301,7 +3298,7 @@
         };
         const PERIOD_LABELS = { month: '月度', year: '年度' };
         // 厂区分布面板标题（随视图切换），弹窗主标题也复用它
-        const MAP_TITLES = { all: '厂区分布（全站）', recv: '接收站分布', fen: '分输站分布' };
+        const MAP_TITLES = { all: '厂区分布', recv: '接收站分布', fen: '分输站分布' };
 
         /* ================= 点位存储（localStorage 持久化，由点位编辑模式写入） ================= */
         function getMapSpots() {
@@ -4169,7 +4166,7 @@
             if (!el) return;
             const d = timestamp ? new Date(Number(timestamp)) : new Date();
             if (isNaN(d.getTime())) return;
-            el.textContent = `（数据同步于 ${d.toLocaleTimeString('zh-CN', { hour12: false })}）`;
+            el.textContent = `同步 ${d.toLocaleTimeString('zh-CN', { hour12: false })}`;
         }
 
         function startAutoSync() {
@@ -4548,20 +4545,20 @@
         const KPI_GROUPS = ['overview', 'remain', 'week', 'month'];
         const KPI_GROUP_DEFS = {
             remain: [
-                { key: 'remainI', cls: 'cyan', icon: 'Ⅰ', lbl: '剩余Ⅰ类缺陷数' },
-                { key: 'remainCivil', cls: 'amber', icon: '土', lbl: '剩余土建类缺陷数' },
-                { key: 'remainII', cls: 'green', icon: 'Ⅱ', lbl: '剩余Ⅱ类缺陷数' },
-                { key: 'remainFire', cls: 'silver', icon: '火', lbl: '剩余消防类缺陷数' }
+                { key: 'remainI', cls: 'cyan', icon: 'Ⅰ', lbl: '剩余Ⅰ类' },
+                { key: 'remainCivil', cls: 'amber', icon: '土', lbl: '剩余土建类' },
+                { key: 'remainII', cls: 'green', icon: 'Ⅱ', lbl: '剩余Ⅱ类' },
+                { key: 'remainFire', cls: 'silver', icon: '火', lbl: '剩余消防类' }
             ],
             week: [
-                { key: 'yesterdayNew', cls: 'cyan', icon: '日', lbl: '日度新增缺陷数' },
-                { key: 'weekNew', cls: 'amber', icon: '周', lbl: '周度新增缺陷数' },
+                { key: 'yesterdayNew', cls: 'cyan', icon: '日', lbl: '日度新增' },
+                { key: 'weekNew', cls: 'amber', icon: '周', lbl: '周度新增' },
                 { key: 'yesterdayDone', cls: 'green', icon: '日', lbl: '日度消缺数' },
                 { key: 'weekDone', cls: 'silver', icon: '周', lbl: '周度消缺数' }
             ],
             month: [
-                { key: 'monthNew', cls: 'cyan', icon: '月', lbl: '月度新增缺陷数' },
-                { key: 'yearNew', cls: 'amber', icon: '年', lbl: '年度新增缺陷数' },
+                { key: 'monthNew', cls: 'cyan', icon: '月', lbl: '月度新增' },
+                { key: 'yearNew', cls: 'amber', icon: '年', lbl: '年度新增' },
                 { key: 'monthDone', cls: 'green', icon: '月', lbl: '月度消缺数' },
                 { key: 'yearDone', cls: 'silver', icon: '年', lbl: '年度消缺数' }
             ]
@@ -4958,7 +4955,7 @@
 
                 const spark = monthKeys.map(mk => {
                     if (isRemain) {
-                        // 该月末仍未消缺的同类缺陷数
+                        // 该月末仍未消缺的同类
                         return meta.filter(m => m.mk && m.mk <= mk
                             && !(m.done && (!m.ck || m.ck <= mk))
                             && m.cat === def.key).length;
@@ -5460,7 +5457,7 @@
                     `fill="url(#pfT${s.idx})" stroke="rgba(4,14,26,.5)" stroke-width="1"/>${label}</g>`);
             });
 
-            // 图例与「缺陷滚动清单」同款：斑马纹按全局第 N 行取奇偶，复制第二份时接缝不断纹
+            // 图例与「待消缺清单」同款：斑马纹按全局第 N 行取奇偶，复制第二份时接缝不断纹
             const legRow = (s, alt) =>
                 `<button type="button" class="prof-leg${alt ? ' alt' : ''}" data-idx="${s.idx}" title="${escHtml(s.disp)} · 剩余 ${s.count} 条">` +
                 `<i style="background:${s.color};box-shadow:0 0 8px ${s.color}"></i>` +
@@ -5653,7 +5650,7 @@
             const viewport = document.getElementById('listViewport');
             const hint = document.getElementById('listHint');
             const pending = state.rows.filter(row => row.status === '待消缺项目');
-            if (hint) hint.textContent = pending.length ? `待消缺 ${pending.length} 项` : '';
+            if (hint) hint.textContent = pending.length ? `${pending.length} 项` : '';
 
             if (pending.length === 0) {
                 viewport.innerHTML = '<div class="empty-row">当前视图暂无待消缺缺陷</div>';
@@ -5722,7 +5719,7 @@
             const hint = document.getElementById('superviseHint');
             const pending = state.rows.filter(row => row.status === '待消缺项目');
             const supervised = pending.filter(row => isFlag(row, '是否督办'));
-            if (hint) hint.textContent = `督办 ${supervised.length} 项`;
+            if (hint) hint.textContent = `${supervised.length} 项`;
 
             const items = supervised.length ? supervised : pending;
 
@@ -5827,7 +5824,7 @@
                             if (!img.nextElementSibling?.classList.contains('map-placeholder')) {
                                 const ph = document.createElement('div');
                                 ph.className = 'map-placeholder';
-                                ph.innerHTML = `<b>未上传底图</b><span>点击右上角「底图」按钮上传卫星图</span>`;
+                                ph.innerHTML = `<b>未上传底图</b><span>通过右上角「底图」上传</span>`;
                                 img.after(ph);
                             }
                         }
@@ -6094,7 +6091,7 @@
                 }).join('');
                 groups.push(`<div class="ez-group"><div class="ez-title">${label}</div>${rowsHtml || '<div class="ez-none">暂无数据</div>'}</div>`);
             });
-            drawer.innerHTML = `<div class="ez-head"><b>点位编辑</b><span>点区域名称 → 在对应底图上点击落点；拖动点位可微调</span><button id="editDone">完成</button></div>${groups.join('')}`;
+            drawer.innerHTML = `<div class="ez-head"><b>点位编辑</b><span>选择区域后在底图上落点，可拖动调整</span><button id="editDone">完成</button></div>${groups.join('')}`;
             drawer.classList.add('show');
         }
 
@@ -6132,7 +6129,7 @@
                     ${record ? `<div class="mi-state mi-custom">已上传 ${size}MB · ${escHtml(record.note || '原图')}</div>` : '<div class="mi-state mi-empty">未上传底图</div>'}
                 </div>`;
             }));
-            drawer.innerHTML = `<div class="ez-head"><b>底图管理</b><span>存浏览器IndexedDB,无需git提交;支持原图30MB+,JPEG默认缩到4096px</span><button id="imgDone">完成</button></div>${cards.join('')}`;
+            drawer.innerHTML = `<div class="ez-head"><b>底图管理</b><span>图片保存在本机浏览器</span><button id="imgDone">完成</button></div>${cards.join('')}`;
             drawer.classList.add('show');
         }
 
@@ -6250,11 +6247,10 @@
             if (keep.length) {
                 box.innerHTML = keep.map(i => modalRowHtml(i, q)).join('');
             } else {
-                box.innerHTML = '<div class="m-empty">没有符合条件的记录'
-                    + '<span>试试清除搜索词，或点击「重置」还原筛选条件</span></div>';
+                box.innerHTML = '<div class="m-empty">无匹配记录</div>';
             }
             document.getElementById('modalCount').innerHTML =
-                `共 <b>${modalState.rows.length}</b> 条 / 当前 <b>${keep.length}</b> 条`;
+                `<b>${keep.length}</b> / ${modalState.rows.length} 条`;
         }
 
         function buildModalFilterPop() {
@@ -6370,7 +6366,7 @@
 
         function openRowDetail(id, section) {
             const row = state.rows.find(r => getId(r) === id);
-            if (row) openModal(section || '缺陷滚动清单', [row], `缺陷编号 ${id}`);
+            if (row) openModal(section || '待消缺清单', [row], `缺陷编号 ${id}`);
         }
 
         // 专业分布口径：与 getClassIProfessionStats 的剩余统计一致
@@ -6583,12 +6579,12 @@
 
             document.getElementById('listViewport').addEventListener('click', function (e) {
                 const row = e.target.closest('.list-row');
-                if (row && row.dataset.id) openRowDetail(row.dataset.id, '缺陷滚动清单');
+                if (row && row.dataset.id) openRowDetail(row.dataset.id, '待消缺清单');
             });
 
             document.getElementById('superviseViewport').addEventListener('click', function (e) {
                 const item = e.target.closest('.sp-item');
-                if (item && item.dataset.id) openRowDetail(item.dataset.id, '督办滚动清单');
+                if (item && item.dataset.id) openRowDetail(item.dataset.id, '督办清单');
             });
 
             document.getElementById('alertBar').addEventListener('click', function () {

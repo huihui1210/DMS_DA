@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -894,7 +894,7 @@
                 <button class="btn btn-station" onclick="window.location.href='index_1.html'">福建LNG</button>
                 <button class="btn btn-reset" onclick="resetData()">重置</button>
                 <button class="btn btn-chart" onclick="generateReport()">生成报告</button>
-                <button class="btn btn-export" onclick="exportBeautifiedExcel()">导出美化Excel</button>
+                <button class="btn btn-export" onclick="exportBeautifiedExcel()">导出 Excel</button>
             </div>
         </div>
 
@@ -904,36 +904,36 @@
                 <!-- Row 1: 剩余分类 -->
                 <div class="stat-card stat-red">
                     <div class="stat-value" id="statRemainingI">0</div>
-                    <div class="stat-label">剩余Ⅰ类缺陷数</div>
+                    <div class="stat-label">剩余Ⅰ类</div>
                 </div>
                 <div class="stat-card stat-green">
                     <div class="stat-value" id="statRemainingCivil">0</div>
-                    <div class="stat-label">剩余土建类缺陷数</div>
+                    <div class="stat-label">剩余土建类</div>
                 </div>
                 <div class="stat-card stat-orange">
                     <div class="stat-value" id="statRemainingII">0</div>
-                    <div class="stat-label">剩余Ⅱ类缺陷数</div>
+                    <div class="stat-label">剩余Ⅱ类</div>
                 </div>
                 <div class="stat-card stat-purple">
                     <div class="stat-value" id="statRemainingFire">0</div>
-                    <div class="stat-label">剩余消防类缺陷数</div>
+                    <div class="stat-label">剩余消防类</div>
                 </div>
                 <!-- Row 2: 新增统计 -->
                 <div class="stat-card stat-red">
                     <div class="stat-value" id="statYesterdayNew">0</div>
-                    <div class="stat-label">昨日新增缺陷数</div>
+                    <div class="stat-label">昨日新增</div>
                 </div>
                 <div class="stat-card stat-green">
                     <div class="stat-value" id="statWeekNew">0</div>
-                    <div class="stat-label">本周新增缺陷数</div>
+                    <div class="stat-label">本周新增</div>
                 </div>
                 <div class="stat-card stat-orange">
                     <div class="stat-value" id="statMonthNew">0</div>
-                    <div class="stat-label">本月新增缺陷数</div>
+                    <div class="stat-label">本月新增</div>
                 </div>
                 <div class="stat-card stat-purple">
                     <div class="stat-value" id="statYearNew">0</div>
-                    <div class="stat-label">今年新增缺陷数</div>
+                    <div class="stat-label">今年新增</div>
                 </div>
                 <!-- Row 3: 消缺统计 -->
                 <div class="stat-card stat-red">
@@ -957,19 +957,19 @@
             <!-- 右侧：消缺龙虎榜 -->
             <div id="leaderboard" class="leaderboard">
                 <div class="leaderboard-card">
-                    <div class="lb-title lb-red">🏆 昨日消缺排名第一</div>
+                    <div class="lb-title lb-red">昨日消缺第一</div>
                     <div class="lb-body" id="lbYesterday"></div>
                 </div>
                 <div class="leaderboard-card">
-                    <div class="lb-title lb-green">📅 本周消缺排名第一</div>
+                    <div class="lb-title lb-green">本周消缺第一</div>
                     <div class="lb-body" id="lbWeek"></div>
                 </div>
                 <div class="leaderboard-card">
-                    <div class="lb-title lb-orange">🔥 本月消缺排名前三</div>
+                    <div class="lb-title lb-orange">本月消缺前三</div>
                     <div class="lb-body" id="lbMonth"></div>
                 </div>
                 <div class="leaderboard-card">
-                    <div class="lb-title lb-purple">⭐ 本年消缺排名前三</div>
+                    <div class="lb-title lb-purple">本年消缺前三</div>
                     <div class="lb-body" id="lbYear"></div>
                 </div>
             </div>
@@ -991,7 +991,7 @@
         <div id="tableSection" class="table-section" style="display: none;">
             <div id="alertInfo" class="alert-info" style="display: none;"></div>
             <div class="table-header-bar">
-                <input type="text" id="searchBox" class="search-box" placeholder="搜索数据..." onkeyup="handleSearch()">
+                <input type="text" id="searchBox" class="search-box" placeholder="搜索缺陷" onkeyup="handleSearch()">
                 <div class="pagination" id="pagination"></div>
             </div>
             <div class="table-wrapper" id="tableWrapper">
@@ -1026,9 +1026,6 @@
             <div class="modal-header">
                 <h3>生成报告</h3>
                 <span class="modal-close" onclick="closeReportRange()">×</span>
-            </div>
-            <div class="modal-content">
-                <p>请选择报告统计范围：</p>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-chart" style="margin-right:10px;"
@@ -1734,7 +1731,7 @@
 
             const completedCount = processedData.filter(r => r.status === '已消缺项').length;
             const pendingCount = processedData.filter(r => r.status === '待消缺项目').length;
-            info.textContent = `数据预览：共 ${processedData.length} 条记录 | ${columns.length + 1} 个字段 | 已消缺 ${completedCount} 条 | 待消缺 ${pendingCount} 条 | 当前显示第 ${start + 1}-${Math.min(end, filteredData.length)} 条（搜索：${filteredData.length} 条）`;
+            info.textContent = `共 ${processedData.length} 条 · 已消缺 ${completedCount} · 待消缺 ${pendingCount} · 第 ${start + 1}-${Math.min(end, filteredData.length)} 条（筛选 ${filteredData.length} 条）`;
             info.style.display = 'block';
 
             renderPagination(totalPages);

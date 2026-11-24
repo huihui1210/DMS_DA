@@ -178,15 +178,12 @@
 <body>
     <div class="wrap">
         <h1>重复编号检查</h1>
-        <div class="sub">
-            读取本机 localStorage 的 <code>defectData_all</code>、<code>defectData_recv</code>、<code>defectData_fen</code>，
-            列出所有出现 2 次及以上的缺陷编号，并对比「三键原始条数 / all 原始条数 / 去重后条数」。<br>
-            <code>defectData_all</code> 是当前数据的唯一权威来源，recv/fen 仅为分站存储；本页面只读，不会修改任何数据。</div>
+        <div class="sub">对比福建LNG、接收站和分输站数据中的重复编号，仅读取本机数据。</div>
 
         <div class="notice" id="notice"></div>
 
         <div class="toolbar">
-            <button id="btnReload">重新读取 localStorage</button>
+            <button id="btnReload">重新读取</button>
             <button id="btnCopy">复制为 JSON</button>
             <button id="btnDownload">下载 JSON</button>
         </div>
@@ -195,15 +192,11 @@
 
         <div id="result"></div>
 
-        <div class="section-title">兜底：粘贴 JSON</div>
-        <div class="muted">
-            file:// 下读不到数据时，请在控制台执行
-            <code>JSON.stringify({ all: JSON.parse(localStorage.getItem('defectData_all')||'[]'), recv: JSON.parse(localStorage.getItem('defectData_recv')||'[]'), fen: JSON.parse(localStorage.getItem('defectData_fen')||'[]') })</code>
-            把结果粘贴到下面，或直接粘贴任意一个缺陷数组。
-        </div>
-        <textarea id="pasteBox" placeholder="粘贴 JSON 后点击下方按钮解析"></textarea>
+        <div class="section-title">粘贴 JSON</div>
+        <div class="muted">无法自动读取时，可粘贴缺陷数组，或包含 all / recv / fen 的 JSON 对象。</div>
+        <textarea id="pasteBox" placeholder="粘贴 JSON"></textarea>
         <div class="toolbar" style="margin-top:8px;">
-            <button id="btnParsePaste">解析粘贴内容</button>
+            <button id="btnParsePaste">解析</button>
         </div>
 
         <div id="pasteMsg" class="muted"></div>
