@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG接收站设备缺陷管理系统 V5.30.19</title>
+    <title>福建LNG接收站设备缺陷管理系统 V5.30.20</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -882,7 +882,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.19</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
+            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.20</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#recv'">数据看板</button>
                 <label for="fileInput" class="btn btn-upload">
@@ -2589,7 +2589,8 @@
 
         // ======= 外部联动：从网址锚点读取多维表格插件发送的数据 =======
         // 数据格式：#dms=<lz-string 压缩后的 JSON>，锚点不经过服务器
-        function importRowsFromHash() {
+        // autoUpdate=true 表示是 hashchange 触发的后续同步 → 只更新数据、不做 checkAndRedirect 跳转
+        function importRowsFromHash(autoUpdate) {
             const hash = window.location.hash || '';
             const match = hash.match(/(?:^#|&)dms=([^&]+)/);
             if (!match) return false;
@@ -2603,28 +2604,42 @@
                 const rows = Array.isArray(payload) ? payload : payload.rows;
                 if (!Array.isArray(rows)) throw new Error('数据格式不正确');
                 rawData = rows;
-                // 自动检测：14位编号→分输站，11位编号→接收站
-                if (checkAndRedirect(rawData)) {
-                    return false;
+                // 首次加载（DOMContentLoaded）时做站类型自动跳转
+                // 后续 hashchange 触发（插件自动同步）时只更新数据、不跳页面
+                if (!autoUpdate) {
+                    if (checkAndRedirect(rawData)) {
+                        return false;
+                    }
+                } else {
+                    // 非首次同步：如果数据属于其他站点，仍然存 pendingTransferData
+                    // （让看板/总界面能看到新数据），但不强制跳转
+                    const detectedType = detectDefectIdType(rawData);
+                    if (detectedType && detectedType !== STATION_TYPE) {
+                        try { localStorage.setItem('pendingTransferData', JSON.stringify(rows)); } catch (e) { }
+                    }
                 }
                 processData();
+                // 更新全局时间戳：看板/index_3.html 靠这个轮询刷新
+                try { localStorage.setItem('defectData_all_ver', String(Date.now())); } catch (e) { }
                 // 尽力通知来源页面（被沙箱拦截也不影响导入）
                 try {
                     if (window.opener && !window.opener.closed) {
                         window.opener.postMessage(
-                            { source: 'dms-da', type: 'imported', count: rows.length }, '*');
+                            { source: 'dms-da', type: autoUpdate ? 'auto-imported' : 'imported', count: rows.length }, '*');
                     }
                 } catch (err) { }
                 // 清掉锚点，避免刷新时重复导入
                 try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (err) { }
                 return true;
             } catch (err) {
-                showModal('自动导入失败', String((err && err.message) || err));
+                if (!autoUpdate) {
+                    showModal('自动导入失败', String((err && err.message) || err));
+                }
                 return false;
             }
         }
         window.addEventListener('DOMContentLoaded', function () {
-            importRowsFromHash();
+            importRowsFromHash(false); // 首次加载：正常跳转
             // 显示最近同步时间（自动同步插件每次发送都会更新该时间戳）
             try {
                 const ver = localStorage.getItem('defectData_all_ver');
@@ -2638,7 +2653,7 @@
             } catch (e) { }
         });
         window.addEventListener('hashchange', function () {
-            importRowsFromHash();
+            importRowsFromHash(true); // 后续同步：只更新不跳转
         });
 
     </script>
