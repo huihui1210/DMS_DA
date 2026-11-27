@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG分输站设备缺陷管理系统 V5.30.17</title>
+    <title>福建LNG分输站设备缺陷管理系统 V5.30.18</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -882,7 +882,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG分输站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.17</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
+            <h1>福建LNG分输站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.18</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#fen'">数据看板</button>
                 <label for="fileInput" class="btn btn-upload">
@@ -2641,11 +2641,13 @@
             importRowsFromHash();
         });
 
-        // ======= postMessage 通道：自动同步插件不改变 URL 时用这个 =======
-        // 场景：用户把 DMS 切到看板/报告页面时，插件自动同步如果用 URL hash 会把他踢回发送界面。
-        //       所以插件改走 postMessage 发数据，我们在这里接收并更新 localStorage，
-        //       看板/报告页通过既有的 localStorage 轮询自动更新。
+        // ======= localStorage 轮询：Work插件自动同步写，DMS 只读 =======
+        // 同属 github.io origin，localStorage 天生共享。每 2 秒看一下版本号，
+        // 变了就读压缩数据、解压、更新界面——完全不改 URL、不跳页面。
         (function () {
+            var PAYLOAD_KEY = 'dms_sync_payload';
+            var VER_KEY = 'dms_sync_ver';
+            var lastSeenVer = '';
             function showToast(text) {
                 var el = document.getElementById('dmsAutoSyncToast');
                 if (!el) {
@@ -2659,19 +2661,16 @@
                 window.clearTimeout(el._t);
                 el._t = window.setTimeout(function () { el.style.opacity = '0'; }, 2500);
             }
-            window.addEventListener('message', function (event) {
-                var hasOpener = !!window.opener;
-                var sourceMatch = hasOpener && event.source === window.opener;
-                console.log('[DMS 自动同步] 收到 message，hasOpener=' + hasOpener + ', sourceMatch=' + sourceMatch + ', origin=' + event.origin);
-                if (hasOpener && !sourceMatch) { console.log('[DMS 自动同步] source 不匹配，丢弃'); return; }
-                var data = event.data;
-                if (!data || typeof data !== 'object') { console.log('[DMS 自动同步] data 无效，丢弃'); return; }
-                if (data.type !== 'DMS_IMPORT_DATA') { console.log('[DMS 自动同步] type 不匹配，丢弃'); return; }
-                if (typeof data.compressed !== 'string') { console.log('[DMS 自动同步] compressed 无效，丢弃'); return; }
-                console.log('[DMS 自动同步] 消息校验通过，长度:', data.compressed.length);
+            function poll() {
                 try {
-                    if (typeof LZString === 'undefined') { console.warn('[DMS 自动同步] LZString 未加载'); return; }
-                    var json = LZString.decompressFromEncodedURIComponent(data.compressed);
+                    var ver = localStorage.getItem(VER_KEY);
+                    if (!ver || ver === lastSeenVer) return;
+                    lastSeenVer = ver;
+                    var compressed = localStorage.getItem(PAYLOAD_KEY);
+                    if (!compressed) return;
+                    console.log('[DMS 自动同步] 轮询到新版本 ver=' + ver + '，长度=' + compressed.length);
+                    if (typeof LZString === 'undefined') return;
+                    var json = LZString.decompressFromEncodedURIComponent(compressed);
                     var payload = JSON.parse(json);
                     var rows = Array.isArray(payload) ? payload : payload.rows;
                     if (!Array.isArray(rows)) return;
@@ -2697,15 +2696,11 @@
                     try { processData(); } catch (e) { }
                     try { localStorage.setItem('defectData_all_ver', String(Date.now())); } catch (e) { }
                     showToast('数据已自动更新（' + rows.length + ' 条）');
-                    try {
-                        if (window.opener && !window.opener.closed) {
-                            window.opener.postMessage({ source: 'dms-da', type: 'auto-imported', count: rows.length, timestamp: data.timestamp }, '*');
-                        }
-                    } catch (err) { }
-                } catch (err) {
-                    console.error('[DMS] postMessage 自动导入失败:', err);
-                }
-            });
+                } catch (err) { console.error('[DMS 自动同步] 轮询处理失败:', err); }
+            }
+            try { lastSeenVer = localStorage.getItem(VER_KEY) || ''; } catch (e) { }
+            setInterval(poll, 2000);
+            setTimeout(poll, 500);
         })();
     </script>
 </body>
