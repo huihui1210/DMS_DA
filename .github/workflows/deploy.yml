@@ -23,33 +23,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 每次推送自动递增版本号（patch +1），跨所有 HTML 统一替换
-      - name: Bump V version (patch +1)
-        run: |
-          # 1) 从所有 HTML 中提取形如 V数字.数字.数字 的版本号，取最大的一个
-          CURRENT_VER="$(grep -rhoE 'V[0-9]+\.[0-9]+\.[0-9]+' *.html 2>/dev/null \
-            | sort -tV -k2 -V | tail -n1)"
-          if [ -z "$CURRENT_VER" ]; then
-            CURRENT_VER="V5.30.0"
-            echo "No existing version found, default to ${CURRENT_VER}"
-          fi
-          echo "Current version: ${CURRENT_VER}"
-
-          # 2) major.minor.patch 拆分
-          MAJOR="$(echo "$CURRENT_VER" | sed 's/V//' | cut -d. -f1)"
-          MINOR="$(echo "$CURRENT_VER" | sed 's/V//' | cut -d. -f2)"
-          PATCH="$(echo "$CURRENT_VER" | sed 's/V//' | cut -d. -f3)"
-          PATCH=$((PATCH + 1))
-          NEW_VER="V${MAJOR}.${MINOR}.${PATCH}"
-          echo "New version: ${NEW_VER}"
-
-          # 3) 全量替换（正则确保只匹配 semver 格式，不污染其它数字）
-          for f in *.html; do
-            sed -i -E "s/V[0-9]+\.[0-9]+\.[0-9]+/${NEW_VER}/g" "$f"
-          done
-          echo "Patched files:"
-          grep -l "${NEW_VER}" *.html
-
       # 注入/更新 bridge-rev 时间戳
       - name: Inject bridge-rev timestamp
         run: |
