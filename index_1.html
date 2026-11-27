@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.22</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.23</title>
     <!-- bridge-rev 2026-11-27T08:20:14Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -35,8 +35,8 @@
             --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
             --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
             --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);
-            --btn-padding: 10px 20px;
-            --btn-font: 14px;
+            --btn-padding: 8px 12px;
+            --btn-font: 13px;
         }
 
         /* ======= Reset & 全局 ======= */
@@ -84,29 +84,17 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 8px 10px;
         }
 
         .header h1 {
             color: white;
             font-size: 24px;
             font-weight: 600;
-            flex-shrink: 0;
-        }
-
-        .header-sync {
-            margin-top: 8px;
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.65);
-            text-align: left;
         }
 
         .btn-group {
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: flex-end;
+            gap: 6px;
         }
 
         .btn {
@@ -896,7 +884,7 @@
     <div class="container">
         <div class="header">
             <div class="header-top">
-                <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.22</span></h1>
+                <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.23</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.6);margin-left:10px;"></span></h1>
                 <div class="btn-group">
                     <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#all'">数据看板</button>
                     <label for="fileInput" class="btn btn-upload">
@@ -912,7 +900,6 @@
                     <button class="btn btn-export" onclick="exportBeautifiedExcel()">导出 Excel</button>
                 </div>
             </div>
-            <div id="lastSyncTime" class="header-sync" style="display:none;"></div>
         </div>
 
         <div class="dashboard-row" style="display: none;">
