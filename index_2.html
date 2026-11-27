@@ -1,10 +1,10 @@
-﻿﻿<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG分输站设备缺陷管理系统 V5.30.21</title>
+    <title>福建LNG分输站设备缺陷管理系统 V5.30.22</title>
     <!-- bridge-rev 2026-11-27T08:20:14Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -84,12 +84,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 8px 10px;
         }
 
         .header h1 {
             color: white;
             font-size: 24px;
             font-weight: 600;
+            flex-shrink: 0;
         }
 
         .header-sync {
@@ -102,6 +105,8 @@
         .btn-group {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
         .btn {
@@ -893,7 +898,7 @@
     <div class="container">
         <div class="header">
             <div class="header-top">
-                <h1>福建LNG分输站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.21</span></h1>
+                <h1>福建LNG分输站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.22</span></h1>
                 <div class="btn-group">
                     <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#fen'">数据看板</button>
                     <label for="fileInput" class="btn btn-upload">
