@@ -2716,17 +2716,19 @@
             }
 
             window.addEventListener('message', function (event) {
-                // 安全校验：只接受 window.open 打开我们的父窗口发来的消息
-                // （飞书 iframe 内插件的 origin 不固定，靠 source 校验更可靠）
-                if (window.opener && event.source !== window.opener) return;
+                var hasOpener = !!window.opener;
+                var sourceMatch = hasOpener && event.source === window.opener;
+                console.log('[DMS 自动同步] 收到 message，hasOpener=' + hasOpener + ', sourceMatch=' + sourceMatch + ', origin=' + event.origin);
+                if (hasOpener && !sourceMatch) { console.log('[DMS 自动同步] source 不匹配，丢弃'); return; }
 
                 var data = event.data;
-                if (!data || typeof data !== 'object') return;
-                if (data.type !== 'DMS_IMPORT_DATA') return;
-                if (typeof data.compressed !== 'string') return;
+                if (!data || typeof data !== 'object') { console.log('[DMS 自动同步] data 无效，丢弃'); return; }
+                if (data.type !== 'DMS_IMPORT_DATA') { console.log('[DMS 自动同步] type 不匹配，丢弃'); return; }
+                if (typeof data.compressed !== 'string') { console.log('[DMS 自动同步] compressed 无效，丢弃'); return; }
+                console.log('[DMS 自动同步] 消息校验通过，长度:', data.compressed.length);
 
                 try {
-                    if (typeof LZString === 'undefined') return;
+                    if (typeof LZString === 'undefined') { console.warn('[DMS 自动同步] LZString 未加载'); return; }
                     var json = LZString.decompressFromEncodedURIComponent(data.compressed);
                     var payload = JSON.parse(json);
                     var rows = Array.isArray(payload) ? payload : payload.rows;
