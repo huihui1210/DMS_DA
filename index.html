@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG接收站设备缺陷管理系统 V5.30.18</title>
+    <title>福建LNG接收站设备缺陷管理系统 V5.30.19</title>
     <!-- bridge-rev 2026-09-20T07:41:14.637Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -882,7 +882,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.18</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
+            <h1>福建LNG接收站设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.19</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px;"></span></h1>
             <div class="btn-group">
                 <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#recv'">数据看板</button>
                 <label for="fileInput" class="btn btn-upload">
@@ -2641,81 +2641,6 @@
             importRowsFromHash();
         });
 
-        // ======= localStorage 轮询：Work插件自动同步写，DMS 只读 =======
-        // 同属 github.io origin，localStorage 天生共享。每 2 秒看一下版本号，
-        // 变了就读压缩数据、解压、更新界面——完全不改 URL、不跳页面。
-        (function () {
-            var PAYLOAD_KEY = 'dms_sync_payload';
-            var VER_KEY = 'dms_sync_ver';
-            var lastSeenVer = '';
-
-            function showToast(text) {
-                var el = document.getElementById('dmsAutoSyncToast');
-                if (!el) {
-                    el = document.createElement('div');
-                    el.id = 'dmsAutoSyncToast';
-                    el.style.cssText = 'position:fixed;right:24px;bottom:24px;' +
-                        'background:#0e7490;color:#fff;padding:10px 16px;border-radius:8px;' +
-                        'font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.2);' +
-                        'z-index:99999;opacity:0;transition:opacity .2s;pointer-events:none;';
-                    document.body.appendChild(el);
-                }
-                el.textContent = text;
-                el.style.opacity = '1';
-                window.clearTimeout(el._t);
-                el._t = window.setTimeout(function () { el.style.opacity = '0'; }, 2500);
-            }
-
-            function poll() {
-                try {
-                    var ver = localStorage.getItem(VER_KEY);
-                    if (!ver || ver === lastSeenVer) return;
-                    lastSeenVer = ver;
-                    var compressed = localStorage.getItem(PAYLOAD_KEY);
-                    if (!compressed) return;
-                    console.log('[DMS 自动同步] 轮询到新版本 ver=' + ver + '，长度=' + compressed.length);
-
-                    if (typeof LZString === 'undefined') return;
-                    var json = LZString.decompressFromEncodedURIComponent(compressed);
-                    var payload = JSON.parse(json);
-                    var rows = Array.isArray(payload) ? payload : payload.rows;
-                    if (!Array.isArray(rows)) return;
-
-                    // 同 checkAndRedirect 的检测逻辑，但不做跳转
-                    if (typeof checkAndRedirect === 'function') {
-                        var detectedType = null;
-                        try { detectedType = (function _detect(list) {
-                            var len14 = 0, len11 = 0, other = 0;
-                            for (var i = 0; i < list.length; i++) {
-                                var id = String(list[i]['缺陷编号'] || list[i]['编号'] || list[i]['ID'] || '').trim();
-                                if (id.length === 14) len14++;
-                                else if (id.length === 11) len11++;
-                                else other++;
-                            }
-                            if (len14 > len11 && len14 > other) return 'fen';
-                            if (len11 > len14 && len11 > other) return 'recv';
-                            return null;
-                        })(rows); } catch (e) { }
-                        if (detectedType && detectedType !== (typeof STATION_TYPE !== 'undefined' ? STATION_TYPE : null)) {
-                            try { localStorage.setItem('pendingTransferData', JSON.stringify(rows)); } catch (e) { }
-                        }
-                    }
-
-                    rawData = rows;
-                    try { processData(); } catch (e) { }
-                    try { localStorage.setItem('defectData_all_ver', String(Date.now())); } catch (e) { }
-                    showToast('数据已自动更新（' + rows.length + ' 条）');
-                } catch (err) {
-                    console.error('[DMS 自动同步] 轮询处理失败:', err);
-                }
-            }
-
-            // 启动轮询
-            try { lastSeenVer = localStorage.getItem(VER_KEY) || ''; } catch (e) { }
-            setInterval(poll, 2000);
-            // 页面刚加载时立即检查一次（以防插件在 DMS 加载期间就发了数据）
-            setTimeout(poll, 500);
-        })();
     </script>
 </body>
 
