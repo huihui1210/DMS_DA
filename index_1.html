@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.23</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.24</title>
     <!-- bridge-rev 2026-11-27T08:20:14Z -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -884,7 +884,7 @@
     <div class="container">
         <div class="header">
             <div class="header-top">
-                <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.23</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.6);margin-left:10px;"></span></h1>
+                <h1>福建LNG设备缺陷管理系统 <span style="font-size:14px;color:rgba(255,255,255,0.7);">V5.30.24</span><span id="lastSyncTime" style="display:none;font-size:12px;color:rgba(255,255,255,0.6);margin-left:10px;"></span></h1>
                 <div class="btn-group">
                     <button class="btn btn-dashboard" onclick="window.location.href='index_3.html#all'">数据看板</button>
                     <label for="fileInput" class="btn btn-upload">
@@ -2682,6 +2682,8 @@
                     }
                 }
                 processData();
+                try { localStorage.setItem('defectData', JSON.stringify(rawData)); } catch (e) { }
+                try { localStorage.setItem('defectData_all', JSON.stringify(rawData)); } catch (e) { }
                 try { localStorage.setItem('defectData_all_ver', String(Date.now())); } catch (e) { }
                 try {
                     if (window.opener && !window.opener.closed) {

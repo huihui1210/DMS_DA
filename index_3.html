@@ -5,8 +5,9 @@
     <!-- bridge-rev 2026-11-27T08:20:14Z -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>福建LNG设备缺陷管理系统 V5.30.23 · 整体看板</title>
+    <title>福建LNG设备缺陷管理系统 V5.30.24 · 整体看板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -3077,7 +3078,7 @@
             <div class="brand">
                 <div class="title-row">
                     <h1>福建LNG设备缺陷管理系统</h1>
-                    <span class="ver">V5.30.23</span>
+                    <span class="ver">V5.30.24</span>
                 </div>
             </div>
 
@@ -6668,6 +6669,20 @@
             });
 
             window.addEventListener('hashchange', function () {
+                // 插件自动同步发来的 #dms=xxx → 解压写 localStorage → 轮询机制自动刷新看板/报告
+                try {
+                    const m = (window.location.hash || '').match(/(?:^#|&)dms=([^&]+)/);
+                    if (m && typeof LZString !== 'undefined') {
+                        const json = LZString.decompressFromEncodedURIComponent(m[1]);
+                        const rows = JSON.parse(json);
+                        if (Array.isArray(rows)) {
+                            try { localStorage.setItem('defectData_all', JSON.stringify(rows)); } catch (e) { }
+                            try { localStorage.setItem('defectData', JSON.stringify(rows)); } catch (e) { }
+                            try { localStorage.setItem('defectData_all_ver', String(Date.now())); } catch (e) { }
+                        }
+                        try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) { }
+                    }
+                } catch (e) { console.error('[看板] hashchange 导入失败:', e); }
                 setView(parseHashView(), false);
             });
 
